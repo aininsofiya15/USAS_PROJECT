@@ -1,4 +1,6 @@
+import 'package:USAS/pages/dashboard.dart';
 import 'package:flutter/material.dart';
+import '../pages/pusatAdab/addModule_page.dart';
 
 class AppSidebar extends StatelessWidget {
   final String name;
@@ -13,7 +15,7 @@ class AppSidebar extends StatelessWidget {
       case 'faculty': return const Color(0xFFD4AF00);  
       case 'lecturer': return const Color(0xFFC8908D); 
       case 'pusat_adab': return const Color(0xFFD5FFF7); 
-      default: return const Color(0xFF007BFF);         
+      default: return const Color(0xFF007BFF);          
     }
   }
 
@@ -76,34 +78,48 @@ class AppSidebar extends StatelessWidget {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  _buildMenuItem(context, Icons.home_outlined, "Home"),
-                  const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
+                  
+                  
 
                   if (role == 'treasury') ...[
+                    _buildMenuItem(context, Icons.home_outlined, "Home"),
+                    const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
                     _buildMenuItem(context, Icons.monetization_on_outlined, "Tuition Fees"),
                     _buildSubMenuItem(context, "Block Settings"),
                     const Divider(color: Colors.white24, height: 5),
                     _buildMenuItem(context, Icons.analytics_outlined, "Reports"),
                   ] 
                   else if (role == 'faculty') ...[
+                    _buildMenuItem(context, Icons.home_outlined, "Home"),
+                    const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
                     _buildMenuItem(context, Icons.grid_view, "Subject Registration"),
                     _buildSubMenuItem(context, "Add Subject"),
                   ] 
                   else if (role == 'lecturer') ...[
+                    _buildMenuItem(context, Icons.home_outlined, "Home"),
+                    const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
                     _buildMenuItem(context, Icons.list, "Attendance"),
                     _buildSubMenuItem(context, "Attendance"),
                     _buildSubMenuItem(context, "View Attendance"),
                   ] 
                   else if (role == 'pusat_adab') ...[
+                    _buildMenuItem(context, Icons.home_outlined, "Home",destination: DashboardPage(name: name, role: role)),
+                    const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
                     _buildMenuItem(context, Icons.list_alt, "Module List"),
                     _buildSubMenuItem(context, "View Module"),
-                    _buildSubMenuItem(context, "Add Module"),
+                    _buildSubMenuItem(
+                      context, 
+                      "Add Module", 
+                      destination: AddModulePage(name: name, role: role)
+                    ),
                     _buildSubMenuItem(context, "Edit Module"),
                     const Divider(color: Colors.black12, height: 10),
                     _buildMenuItem(context, Icons.description_outlined, "Credit Claim Application"),
                     _buildSubMenuItem(context, "View Student Application"),
                   ] 
                   else ...[
+                    _buildMenuItem(context, Icons.home_outlined, "Home"),
+                    const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
                     _buildMenuItem(context, Icons.grid_view, "Subject Registration"),
                     _buildSubMenuItem(context, "List of Registered Subjects"),
                     const Divider(color: Colors.white24, height: 10),
@@ -129,7 +145,7 @@ class AppSidebar extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, IconData icon, String title, {bool isLogout = false}) {
+  Widget _buildMenuItem(BuildContext context, IconData icon, String title, {bool isLogout = false, Widget? destination}) {
     return ListTile(
       dense: true,
       visualDensity: const VisualDensity(vertical: -2),
@@ -143,12 +159,21 @@ class AppSidebar extends StatelessWidget {
         ),
       ),
       onTap: () {
-        if (isLogout) Navigator.pushReplacementNamed(context, '/');
+        if (isLogout) {
+          Navigator.pushReplacementNamed(context, '/');
+        } else if (destination != null) {
+          Navigator.pop(context); // Close the drawer first
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => destination),
+          );
+        }
       },
     );
   }
 
-  Widget _buildSubMenuItem(BuildContext context, String title) {
+  // 🛠️ UPDATED: Added destination parameter to handle navigation
+  Widget _buildSubMenuItem(BuildContext context, String title, {Widget? destination}) {
     return ListTile(
       dense: true,
       visualDensity: const VisualDensity(vertical: -4),
@@ -161,7 +186,16 @@ class AppSidebar extends StatelessWidget {
           fontWeight: FontWeight.w400,
         ),
       ),
-      onTap: () {},
+
+      onTap: () {
+        if (destination != null) {
+          Navigator.pop(context); // Close the drawer
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => destination),
+          );
+        }
+      },
     );
   }
 }
