@@ -42,7 +42,6 @@ class DashboardPage extends StatelessWidget {
   }
 
   Widget _buildRoleSpecificBody(String name, String role) {
-    
     if (role == 'pusat_adab') {
       return PusatAdabBody(name: name);
     } 
