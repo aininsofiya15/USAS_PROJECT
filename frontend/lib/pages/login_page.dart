@@ -1,8 +1,10 @@
 
-import 'package:USAS/pages/dashboard.dart';
+import 'package:USAS/screens/dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:provider/provider.dart'; // To use the Provider tool
+import '../provider/UserProvider.dart'; // To access your UserProvider file
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -38,6 +40,8 @@ class _LoginPageState extends State<LoginPage> {
         String role = data['user']['role'];
         String name = data['user']['name'];
 
+        Provider.of<UserProvider>(context, listen: false).createSession(name, role);
+
         // 1. Show the success message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -48,13 +52,12 @@ class _LoginPageState extends State<LoginPage> {
 
         // 2. NAVIGATE to the Dashboard automatically
         
+        Provider.of<UserProvider>(context, listen: false).createSession(name, role);
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => DashboardPage(
-              name: name, 
-              role: role,
-            ),
+            builder: (context) => const DashboardPage(), // Clean and empty!
           ),
         );
         
