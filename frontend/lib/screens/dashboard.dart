@@ -5,6 +5,8 @@ import '../widgets/app_sidebar.dart';
 import '../widgets/header.dart';
 import '../widgets/navigationBar.dart';
 import 'pusatAdab/adabDashboard.dart';
+import 'lecturer/lecturerDashboard.dart';
+
 
 class DashboardPage extends StatelessWidget {
   // Notice: No variables passed in constructor anymore!
@@ -42,6 +44,9 @@ class DashboardPage extends StatelessWidget {
     if (role == 'pusat_adab') {
       return PusatAdabBody(name: name);
     } 
+    else if (role == 'lecturer') {
+      return LecturerBody(name: name);
+    } 
     return Center(
       child: Text(
         "Welcome back, $name!\nRole: ${role.toUpperCase()}",
@@ -49,5 +54,7 @@ class DashboardPage extends StatelessWidget {
         style: const TextStyle(fontSize: 18),
       ),
     );
+    
   }
+  
 }
