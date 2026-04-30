@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; //
+import '../provider/UserProvider.dart'; //
 import '../widgets/app_sidebar.dart';
 import '../widgets/header.dart';
 import '../widgets/navigationBar.dart';
-// Import your role-specific dashboards
 import 'pusatAdab/adabDashboard.dart';
 
 class DashboardPage extends StatelessWidget {
-  final String name;
-  final String role;
+  // Notice: No variables passed in constructor anymore!
+  const DashboardPage({super.key});
 
-  const DashboardPage({super.key, required this.name, required this.role});
-
-  // Role-based background colors
-  Color getBackgroundColor() {
+  // Color logic moved here for cleanliness
+  Color getBackgroundColor(String role) {
     switch (role) {
       case 'student': return const Color(0xFFE3EFF8);
       case 'faculty': return const Color(0xFFFDF9EC);
@@ -25,31 +24,30 @@ class DashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: getBackgroundColor(),
-      // Using your reusable Header
-      appBar: const UsasHeader(),
-      
-      // Using your shared Sidebar
-      drawer: AppSidebar(name: name, role: role),
-      
-      // Using your reusable Bottom Nav
-      bottomNavigationBar: const UsasBottomNav(),
+    // Grab the data from the Provider
+    final user = Provider.of<UserProvider>(context);
+    final String name = user.name;
+    final String role = user.role;
 
-      // Decide which body to show
-      body: _buildRoleSpecificBody(),
+    return Scaffold(
+      backgroundColor: getBackgroundColor(role),
+      appBar: const UsasHeader(),
+      drawer: const AppSidebar(), // Sidebar also uses Provider now!
+      bottomNavigationBar: const UsasBottomNav(),
+      body: _buildRoleSpecificBody(name, role),
     );
   }
 
-  Widget _buildRoleSpecificBody() {
+  Widget _buildRoleSpecificBody(String name, String role) {
     if (role == 'pusat_adab') {
       return PusatAdabBody(name: name);
     } 
-    // You can add more roles here later (e.g. if (role == 'student')...)
     return Center(
-      child: Text("Welcome back, $name!\nRole: ${role.toUpperCase()}",
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 18)),
+      child: Text(
+        "Welcome back, $name!\nRole: ${role.toUpperCase()}",
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 18),
+      ),
     );
   }
 }

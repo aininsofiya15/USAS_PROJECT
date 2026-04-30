@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
-import 'pages/login_page.dart'; // No 'package:USAS/...' needed!
+import 'package:provider/provider.dart';
+import 'screens/login_page.dart'; 
+import 'provider/UserProvider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    // 3. Wrap your app in a MultiProvider or ChangeNotifierProvider
+    ChangeNotifierProvider(
+      create: (context) => UserProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

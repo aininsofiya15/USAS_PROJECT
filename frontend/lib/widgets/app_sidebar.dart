@@ -1,15 +1,14 @@
-import 'package:USAS/pages/dashboard.dart';
+import 'package:USAS/screens/dashboard.dart';
 import 'package:flutter/material.dart';
-import '../pages/pusatAdab/addModule_page.dart';
+import '../screens/pusatAdab/addModule_page.dart';
+import 'package:provider/provider.dart'; 
+import '../provider/UserProvider.dart';
 
 class AppSidebar extends StatelessWidget {
-  final String name;
-  final String role;
 
-  const AppSidebar({super.key, required this.name, required this.role});
-
+  const AppSidebar({super.key});
   // 🎨 Sidebar Main Body Color
-  Color getSidebarColor() {
+  Color getSidebarColor(String role) {
     switch (role) {
       case 'treasury': return const Color(0xFF11B754); 
       case 'faculty': return const Color(0xFFD4AF00);  
@@ -20,7 +19,7 @@ class AppSidebar extends StatelessWidget {
   }
 
   // 🎨 Sidebar Header Color
-  Color getSidebarHeaderColor() {
+  Color getSidebarHeaderColor(String role) {
     switch (role) {
       case 'treasury': return const Color(0xFF0E9A46);
       case 'faculty': return const Color(0xFFB89800);
@@ -31,15 +30,20 @@ class AppSidebar extends StatelessWidget {
   }
 
   // 🎨 Text and Icon Color Logic
-  Color getTextColor() {
+  Color getTextColor(String role) {
     return (role == 'pusat_adab' || role == 'lecturer') ? Colors.black : Colors.white;
   }
 
   @override
   Widget build(BuildContext context) {
+
+    final user = Provider.of<UserProvider>(context);
+    final String name = user.name;
+    final String role = user.role;
+
     return Drawer(
       child: Container(
-        color: getSidebarColor(),
+        color: getSidebarColor(role),
         child: Column(
           children: [
             // 1. Profile Header
@@ -47,7 +51,7 @@ class AppSidebar extends StatelessWidget {
               margin: EdgeInsets.zero,
               padding: EdgeInsets.zero,
               decoration: BoxDecoration(
-                color: getSidebarHeaderColor(),
+                color: getSidebarHeaderColor(role),
                 border: const Border(bottom: BorderSide(color: Colors.transparent)),
               ),
               child: Center(
@@ -63,7 +67,7 @@ class AppSidebar extends StatelessWidget {
                     Text(
                       name,
                       style: TextStyle(
-                        color: getTextColor(),
+                        color: getTextColor(role),
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -76,68 +80,66 @@ class AppSidebar extends StatelessWidget {
             // 2. Role-Specific Menus
             Expanded(
               child: ListView(
-                padding: EdgeInsets.zero,
+                padding: EdgeInsets.zero, 
                 children: [
-                  
-                  
-
                   if (role == 'treasury') ...[
-                    _buildMenuItem(context, Icons.home_outlined, "Home"),
+                    _buildMenuItem(context, Icons.home_outlined, "Home", role),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
-                    _buildMenuItem(context, Icons.monetization_on_outlined, "Tuition Fees"),
-                    _buildSubMenuItem(context, "Block Settings"),
+                    _buildMenuItem(context, Icons.monetization_on_outlined, "Tuition Fees", role),
+                    _buildSubMenuItem(context, "Block Settings", role),
                     const Divider(color: Colors.white24, height: 5),
-                    _buildMenuItem(context, Icons.analytics_outlined, "Reports"),
+                    _buildMenuItem(context, Icons.analytics_outlined, "Reports", role),
                   ] 
                   else if (role == 'faculty') ...[
-                    _buildMenuItem(context, Icons.home_outlined, "Home"),
+                    _buildMenuItem(context, Icons.home_outlined, "Home", role),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
-                    _buildMenuItem(context, Icons.grid_view, "Subject Registration"),
-                    _buildSubMenuItem(context, "Add Subject"),
+                    _buildMenuItem(context, Icons.grid_view, "Subject Registration", role),
+                    _buildSubMenuItem(context, "Add Subject", role),
                   ] 
                   else if (role == 'lecturer') ...[
-                    _buildMenuItem(context, Icons.home_outlined, "Home"),
+                    _buildMenuItem(context, Icons.home_outlined, "Home", role),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
-                    _buildMenuItem(context, Icons.list, "Attendance"),
-                    _buildSubMenuItem(context, "Attendance"),
-                    _buildSubMenuItem(context, "View Attendance"),
+                    _buildMenuItem(context, Icons.list, "Attendance", role),
+                    _buildSubMenuItem(context, "Attendance", role),
+                    _buildSubMenuItem(context, "View Attendance", role),
                   ] 
                   else if (role == 'pusat_adab') ...[
-                    _buildMenuItem(context, Icons.home_outlined, "Home",destination: DashboardPage(name: name, role: role)),
+                    _buildMenuItem(context, Icons.home_outlined, "Home", role, destination: DashboardPage()),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
-                    _buildMenuItem(context, Icons.list_alt, "Module List"),
-                    _buildSubMenuItem(context, "View Module"),
+                    _buildMenuItem(context, Icons.list_alt, "Module List", role),
+                    _buildSubMenuItem(context, "View Module", role),
                     _buildSubMenuItem(
                       context, 
                       "Add Module", 
-                      destination: AddModulePage(name: name, role: role)
+                      role,
+                      destination: const AddModulePage()
                     ),
-                    _buildSubMenuItem(context, "Edit Module"),
+                    _buildSubMenuItem(context, "Edit Module", role),
                     const Divider(color: Colors.black12, height: 10),
-                    _buildMenuItem(context, Icons.description_outlined, "Credit Claim Application"),
-                    _buildSubMenuItem(context, "View Student Application"),
+                    _buildMenuItem(context, Icons.description_outlined, "Credit Claim Application", role),
+                    _buildSubMenuItem(context, "View Student Application", role),
                   ] 
                   else ...[
-                    _buildMenuItem(context, Icons.home_outlined, "Home"),
+                    _buildMenuItem(context, Icons.home_outlined, "Home", role),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
-                    _buildMenuItem(context, Icons.grid_view, "Subject Registration"),
-                    _buildSubMenuItem(context, "List of Registered Subjects"),
+                    _buildMenuItem(context, Icons.grid_view, "Subject Registration", role),
+                    _buildSubMenuItem(context, "List of Registered Subjects", role),
                     const Divider(color: Colors.white24, height: 10),
-                    _buildMenuItem(context, Icons.menu_book, "Curriculum Activity"),
-                    _buildSubMenuItem(context, "View My Module"),
-                    _buildSubMenuItem(context, "Module Booking"),
-                    _buildSubMenuItem(context, "Claim Credit"),
+                    _buildMenuItem(context, Icons.menu_book, "Curriculum Activity", role),
+                    _buildSubMenuItem(context, "View My Module", role),
+                    _buildSubMenuItem(context, "Module Booking", role),
+                    _buildSubMenuItem(context, "Claim Credit", role),
                     const Divider(color: Colors.white24, height: 10),
-                    _buildMenuItem(context, Icons.assignment_turned_in, "Attendance"),
-                    _buildSubMenuItem(context, "Attendance"),
-                    _buildSubMenuItem(context, "Attendance History"),
+                    _buildMenuItem(context, Icons.assignment_turned_in, "Attendance", role),
+                    _buildSubMenuItem(context, "Attendance", role),
+                    _buildSubMenuItem(context, "Attendance History", role),
                   ],
                 ],
               ),
             ),
 
             const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 20),
-            _buildMenuItem(context, Icons.logout, "Log Out", isLogout: true),
+            _buildMenuItem(context, Icons.logout, "Log Out", isLogout: true,role),
             const SizedBox(height: 10),
           ],
         ),
@@ -145,15 +147,15 @@ class AppSidebar extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, IconData icon, String title, {bool isLogout = false, Widget? destination}) {
+  Widget _buildMenuItem(BuildContext context, IconData icon, String title, String role, {bool isLogout = false, Widget? destination})  {
     return ListTile(
       dense: true,
       visualDensity: const VisualDensity(vertical: -2),
-      leading: Icon(icon, color: getTextColor(), size: 22),
+      leading: Icon(icon, color: getTextColor(role), size: 22),
       title: Text(
         title,
         style: TextStyle(
-          color: getTextColor(),
+          color: getTextColor(role),
           fontSize: 18,
           fontWeight: isLogout ? FontWeight.bold : FontWeight.w600,
         ),
@@ -173,7 +175,7 @@ class AppSidebar extends StatelessWidget {
   }
 
   // 🛠️ UPDATED: Added destination parameter to handle navigation
-  Widget _buildSubMenuItem(BuildContext context, String title, {Widget? destination}) {
+  Widget _buildSubMenuItem(BuildContext context, String title, String role, {Widget? destination}) {    
     return ListTile(
       dense: true,
       visualDensity: const VisualDensity(vertical: -4),
@@ -181,7 +183,7 @@ class AppSidebar extends StatelessWidget {
       title: Text(
         "• $title",
         style: TextStyle(
-          color: getTextColor().withOpacity(0.85),
+          color: getTextColor(role).withOpacity(0.85),
           fontSize: 15,
           fontWeight: FontWeight.w400,
         ),

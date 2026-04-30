@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigationBar.dart';
 import '../../widgets/app_sidebar.dart';
+import 'package:provider/provider.dart'; 
+import '../../provider/UserProvider.dart'; 
 
 class AddModulePage extends StatefulWidget {
-  final String name;
-  final String role;
 
-  const AddModulePage({super.key, required this.name, required this.role});
-
+  const AddModulePage({super.key});
   @override
   State<AddModulePage> createState() => _AddModulePageState();
 }
@@ -23,10 +22,11 @@ class _AddModulePageState extends State<AddModulePage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<UserProvider>(context);
     return Scaffold(
       backgroundColor: const Color(0xFFD5FFF7), 
       appBar: const UsasHeader(),
-      drawer: AppSidebar(name: widget.name, role: widget.role),
+      drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),

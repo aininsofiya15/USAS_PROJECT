@@ -33,7 +33,7 @@ class PusatAdabBody extends StatelessWidget {
                   const Color(0xFF4CAF50),
                   () => Navigator.push(
                     context, 
-                    MaterialPageRoute(builder: (context) => AddModulePage(name: name, role: 'pusat_adab'))
+                    MaterialPageRoute(builder: (context) => AddModulePage())
                   ),
                 ),
                 _buildMenuCard(context, Icons.fact_check, "Approvals", Colors.blue, () {}),
