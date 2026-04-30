@@ -6,6 +6,7 @@ import '../widgets/header.dart';
 import '../widgets/navigationBar.dart';
 import 'pusatAdab/adabDashboard.dart';
 import 'lecturer/lecturerDashboard.dart';
+import 'treasurer/treasurerDashboard.dart';
 
 
 class DashboardPage extends StatelessWidget {
@@ -41,12 +42,16 @@ class DashboardPage extends StatelessWidget {
   }
 
   Widget _buildRoleSpecificBody(String name, String role) {
+    
     if (role == 'pusat_adab') {
       return PusatAdabBody(name: name);
     } 
     else if (role == 'lecturer') {
       return LecturerBody(name: name);
     } 
+    else if (role == 'treasury') {
+      return TreasuryDashboardBody(name: name);
+    }
     return Center(
       child: Text(
         "Welcome back, $name!\nRole: ${role.toUpperCase()}",
