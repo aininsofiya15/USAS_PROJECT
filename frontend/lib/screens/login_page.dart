@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart'; // To use the Provider tool
 import '../provider/user_provider.dart'; // To access your UserProvider file
+import '../config/api.dart'; // Make sure the path points to your new file
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,8 +20,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> loginUser() async {
     
-    // kalau pakai emulator, tukar http://10.0.2.2:8000/api/login, kalau chrome, http://127.0.0.1:8000/api/login
-    final url = Uri.parse('http://10.0.2.2:8000/api/login');
+    final url = Uri.parse(Api.login);
 
     try {
       final response = await http.post(

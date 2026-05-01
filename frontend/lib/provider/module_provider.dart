@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../config/api.dart'; 
 
 class ModuleProvider with ChangeNotifier {
   // 1. Storage for the module list
@@ -11,7 +12,7 @@ class ModuleProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   // URL configuration
-  final String _baseUrl = "http://127.0.0.1:8000/api/modules";
+ final String _baseUrl = Api.modules;
 
   // 2. Function to FETCH modules from Laravel
   Future<void> fetchModules() async {
@@ -19,7 +20,7 @@ class ModuleProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.get(Uri.parse(_baseUrl));
+      final response = await http.get(Uri.parse(Api.modules));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
