@@ -1,7 +1,7 @@
 import 'package:USAS/screens/dashboard.dart';
 import 'package:flutter/material.dart';
-import '../screens/pusatAdab/addModule_page.dart';
-import '../screens/pusatAdab/ViewModules.dart'; 
+import '../screens/pusatAdab/add_module.dart';
+import '../screens/pusatAdab/view_module.dart'; 
 import 'package:provider/provider.dart'; 
 import '../provider/UserProvider.dart';
 

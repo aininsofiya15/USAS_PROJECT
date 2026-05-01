@@ -4,7 +4,7 @@ import '../provider/UserProvider.dart'; //
 import '../widgets/app_sidebar.dart';
 import '../widgets/header.dart';
 import '../widgets/navigationBar.dart';
-import 'pusatAdab/adabDashboard.dart';
+import 'pusatAdab/adab_dashboard.dart';
 import 'lecturer/lecturerDashboard.dart';
 import 'treasurer/treasurerDashboard.dart';
 

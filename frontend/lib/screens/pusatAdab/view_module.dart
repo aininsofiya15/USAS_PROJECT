@@ -4,7 +4,7 @@ import '../../widgets/header.dart';
 import '../../widgets/navigationBar.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../provider/ModuleProvider.dart';
-import 'addModule_page.dart';
+import 'add_module.dart';
 
 class ViewModulesPage extends StatefulWidget {
   const ViewModulesPage({super.key});
