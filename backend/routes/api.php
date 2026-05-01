@@ -3,11 +3,14 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\TreasurerController;
+use App\Http\Controllers\Api\ModuleController;
 use App\Models\Section;
+
 
 // This is the "door" the Flutter app is knocking on
 Route::post('/login', [AuthController::class, 'login']);
 
+//LECTURER ROUTES
 Route::get('/lecturer/{lecturer_id}/attendance', function($lecturer_id) {
     // 1. Get all sections for this lecturer and include the subject details
     $sections = Section::with('subject')->where('lecturer_id', $lecturer_id)->get();
@@ -31,4 +34,9 @@ Route::get('/lecturer/{lecturer_id}/attendance', function($lecturer_id) {
     ]);
 });
 
+//TREASURY ROUTES
 Route::get('/treasury/student-count', [TreasurerController::class, 'getStudentCount']);
+
+
+//PUSAT ADAB ROUTES
+Route::post('/modules', [ModuleController::class, 'store']);
