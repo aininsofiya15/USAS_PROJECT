@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart'; // To use the Provider tool
-import '../provider/UserProvider.dart'; // To access your UserProvider file
+import '../provider/user_provider.dart'; // To access your UserProvider file
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

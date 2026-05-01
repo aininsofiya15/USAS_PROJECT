@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/header.dart';
-import '../../widgets/navigationBar.dart';
+import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
-import '../../provider/ModuleProvider.dart'; 
+import '../../provider/module_provider.dart'; 
 
 class AddModulePage extends StatefulWidget {
   const AddModulePage({super.key});

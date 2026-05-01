@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../screens/pusatAdab/add_module.dart';
 import '../screens/pusatAdab/view_module.dart'; 
 import 'package:provider/provider.dart'; 
-import '../provider/UserProvider.dart';
+import '../provider/user_provider.dart';
 
 
 class AppSidebar extends StatelessWidget {

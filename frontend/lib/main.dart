@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/login_page.dart'; 
-import 'provider/UserProvider.dart';
-import 'provider/ModuleProvider.dart'; 
+import 'provider/user_provider.dart';
+import 'provider/module_provider.dart'; 
 
 void main() {
   runApp(

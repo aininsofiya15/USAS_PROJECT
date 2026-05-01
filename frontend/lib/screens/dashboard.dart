@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; //
-import '../provider/UserProvider.dart'; //
+import '../provider/user_provider.dart'; //
 import '../widgets/app_sidebar.dart';
 import '../widgets/header.dart';
-import '../widgets/navigationBar.dart';
+import '../widgets/navigation_bar.dart';
 import 'pusatAdab/adab_dashboard.dart';
 import 'lecturer/lecturerDashboard.dart';
 import 'treasurer/treasurerDashboard.dart';
