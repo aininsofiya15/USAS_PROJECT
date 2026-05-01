@@ -34,7 +34,7 @@ class LecturerBody extends StatelessWidget {
                   "Take Attendance", 
                   const Color(0xFF2E7D32), // Using the green from your original theme
                   () {
-                    // Navigator.push(context, MaterialPageRoute(builder: (context) => TakeAttendancePage()));
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => AddAttendancePage()));
                   },
                 ),
                 _buildMenuCard(
