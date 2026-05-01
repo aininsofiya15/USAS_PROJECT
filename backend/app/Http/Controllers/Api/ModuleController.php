@@ -35,4 +35,16 @@ class ModuleController extends Controller
             'data' => $module
         ], 201);
     }
+
+    // Fetch all modules ordered by the latest created
+    public function index()
+    {
+        // Fetch all modules ordered by the latest created
+        $modules = Module::orderBy('created_at', 'desc')->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $modules
+        ], 200);
+    }
 }

@@ -13,7 +13,6 @@ class AddModulePage extends StatefulWidget {
 }
 
 class _AddModulePageState extends State<AddModulePage> {
-  // 1. Controllers to capture input data
   final nameController = TextEditingController();
   final dateController = TextEditingController();
   final capacityController = TextEditingController();
@@ -22,11 +21,35 @@ class _AddModulePageState extends State<AddModulePage> {
   final descController = TextEditingController();
   final linkController = TextEditingController();
 
-  // Helper function to handle the saving logic
+  // --- COMBINED DATE & TIME PICKER ---
+  Future<void> _selectDateTime(BuildContext context) async {
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2101),
+    );
+
+    if (pickedDate != null) {
+      if (!mounted) return;
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          String datePart = "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+          String timePart = "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
+          dateController.text = "$datePart $timePart";
+        });
+      }
+    }
+  }
+
   Future<void> _handleSave(BuildContext context, String status) async {
     final moduleProvider = Provider.of<ModuleProvider>(context, listen: false);
 
-    // Basic Validation
     if (nameController.text.isEmpty || capacityController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill in Activity Name and Capacity!")),
@@ -34,7 +57,6 @@ class _AddModulePageState extends State<AddModulePage> {
       return;
     }
 
-    // Call the Provider
     bool success = await moduleProvider.createModule(
       activityName: nameController.text,
       dateTime: dateController.text,
@@ -53,7 +75,7 @@ class _AddModulePageState extends State<AddModulePage> {
       if (status == 'published') Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Connection Error. Is your Laravel server running?")),
+        const SnackBar(content: Text("Error: Check Laravel CORS or Server status.")),
       );
     }
   }
@@ -69,43 +91,39 @@ class _AddModulePageState extends State<AddModulePage> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            const Text(
-              "Add Module",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
+            const Text("Add Module", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
-            
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
-                ],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text("Default Fields", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
                   const SizedBox(height: 15),
-                  
                   _buildInput(Icons.edit_note, "Activity Name*", nameController),
-                  _buildInput(Icons.calendar_today, "Date & Time*", dateController),
+                  
+                  // Date Time Picker Field
+                  GestureDetector(
+                    onTap: () => _selectDateTime(context),
+                    child: AbsorbPointer(
+                      child: _buildInput(Icons.calendar_today, "Select Date & Time*", dateController),
+                    ),
+                  ),
+
                   _buildInput(Icons.people_outline, "Capacity*", capacityController, isNumber: true),
                   _buildInput(Icons.location_on_outlined, "Venue*", venueController),
                   _buildInput(Icons.person_outline, "Lecturer's Name*", lecturerController),
-                  
                   const SizedBox(height: 20),
                   const Text("Additional Fields", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
                   const SizedBox(height: 15),
-                  
                   _buildInput(Icons.description_outlined, "Add Description", descController),
                   _buildInput(Icons.link, "WhatsApp Group Link", linkController),
-                  
                   const SizedBox(height: 30),
-                  
-                  // --- BUTTONS ---
                   Row(
                     children: [
                       Expanded(
@@ -145,10 +163,7 @@ class _AddModulePageState extends State<AddModulePage> {
   Widget _buildInput(IconData icon, String hint, TextEditingController? controller, {bool isNumber = false}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(12)),
       child: TextField(
         controller: controller,
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
@@ -156,7 +171,6 @@ class _AddModulePageState extends State<AddModulePage> {
           border: InputBorder.none,
           prefixIcon: Icon(icon, color: Colors.black45),
           hintText: hint,
-          hintStyle: const TextStyle(color: Colors.black26, fontSize: 14),
           contentPadding: const EdgeInsets.symmetric(vertical: 15),
         ),
       ),

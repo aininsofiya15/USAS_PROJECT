@@ -1,8 +1,10 @@
 import 'package:USAS/screens/dashboard.dart';
 import 'package:flutter/material.dart';
 import '../screens/pusatAdab/addModule_page.dart';
+import '../screens/pusatAdab/ViewModules.dart'; 
 import 'package:provider/provider.dart'; 
 import '../provider/UserProvider.dart';
+
 
 class AppSidebar extends StatelessWidget {
 
@@ -107,7 +109,12 @@ class AppSidebar extends StatelessWidget {
                     _buildMenuItem(context, Icons.home_outlined, "Home", role, destination: DashboardPage()),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
                     _buildMenuItem(context, Icons.list_alt, "Module List", role),
-                    _buildSubMenuItem(context, "View Module", role),
+                    _buildSubMenuItem(
+                      context, 
+                      "View Module", 
+                      role, 
+                      destination: const ViewModulesPage() 
+                    ),
                     _buildSubMenuItem(
                       context, 
                       "Add Module", 

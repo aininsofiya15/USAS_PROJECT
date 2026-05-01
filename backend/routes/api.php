@@ -40,3 +40,4 @@ Route::get('/treasury/student-count', [TreasurerController::class, 'getStudentCo
 
 //PUSAT ADAB ROUTES
 Route::post('/modules', [ModuleController::class, 'store']);
+Route::get('/modules', [ModuleController::class, 'index']);
