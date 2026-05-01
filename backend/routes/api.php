@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\TreasurerController;
+use App\Models\Section;
 
 // This is the "door" the Flutter app is knocking on
 Route::post('/login', [AuthController::class, 'login']);
@@ -29,7 +30,5 @@ Route::get('/lecturer/{lecturer_id}/attendance', function($lecturer_id) {
         'subjects' => $subjectsList
     ]);
 });
-
-Route::get('/treasury/student-count', [TreasurerController::class, 'getStudentCount']);
 
 Route::get('/treasury/student-count', [TreasurerController::class, 'getStudentCount']);
