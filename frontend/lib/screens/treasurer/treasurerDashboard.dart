@@ -1,10 +1,43 @@
 import 'package:flutter/material.dart';
-import 'feesManagement.dart'; // Ensure this filename matches your project
-import 'financialReport.dart'; // Ensure this filename matches your project
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'feesManagement.dart'; 
+import 'financialReport.dart'; 
 
-class TreasuryDashboardBody extends StatelessWidget {
+class TreasuryDashboardBody extends StatefulWidget {
   final String name;
   const TreasuryDashboardBody({super.key, required this.name});
+
+  @override
+  State<TreasuryDashboardBody> createState() => _TreasuryDashboardBodyState();
+}
+
+class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
+  String studentCount = "Loading...";
+
+  @override
+  void initState() {
+    super.initState();
+    fetchLiveStudentCount();
+  }
+
+  Future<void> fetchLiveStudentCount() async {
+    try {
+      // 10.0.2.2 is the gateway to your localhost from the Android Emulator
+      final response = await http.get(Uri.parse('http://10.0.2.2:8000/api/treasury/student-count'));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          studentCount = data['total_students'].toString();
+        });
+      } else {
+        setState(() { studentCount = "Error"; });
+      }
+    } catch (e) {
+      setState(() { studentCount = "Offline"; });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,18 +46,13 @@ class TreasuryDashboardBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Section based on UI-401
           Text(
-            "Welcome, $name!",
+            "Welcome, ${widget.name}!",
             style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
           
-          // Categories Section
-          const Text(
-            "Categories",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          const Text("Categories", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 15),
           Row(
             children: [
@@ -34,10 +62,7 @@ class TreasuryDashboardBody extends StatelessWidget {
                   Icons.account_balance_wallet,
                   "Tuition Fees",
                   Colors.blue.shade700,
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => FeesManagementPage()),
-                  ),
+                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FeesManagementPage())),
                 ),
               ),
               const SizedBox(width: 20),
@@ -47,42 +72,25 @@ class TreasuryDashboardBody extends StatelessWidget {
                   Icons.assessment,
                   "Reports",
                   Colors.teal,
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => FinancialReportPage()),
-                  ),
+                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FinancialReportPage())),
                 ),
               ),
             ],
           ),
           
           const SizedBox(height: 30),
-          
-          // Overview Section based on UI-401 Mockup
-          const Text(
-            "Overview",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          const Text("Overview", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 15),
           
-          // Financial Summary Cards
-          _buildOverviewCard(
-            "Total Collected This Week",
-            "RM 25,200.00",
-            Icons.trending_up,
-            Colors.green,
-          ),
+          _buildOverviewCard("Total Collected This Week", "RM 25,200.00", Icons.trending_up, Colors.green),
           const SizedBox(height: 15),
-          _buildOverviewCard(
-            "Total Collected Today",
-            "RM 5,780.00",
-            Icons.today,
-            Colors.orange,
-          ),
+          _buildOverviewCard("Total Collected Today", "RM 5,780.00", Icons.today, Colors.orange),
           const SizedBox(height: 15),
+          
+          // This call works now because the method is defined below!
           _buildOverviewCard(
             "Total Students",
-            "5,815",
+            studentCount, 
             Icons.people,
             Colors.purple,
           ),
@@ -91,7 +99,8 @@ class TreasuryDashboardBody extends StatelessWidget {
     );
   }
 
-  // Widget for the top category buttons
+  // --- Helper Methods (Must be inside the _TreasuryDashboardBodyState class) ---
+
   Widget _buildMenuCard(BuildContext context, IconData icon, String title, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
@@ -116,7 +125,6 @@ class TreasuryDashboardBody extends StatelessWidget {
     );
   }
 
-  // Widget for the Overview statistics list
   Widget _buildOverviewCard(String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(20),
