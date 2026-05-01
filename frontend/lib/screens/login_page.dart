@@ -20,7 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> loginUser() async {
     
     // kalau pakai emulator, tukar http://10.0.2.2:8000/api/login, kalau chrome, http://127.0.0.1:8000/api/login
-    final url = Uri.parse('http://127.0.0.1:8000/api/login');
+    final url = Uri.parse('http://10.0.2.2:8000/api/login');
 
     try {
       final response = await http.post(
@@ -57,7 +57,7 @@ class _LoginPageState extends State<LoginPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => DashboardPage(), // Clean and empty!
+            builder: (context) => const DashboardPage(), // Clean and empty!
           ),
         );
         

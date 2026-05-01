@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'feesManagement.dart'; 
-import 'financialReport.dart'; 
+import 'fees_management.dart'; 
+import 'financial_report.dart'; 
 
 class TreasuryDashboardBody extends StatefulWidget {
   final String name;
