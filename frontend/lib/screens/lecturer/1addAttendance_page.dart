@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '2generateCode_page.dart'; 
 
 // 1. Changed to StatefulWidget
 class AddAttendancePage extends StatefulWidget {
@@ -201,8 +202,15 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
                 onPressed: () {
-                  // Action when a specific section is clicked
-                  print("Clicked on $section of $subjectName");
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GenerateCodePage(
+                        subjectName: subjectName, 
+                        section: section,
+                      ),
+                    ),
+                  );
                 },
                 child: Text(
                   section,

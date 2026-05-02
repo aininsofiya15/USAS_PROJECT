@@ -12,7 +12,7 @@ class Section extends Model
     protected $fillable = [
         'semester_code',
         'section_name',
-        'subject_code', // <-- Updated
+        'subject_code', 
         'lecturer_id',
     ];
 
