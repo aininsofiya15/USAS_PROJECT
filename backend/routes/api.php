@@ -37,9 +37,6 @@ Route::get('/lecturer/{lecturer_id}/attendance', function($lecturer_id) {
     ]);
 });
 
-<<<<<<< Updated upstream
-//TREASURY ROUTES
-=======
 Route::post('/generate-attendance', function (Request $request) {
     // 1. Grab the exact string from Flutter and make it ALL CAPS
     // Example: "BCY3083 SECURE SOFTWARE DEVELOPMENT"
@@ -92,7 +89,6 @@ Route::post('/generate-attendance', function (Request $request) {
     ]);
 });
 
->>>>>>> Stashed changes
 Route::get('/treasury/student-count', [TreasurerController::class, 'getStudentCount']);
 
 
