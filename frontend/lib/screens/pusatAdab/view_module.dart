@@ -49,6 +49,7 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
               ),
             ),
           ),
+
           const SizedBox(height: 20),
           Expanded(
             child: Container(
@@ -69,6 +70,7 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
                         decoration: BoxDecoration(color: Colors.white.withOpacity(0.5), borderRadius: BorderRadius.circular(30)),
                         child: Row(children: [_buildTabButton("Published"), _buildTabButton("Draft")]),
                       ),
+                      
                       const Spacer(flex: 1),
                       Column(
                         children: [
