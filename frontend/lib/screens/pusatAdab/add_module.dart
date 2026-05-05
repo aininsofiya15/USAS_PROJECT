@@ -6,7 +6,7 @@ import '../../widgets/app_sidebar.dart';
 import '../../provider/module_provider.dart'; 
 
 class AddModulePage extends StatefulWidget {
-  const AddModulePage({super.key});
+   AddModulePage({super.key});
 
   @override
   State<AddModulePage> createState() => _AddModulePageState();

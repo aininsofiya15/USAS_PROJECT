@@ -2,19 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api.dart'; 
+import '../domain/module.dart';
 
 class ModuleProvider with ChangeNotifier {
-  // 1. Storage for the module list
-  List<dynamic> _modules = [];
-  List<dynamic> get modules => _modules;
+  List<Module> _modules = [];
+  List<Module> get modules => _modules;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  // URL configuration
- final String _baseUrl = Api.modules;
-
-  // 2. Function to FETCH modules from Laravel
   Future<void> fetchModules() async {
     _isLoading = true;
     notifyListeners();
@@ -23,10 +19,11 @@ class ModuleProvider with ChangeNotifier {
       final response = await http.get(Uri.parse(Api.modules));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        _modules = data['data']; // Assuming your Laravel controller returns ['data' => $modules]
-      } else {
-        print("Failed to load modules: ${response.statusCode}");
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        final List<dynamic> moduleList = data['data']; 
+        
+        // Convert dynamic list to List<Module>
+        _modules = moduleList.map((json) => Module.fromJson(json)).toList();
       }
     } catch (e) {
       print("Error fetching modules: $e");
@@ -35,6 +32,7 @@ class ModuleProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
 
   // 3. Function to CREATE a new module (Existing code)
   Future<bool> createModule({
@@ -52,7 +50,7 @@ class ModuleProvider with ChangeNotifier {
 
     try {
       final response = await http.post(
-        Uri.parse(_baseUrl),
+        Uri.parse(Api.modules),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           'activity_name': activityName,

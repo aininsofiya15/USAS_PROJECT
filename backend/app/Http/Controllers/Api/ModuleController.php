@@ -20,7 +20,8 @@ class ModuleController extends Controller
             'capacity' => 'required|integer',
             'venue' => 'required|string',
             'lecturer_name' => 'required|string',
-            'status' => 'in:draft,published', // Matches your enum!
+            'status' => 'in:draft,published', 
+            'current_registration' => 'nullable|integer',
         ]);
 
         if ($validator->fails()) {

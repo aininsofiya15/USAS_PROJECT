@@ -4,6 +4,7 @@ import '../screens/pusatAdab/add_module.dart';
 import '../screens/pusatAdab/view_module.dart'; 
 import 'package:provider/provider.dart'; 
 import '../provider/user_provider.dart';
+import '../screens/student/module_booking.dart';
 
 
 class AppSidebar extends StatelessWidget {
@@ -92,12 +93,20 @@ class AppSidebar extends StatelessWidget {
                     const Divider(color: Colors.white24, height: 5),
                     _buildMenuItem(context, Icons.analytics_outlined, "Reports", role),
                   ] 
+
+
+
+
                   else if (role == 'faculty') ...[
                     _buildMenuItem(context, Icons.home_outlined, "Home", role),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
                     _buildMenuItem(context, Icons.grid_view, "Subject Registration", role),
                     _buildSubMenuItem(context, "Add Subject", role),
                   ] 
+
+
+
+
                   else if (role == 'lecturer') ...[
                     _buildMenuItem(context, Icons.home_outlined, "Home", role),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
@@ -105,28 +114,29 @@ class AppSidebar extends StatelessWidget {
                     _buildSubMenuItem(context, "Attendance", role),
                     _buildSubMenuItem(context, "View Attendance", role),
                   ] 
+
+
+
                   else if (role == 'pusat_adab') ...[
                     _buildMenuItem(context, Icons.home_outlined, "Home", role, destination: DashboardPage()),
+
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
+
                     _buildMenuItem(context, Icons.list_alt, "Module List", role),
-                    _buildSubMenuItem(
-                      context, 
-                      "View Module", 
-                      role, 
-                      destination: const ViewModulesPage() 
-                    ),
-                    _buildSubMenuItem(
-                      context, 
-                      "Add Module", 
-                      role,
-                      destination: const AddModulePage()
-                    ),
+                    _buildSubMenuItem(context, "View Module", role, destination:  ViewModulesPage()), //contoh tulis route dia
+                    _buildSubMenuItem(context,"Add Module", role, destination:  AddModulePage()),
                     _buildSubMenuItem(context, "Edit Module", role),
+
                     const Divider(color: Colors.black12, height: 10),
+
                     _buildMenuItem(context, Icons.description_outlined, "Credit Claim Application", role),
                     _buildSubMenuItem(context, "View Student Application", role),
                   ] 
-                  else ...[
+
+
+
+
+                  else ...[ //student
                     _buildMenuItem(context, Icons.home_outlined, "Home", role),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
                     _buildMenuItem(context, Icons.grid_view, "Subject Registration", role),
@@ -134,7 +144,7 @@ class AppSidebar extends StatelessWidget {
                     const Divider(color: Colors.white24, height: 10),
                     _buildMenuItem(context, Icons.menu_book, "Curriculum Activity", role),
                     _buildSubMenuItem(context, "View My Module", role),
-                    _buildSubMenuItem(context, "Module Booking", role),
+                    _buildSubMenuItem(context, "Module Booking", role, destination: StudentActivitiesPage()),
                     _buildSubMenuItem(context, "Claim Credit", role),
                     const Divider(color: Colors.white24, height: 10),
                     _buildMenuItem(context, Icons.assignment_turned_in, "Attendance", role),

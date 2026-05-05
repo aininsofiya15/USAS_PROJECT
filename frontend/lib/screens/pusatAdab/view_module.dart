@@ -4,10 +4,11 @@ import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../provider/module_provider.dart';
+import '../../domain/module.dart'; 
 import 'add_module.dart';
 
 class ViewModulesPage extends StatefulWidget {
-  const ViewModulesPage({super.key});
+   ViewModulesPage({super.key});
 
   @override
   State<ViewModulesPage> createState() => _ViewModulesPageState();
@@ -19,14 +20,17 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
   @override
   void initState() {
     super.initState();
+    // Use microtask to fetch modules once the page initializes
     Future.microtask(() => Provider.of<ModuleProvider>(context, listen: false).fetchModules());
   }
 
   @override
   Widget build(BuildContext context) {
     final moduleProvider = Provider.of<ModuleProvider>(context);
+    
+    // Filter logic using the 'status' property from the Module object
     final filteredModules = moduleProvider.modules
-        .where((m) => m['status'] == selectedTab.toLowerCase())
+        .where((m) => m.status.toLowerCase() == selectedTab.toLowerCase())
         .toList();
 
     return Scaffold(
@@ -45,7 +49,10 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30), 
+                  borderSide: BorderSide.none
+                ),
               ),
             ),
           ),
@@ -67,15 +74,24 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
                       const Spacer(flex: 2),
                       Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.5), borderRadius: BorderRadius.circular(30)),
-                        child: Row(children: [_buildTabButton("Published"), _buildTabButton("Draft")]),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.5), 
+                          borderRadius: BorderRadius.circular(30)
+                        ),
+                        child: Row(children: [
+                          _buildTabButton("Published"), 
+                          _buildTabButton("Draft")
+                        ]),
                       ),
                       
                       const Spacer(flex: 1),
                       Column(
                         children: [
                           IconButton(
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AddModulePage())),
+                            onPressed: () => Navigator.push(
+                              context, 
+                              MaterialPageRoute(builder: (context) =>  AddModulePage())
+                            ),
                             icon: const Icon(Icons.add_circle_outline, size: 32),
                           ),
                           const Text("Add Module", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
@@ -91,6 +107,7 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
                         : ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             itemCount: filteredModules.length,
+                            // Passing the Module object directly
                             itemBuilder: (context, index) => _buildModuleCard(filteredModules[index]),
                           ),
                   ),
@@ -103,32 +120,42 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
     );
   }
 
-  Widget _buildModuleCard(dynamic module) {
-    int capacity = int.tryParse(module['capacity'].toString()) ?? 0;
-    int registered = 0; // Placeholder for now
-
+  // FIXED: Accepts 'Module' object and uses dot notation to access properties
+  Widget _buildModuleCard(Module module) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05), 
+            blurRadius: 10, 
+            offset: const Offset(0, 5)
+          )
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(module['activity_name'].toString().toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(module.activityName.toUpperCase(), 
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 4),
           Text(
             selectedTab == 'Published' ? "Currently Open" : "Unpublished",
-            style: TextStyle(color: selectedTab == 'Published' ? Colors.greenAccent.shade700 : Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
+            style: TextStyle(
+              color: selectedTab == 'Published' ? Colors.greenAccent.shade700 : Colors.red, 
+              fontWeight: FontWeight.bold, 
+              fontSize: 13
+            ),
           ),
           const SizedBox(height: 12),
-          Text("Registration: $registered / $capacity Students"),
-          Text("Class Date: ${module['date_time']}"),
-          Text("Venue: ${module['venue']}"),
-          Text("Lecturer Name: ${module['lecturer_name']}"),
+          // Correctly displaying current_registration from the database
+          Text("Registration: ${module.registeredCount} / ${module.capacity} Students"),
+          Text("Class Date: ${module.dateTime}"),
+          Text("Venue: ${module.venue}"),
+          Text("Lecturer Name: ${module.lecturerName}"),
           const SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -162,7 +189,10 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
       onTap: () => setState(() => selectedTab = label),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(color: isSelected ? const Color(0xFFE0F2F1) : Colors.transparent, borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFE0F2F1) : Colors.transparent, 
+          borderRadius: BorderRadius.circular(20)
+        ),
         child: Text(label, style: TextStyle(color: isSelected ? Colors.black : Colors.black45, fontWeight: FontWeight.bold)),
       ),
     );
