@@ -2,22 +2,22 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Attendance extends Model
 {
     use HasFactory;
 
+    protected $primaryKey = 'attendance_id';
+
     protected $fillable = [
-        'lecturer_id',
-        'subject_code',
-        'section_name',
-        'class_type',
-        'class_date',
-        'class_time',
-        'latitude',
-        'longitude',
-        'generated_code',
+        'section_id',
+        //'booking_id',
+        'attendance_code',
+        'geo_lat',
+        'geo_long',
+        'geo_radius',
+        'time_validity',
     ];
 }

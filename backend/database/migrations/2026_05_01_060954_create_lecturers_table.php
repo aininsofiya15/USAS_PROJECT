@@ -13,11 +13,15 @@ return new class extends Migration
     {
     Schema::create('lecturers', function (Blueprint $table) {
         $table->id();
-        $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // This connects to the users table
-        $table->string('lecturer_id', 20)->unique();
-        $table->string('full_name', 100);
+        $table->foreignId('user_id')->references('id')->on('users')->onDelete('cascade');
+        $table->string('lecturer_id', 50);
+        $table->string('faculty', 50);
         $table->timestamps();
+
+
         });
+
+
     }
 
     /**
