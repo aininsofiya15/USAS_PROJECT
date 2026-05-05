@@ -2,10 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Lecturer extends Model
+class PusatAdab extends Model
 {
     use HasFactory;
 
@@ -16,8 +15,7 @@ class Lecturer extends Model
      */
     protected $fillable = [
         'user_id',
-        'lecturer_id',
-        'faculty',
+        'adab_id',
     ];
 
     // --- Relationships ---
@@ -26,11 +24,5 @@ class Lecturer extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    // A lecturer can teach many Sections
-    public function sections()
-    {
-        return $this->hasMany(Section::class);
     }
 }

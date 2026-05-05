@@ -2,29 +2,20 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Section extends Model
 {
     use HasFactory;
 
+    protected $primaryKey = 'section_id';
+
     protected $fillable = [
+        'subject_id',
+        'lecturer_id',
         'semester_code',
         'section_name',
-        'subject_code', 
-        'lecturer_id',
+        'subject_code',
     ];
-
-    // --- Relationships ---
-    public function subject()
-    {
-        // belongsTo(Model, foreign_key, owner_key)
-        return $this->belongsTo(Subject::class, 'subject_code', 'subject_code');
-    }
-
-    public function lecturer()
-    {
-        return $this->belongsTo(Lecturer::class, 'lecturer_id', 'lecturer_id');
-    }
 }

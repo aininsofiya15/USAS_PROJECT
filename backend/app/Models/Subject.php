@@ -9,14 +9,16 @@ class Subject extends Model
 {
     use HasFactory;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
+    protected $primaryKey = 'subject_id';
+
     protected $fillable = [
         'subject_code',
         'subject_name',
+        'credit_hours',
+        'total_section',
+        'total_lab',
+        'subject_status',
+        'created_by',
     ];
 
     // --- Relationships ---

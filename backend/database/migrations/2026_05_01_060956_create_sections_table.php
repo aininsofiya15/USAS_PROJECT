@@ -11,19 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-    Schema::create('sections', function (Blueprint $table) {
-        $table->id();
-        $table->string('semester_code');
-        $table->string('section_name');
-        
-        // Change these from foreignId() to string()
-        $table->string('subject_code');
-        $table->string('lecturer_id');
-        $table->timestamps();
+        Schema::create('sections', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('subject_id')->references('id')->on('subjects')->onDelete('cascade');
+            $table->foreignId('lecturer_id')->references('id')->on('lecturers')->onDelete('cascade');
 
-        // Tell Laravel exactly which columns these link to
-        $table->foreign('subject_code')->references('subject_code')->on('subjects')->onDelete('cascade');
-        $table->foreign('lecturer_id')->references('lecturer_id')->on('lecturers')->onDelete('cascade');
+            $table->string('semester_code');
+            $table->string('section_name');
+            $table->string('subject_code');
+            $table->timestamps();
+
         });
     }
 
