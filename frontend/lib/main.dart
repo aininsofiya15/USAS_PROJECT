@@ -11,6 +11,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => ModuleProvider()), // 3. Register ModuleProvider
+        
       ],
       child: const MyApp(),
     ),
