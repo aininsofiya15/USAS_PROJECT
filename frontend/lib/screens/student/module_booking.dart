@@ -91,7 +91,7 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
               margin: const EdgeInsets.fromLTRB(10, 0, 10, 15), // Added bottom margin to prevent clipping
               decoration: BoxDecoration(
                 color: const Color.fromARGB(255, 206, 229, 244), 
-                // FIXED: Gives the overall panel perfectly rounded corners on ALL sides
+                // Gives the overall panel perfectly rounded corners on ALL sides
                 borderRadius: BorderRadius.circular(40), 
                 boxShadow: [
                   BoxShadow(
@@ -133,12 +133,15 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
     final currentSelectedSlot = _selectedSubModules[activityName]!;
     bool expanded = _isExpanded[activityName]!;
 
+    // FIXED: Calculate available remaining seat positions manually
+    int availableSlots = currentSelectedSlot.capacity - currentSelectedSlot.registeredCount;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFFF8FDFF), // Light blue tint matching mockup
-        // FIXED: Explicitly rounds all 4 corners of individual modules cards
+        // Explicitly rounds all 4 corners of individual modules cards
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
@@ -181,7 +184,8 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
           const SizedBox(height: 12),
           
           // Information Fields Section (Bound dynamically to selected sub-slot chip below)
-          _buildInfoRow(Icons.people, "Registration: ${currentSelectedSlot.registeredCount} / ${currentSelectedSlot.capacity} Students"),
+          // UPDATED: Now shows Available Slots remaining calculation output text
+          _buildInfoRow(Icons.people, "Available Slots: $availableSlots / ${currentSelectedSlot.capacity} Seats Left"),
           _buildInfoRow(Icons.access_time, "Class Time: ${currentSelectedSlot.dateTime}"),
           _buildInfoRow(Icons.location_on, "Venue: ${currentSelectedSlot.venue}"),
           _buildInfoRow(Icons.person, "Lecturer: ${currentSelectedSlot.lecturerName}"),
@@ -272,6 +276,7 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
     );
   }
 
+  // FIXED: Clean text view container without the text underline lines
   Widget _buildInfoRow(IconData icon, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
