@@ -5,8 +5,9 @@ class Module {
   final String venue;
   final String lecturerName;
   final String status;
-  // 1. Add this field
   final int registeredCount; 
+  final String? description;   // Add this
+  final String? whatsappLink;  // Add this
 
   Module({
     required this.activityName,
@@ -15,7 +16,9 @@ class Module {
     required this.venue,
     required this.lecturerName,
     required this.status,
-    required this.registeredCount, // 2. Add to constructor
+    required this.registeredCount,
+    this.description,          // Add this
+    this.whatsappLink,         // Add this
   });
 
   factory Module.fromJson(Map<String, dynamic> json) {
@@ -27,6 +30,8 @@ class Module {
       lecturerName: json['lecturer_name'] ?? '',
       status: json['status'] ?? 'published',
       registeredCount: json['current_registration'] ?? 0, 
+      description: json['description'],    // Add this
+      whatsappLink: json['whatsapp_link'], // Add this
     );
   }
 }

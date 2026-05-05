@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'add_module.dart'; // Make sure the name matches your file
+import 'module_form.dart'; // Make sure the name matches your file
 
 class PusatAdabBody extends StatelessWidget {
   
@@ -34,7 +34,7 @@ class PusatAdabBody extends StatelessWidget {
                   const Color(0xFF4CAF50),
                   () => Navigator.push(
                     context, 
-                    MaterialPageRoute(builder: (context) => AddModulePage())
+                    MaterialPageRoute(builder: (context) => ModuleFormPage())
                   ),
                 ),
                 _buildMenuCard(context, Icons.fact_check, "Approvals", Colors.blue, () {}),

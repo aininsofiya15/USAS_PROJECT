@@ -1,10 +1,11 @@
 import 'package:USAS/screens/dashboard.dart';
 import 'package:flutter/material.dart';
-import '../screens/pusatAdab/add_module.dart';
+import '../screens/pusatAdab/module_form.dart';
 import '../screens/pusatAdab/view_module.dart'; 
 import 'package:provider/provider.dart'; 
 import '../provider/user_provider.dart';
 import '../screens/student/module_booking.dart';
+import 'package:USAS/screens/faculty/subject_registration_page.dart';
 
 
 class AppSidebar extends StatelessWidget {
@@ -100,8 +101,8 @@ class AppSidebar extends StatelessWidget {
                   else if (role == 'faculty') ...[
                     _buildMenuItem(context, Icons.home_outlined, "Home", role),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
-                    _buildMenuItem(context, Icons.grid_view, "Subject Registration", role),
-                    _buildSubMenuItem(context, "Add Subject", role),
+                    _buildMenuItem(context, Icons.grid_view, "Subject Registration", role, destination: const SubjectRegistrationPage(), ),
+                    _buildSubMenuItem(context, "Add Subject", role,destination: const SubjectRegistrationPage(),  ),
                   ] 
 
 
@@ -124,8 +125,7 @@ class AppSidebar extends StatelessWidget {
 
                     _buildMenuItem(context, Icons.list_alt, "Module List", role),
                     _buildSubMenuItem(context, "View Module", role, destination:  ViewModulesPage()), //contoh tulis route dia
-                    _buildSubMenuItem(context,"Add Module", role, destination:  AddModulePage()),
-                    _buildSubMenuItem(context, "Edit Module", role),
+                    _buildSubMenuItem(context,"Add Module", role, destination:  ModuleFormPage()),
 
                     const Divider(color: Colors.black12, height: 10),
 
