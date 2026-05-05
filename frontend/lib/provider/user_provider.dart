@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class UserProvider with ChangeNotifier {
   String _name = "";
   String _role = "";
-
+  
   String get name => _name;
   String get role => _role;
 

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'fees_management.dart'; 
-import 'financial_report.dart'; 
+import 'package:provider/provider.dart';
+import '../../provider/treasurer_provider.dart';
+import '../../widgets/menu_card.dart';
+import '../../widgets/summary_card.dart';
+import '../../widgets/overview_card.dart';
+import '../../widgets/error.dart';
+import '../../widgets/loading.dart';
+import 'fees_management.dart';
+import 'financial_report.dart';
 
 class TreasuryDashboardBody extends StatefulWidget {
   final String name;
@@ -13,142 +18,154 @@ class TreasuryDashboardBody extends StatefulWidget {
 }
 
 class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
-  String studentCount = "Loading...";
-
   @override
   void initState() {
     super.initState();
-    fetchLiveStudentCount();
-  }
-
-  Future<void> fetchLiveStudentCount() async {
-    try {
-      // 10.0.2.2 is the gateway to your localhost from the Android Emulator
-      final response = await http.get(Uri.parse('http://10.0.2.2:8000/api/treasury/student-count'));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          studentCount = data['total_students'].toString();
-        });
-      } else {
-        setState(() { studentCount = "Error"; });
-      }
-    } catch (e) {
-      setState(() { studentCount = "Offline"; });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<TreasuryProvider>(context, listen: false).fetchDashboardSummary();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(25.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Welcome, ${widget.name}!",
-            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 20),
-          
-          const Text("Categories", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              Expanded(
-                child: _buildMenuCard(
-                  context,
-                  Icons.account_balance_wallet,
-                  "Tuition Fees",
-                  Colors.blue.shade700,
-                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FeesManagementPage())),
+    return Consumer<TreasuryProvider>(
+      builder: (context, treasuryProvider, child) {
+        return RefreshIndicator(
+          onRefresh: () => treasuryProvider.fetchDashboardSummary(),
+          child: Padding(
+            padding: const EdgeInsets.all(25.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Welcome message
+                Text(
+                  "Welcome, ${widget.name}!",
+                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                 ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: _buildMenuCard(
-                  context,
-                  Icons.assessment,
-                  "Reports",
-                  Colors.teal,
-                  () => Navigator.push(context, MaterialPageRoute(builder: (context) => const FinancialReportPage())),
+                const SizedBox(height: 20),
+
+                // Categories section
+                const Text(
+                  "Categories",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              ),
-            ],
+                const SizedBox(height: 15),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TreasuryMenuCard(
+                        icon: Icons.account_balance_wallet,
+                        title: "Tuition Fees",
+                        color: Colors.blue.shade700,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const FeesManagementPage()),
+                        ).then((_) => treasuryProvider.refreshDashboard()),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: TreasuryMenuCard(
+                        icon: Icons.assessment,
+                        title: "Reports",
+                        color: Colors.teal,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const FinancialReportPage()),
+                        ).then((_) => treasuryProvider.refreshDashboard()),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 30),
+                const Text(
+                  "Overview",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 15),
+
+                // Dynamic content based on state
+                _buildDynamicContent(treasuryProvider),
+              ],
+            ),
           ),
-          
-          const SizedBox(height: 30),
-          const Text("Overview", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 15),
-          
-          _buildOverviewCard("Total Collected This Week", "RM 25,200.00", Icons.trending_up, Colors.green),
-          const SizedBox(height: 15),
-          _buildOverviewCard("Total Collected Today", "RM 5,780.00", Icons.today, Colors.orange),
-          const SizedBox(height: 15),
-          
-          // This call works now because the method is defined below!
-          _buildOverviewCard(
-            "Total Students",
-            studentCount, 
-            Icons.people,
-            Colors.purple,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  // --- Helper Methods (Must be inside the _TreasuryDashboardBodyState class) ---
+  Widget _buildDynamicContent(TreasuryProvider treasuryProvider) {
+    if (treasuryProvider.isLoading) {
+      return const TreasuryLoadingWidget();
+    }
 
-  Widget _buildMenuCard(BuildContext context, IconData icon, String title, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        height: 120,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    if (treasuryProvider.errorMessage.isNotEmpty) {
+      return TreasuryErrorWidget(
+        errorMessage: treasuryProvider.errorMessage,
+        onRetry: () => treasuryProvider.fetchDashboardSummary(),
+      );
+    }
+
+    return Column(
+      children: [
+        // Summary Cards Row (Paid, Unpaid, Blocked)
+        Row(
           children: [
-            Icon(icon, size: 40, color: color),
-            const SizedBox(height: 10),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            Expanded(
+              child: TreasurySummaryCard(
+                label: "Paid Students",
+                value: treasuryProvider.paidStudents.toString(),
+                icon: Icons.check_circle,
+                color: Colors.green,
+              ),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: TreasurySummaryCard(
+                label: "Unpaid Students",
+                value: treasuryProvider.unpaidStudents.toString(),
+                icon: Icons.warning,
+                color: Colors.orange,
+              ),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: TreasurySummaryCard(
+                label: "Blocked Students",
+                value: treasuryProvider.blockedStudents.toString(),
+                icon: Icons.block,
+                color: Colors.red,
+              ),
+            ),
           ],
         ),
-      ),
-    );
-  }
+        const SizedBox(height: 15),
 
-  Widget _buildOverviewCard(String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: color.withOpacity(0.1),
-            child: Icon(icon, color: color),
-          ),
-          const SizedBox(width: 20),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            ],
-          ),
-        ],
-      ),
+        // Total Students Card
+        TreasuryOverviewCard(
+          label: "Total Students",
+          value: treasuryProvider.totalStudents.toString(),
+          icon: Icons.people,
+          color: Colors.purple,
+        ),
+        const SizedBox(height: 15),
+
+        // Financial Cards
+        TreasuryOverviewCard(
+          label: "Total Collected Today",
+          value: "RM ${treasuryProvider.totalCollectedToday.toStringAsFixed(2)}",
+          icon: Icons.today,
+          color: Colors.orange,
+        ),
+        const SizedBox(height: 15),
+        TreasuryOverviewCard(
+          label: "Total Collected This Week",
+          value: "RM ${treasuryProvider.totalCollectedThisWeek.toStringAsFixed(2)}",
+          icon: Icons.trending_up,
+          color: Colors.green,
+        ),
+      ],
     );
   }
 }
