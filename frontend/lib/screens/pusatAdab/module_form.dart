@@ -9,13 +9,13 @@ import '../../domain/module.dart';
 class ModuleFormPage extends StatefulWidget {
   final Module? existingModuleData;
 
-  const ModuleFormPage({super.key, this.existingModuleData});
+   ModuleFormPage({super.key, this.existingModuleData});
 
   @override
-  State<ModuleFormPage> createState() => _ModuleFormPageState();
+  State<ModuleFormPage> createState() => ModuleFormPageState();
 }
 
-class _ModuleFormPageState extends State<ModuleFormPage> {
+class ModuleFormPageState extends State<ModuleFormPage> {
   final nameController = TextEditingController();
   final dateController = TextEditingController();
   final capacityController = TextEditingController();
@@ -36,7 +36,6 @@ class _ModuleFormPageState extends State<ModuleFormPage> {
       capacityController.text = data.capacity.toString();
       venueController.text = data.venue;
       lecturerController.text = data.lecturerName;
-      // Fixed: Dynamically load these fields if your model supports them, otherwise fallback cleanly
       descController.text = data.description ?? ''; 
       linkController.text = data.whatsappLink ?? '';
     }
@@ -121,7 +120,7 @@ class _ModuleFormPageState extends State<ModuleFormPage> {
         SnackBar(content: Text("Successfully saved as $status!")),
       );
       
-      // Pops screen back to ViewModulesPage cleanly for both Draft and Published flows
+      // Pops screen back to ViewModulesPage after successful save
       if (mounted) Navigator.pop(context);
       
     } else {

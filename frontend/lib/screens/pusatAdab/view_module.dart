@@ -8,7 +8,7 @@ import '../../domain/module.dart';
 import 'module_form.dart'; 
 
 class ViewModulesPage extends StatefulWidget {
-  const ViewModulesPage({super.key});
+   ViewModulesPage({super.key});
 
   @override
   State<ViewModulesPage> createState() => _ViewModulesPageState();
@@ -104,7 +104,7 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
                       GestureDetector(
                         onTap: () => Navigator.push(
                           context, 
-                          MaterialPageRoute(builder: (context) => const ModuleFormPage())
+                          MaterialPageRoute(builder: (context) =>  ModuleFormPage())
                         ),
                         child: Column(
                           children: const [
