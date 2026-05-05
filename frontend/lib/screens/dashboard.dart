@@ -6,7 +6,7 @@ import '../widgets/header.dart';
 import '../widgets/navigation_bar.dart';
 import 'pusatAdab/adab_dashboard.dart';
 import 'lecturer/lecturerDashboard.dart';
-import 'treasurer/treasurerDashboard.dart';
+import 'treasurer/treasurer_dashboard.dart';
 
 
 class DashboardPage extends StatelessWidget {
