@@ -17,9 +17,11 @@ Route::post('/login', [AuthController::class, 'login']);
 //LECTURER ROUTES
 Route::get('/lecturer/subjects', [AttendanceController::class, 'getLecturerSubjects']);
 
-Route::get('/treasury/student-count', [TreasurerController::class, 'getStudentCount']);
-
 // PUSAT ADAB ROUTES
 Route::get('/modules', [ModuleController::class, 'index']);
 Route::post('/modules', [ModuleController::class, 'store']);
 Route::post('/modules/update-existing', [ModuleController::class, 'update']);
+
+//TREASURER ROUTES
+Route::get('/treasurer/student-count', [TreasurerController::class, 'getStudentCount']);
+Route::get('/treasurer/dashboard-summary', [TreasurerController::class, 'dashboardSummary']);

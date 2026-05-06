@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('course_name');
             $table->integer('current_semester');
             $table->integer('year');
+            $table->boolean('is_blocked')->default(false);
             $table->timestamps();
         });
     }

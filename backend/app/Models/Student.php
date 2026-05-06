@@ -18,4 +18,28 @@ class Student extends Model
     {
         return $this->belongsTo(User::class, 'student_id');
     }
+
+    /**
+     * A student has one Fee record.
+     */
+    public function fee()
+    {
+        return $this->hasOne(StudentFee::class, 'student_id', 'student_id');
+    }
+
+    /**
+     * A student has many Payments.
+     */
+    public function payments()
+    {
+        return $this->hasMany(Payment::class, 'student_id', 'student_id');
+    }
+
+    /**
+     * A student has one Bank Account.
+     */
+    public function bankAccount()
+    {
+        return $this->hasOne(BankAccount::class, 'student_id', 'student_id');
+    }
 }
