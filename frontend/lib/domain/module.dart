@@ -1,31 +1,37 @@
 class Module {
-  final int? id; // Nullable because it doesn't exist until saved
   final String activityName;
   final String dateTime;
-  final String capacity;
+  final int capacity;
   final String venue;
   final String lecturerName;
-  final String status; // 'published' or 'draft'
+  final String status;
+  final int registeredCount; 
+  final String? description;   // Add this
+  final String? whatsappLink;  // Add this
 
   Module({
-    this.id,
     required this.activityName,
     required this.dateTime,
     required this.capacity,
     required this.venue,
     required this.lecturerName,
     required this.status,
+    required this.registeredCount,
+    this.description,          // Add this
+    this.whatsappLink,         // Add this
   });
 
-  // Converts the data into a Map to send to Laravel API
-  Map<String, dynamic> toJson() {
-    return {
-      'activity_name': activityName,
-      'date_time': dateTime,
-      'capacity': capacity,
-      'venue': venue,
-      'lecturer_name': lecturerName,
-      'status': status,
-    };
+  factory Module.fromJson(Map<String, dynamic> json) {
+    return Module(
+      activityName: json['activity_name'] ?? '',
+      dateTime: json['date_time'] ?? '',
+      capacity: json['capacity'] ?? 0,
+      venue: json['venue'] ?? '',
+      lecturerName: json['lecturer_name'] ?? '',
+      status: json['status'] ?? 'published',
+      registeredCount: json['current_registration'] ?? 0, 
+      description: json['description'],    // Add this
+      whatsappLink: json['whatsapp_link'], // Add this
+    );
   }
 }

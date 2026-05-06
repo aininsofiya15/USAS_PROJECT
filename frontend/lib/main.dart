@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/login_page.dart'; 
 import 'provider/user_provider.dart';
+import 'provider/treasurer_provider.dart';
 import 'provider/module_provider.dart'; 
 
 void main() {
@@ -11,7 +12,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => ModuleProvider()), // 3. Register ModuleProvider
-        
+        ChangeNotifierProvider(create: (_) => TreasuryProvider()),
       ],
       child: const MyApp(),
     ),

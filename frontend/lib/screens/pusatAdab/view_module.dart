@@ -4,10 +4,11 @@ import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../provider/module_provider.dart';
-import 'add_module.dart';
+import '../../domain/module.dart'; 
+import 'module_form.dart'; 
 
 class ViewModulesPage extends StatefulWidget {
-  const ViewModulesPage({super.key});
+   ViewModulesPage({super.key});
 
   @override
   State<ViewModulesPage> createState() => _ViewModulesPageState();
@@ -15,19 +16,35 @@ class ViewModulesPage extends StatefulWidget {
 
 class _ViewModulesPageState extends State<ViewModulesPage> {
   String selectedTab = 'Published';
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
     Future.microtask(() => Provider.of<ModuleProvider>(context, listen: false).fetchModules());
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final moduleProvider = Provider.of<ModuleProvider>(context);
-    final filteredModules = moduleProvider.modules
-        .where((m) => m['status'] == selectedTab.toLowerCase())
-        .toList();
+    
+    final filteredModules = moduleProvider.modules.where((m) {
+      bool matchesTab = m.status.toLowerCase() == selectedTab.toLowerCase();
+      bool matchesSearch = m.activityName.toLowerCase().contains(_searchQuery);
+      return matchesTab && matchesSearch;
+    }).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFD5FFF7),
@@ -36,21 +53,28 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
       bottomNavigationBar: const UsasBottomNav(),
       body: Column(
         children: [
-          const SizedBox(height: 20),
+          const SizedBox(height: 15),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 25),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: "Search module",
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+            child: Container(
+              height: 40, 
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: TextField(
+                controller: _searchController,
+                decoration: const InputDecoration(
+                  hintText: "Search module",
+                  hintStyle: TextStyle(color: Colors.black38, fontSize: 14),
+                  prefixIcon: Icon(Icons.search, color: Colors.black45, size: 20),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 10),
+                ),
               ),
             ),
           ),
-
-          const SizedBox(height: 20),
+          const SizedBox(height: 15),
           Expanded(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 10),
@@ -67,32 +91,42 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
                       const Spacer(flex: 2),
                       Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.5), borderRadius: BorderRadius.circular(30)),
-                        child: Row(children: [_buildTabButton("Published"), _buildTabButton("Draft")]),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.5), 
+                          borderRadius: BorderRadius.circular(30)
+                        ),
+                        child: Row(children: [
+                          _buildTabButton("Published"), 
+                          _buildTabButton("Draft")
+                        ]),
                       ),
-                      
                       const Spacer(flex: 1),
-                      Column(
-                        children: [
-                          IconButton(
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AddModulePage())),
-                            icon: const Icon(Icons.add_circle_outline, size: 32),
-                          ),
-                          const Text("Add Module", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                        ],
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context, 
+                          MaterialPageRoute(builder: (context) =>  ModuleFormPage())
+                        ),
+                        child: Column(
+                          children: const [
+                            Icon(Icons.add_circle, color: Colors.black87, size: 28),
+                            Text("Add Module", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 20),
                     ],
                   ),
                   const SizedBox(height: 15),
                   Expanded(
                     child: moduleProvider.isLoading
                         ? const Center(child: CircularProgressIndicator())
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            itemCount: filteredModules.length,
-                            itemBuilder: (context, index) => _buildModuleCard(filteredModules[index]),
-                          ),
+                        : filteredModules.isEmpty
+                            ? const Center(child: Text("No modules found", style: TextStyle(color: Colors.black45)))
+                            : ListView.builder(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                itemCount: filteredModules.length,
+                                itemBuilder: (context, index) => _buildModuleCard(filteredModules[index]),
+                              ),
                   ),
                 ],
               ),
@@ -103,56 +137,74 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
     );
   }
 
-  Widget _buildModuleCard(dynamic module) {
-    int capacity = int.tryParse(module['capacity'].toString()) ?? 0;
-    int registered = 0; // Placeholder for now
+  Widget _buildModuleCard(Module module) {
+    bool isDraft = selectedTab == 'Draft';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
+        borderRadius: BorderRadius.circular(25), 
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 4))
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(module['activity_name'].toString().toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Text(
+            module.activityName.toUpperCase(), 
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)
+          ),
           const SizedBox(height: 4),
           Text(
-            selectedTab == 'Published' ? "Currently Open" : "Unpublished",
-            style: TextStyle(color: selectedTab == 'Published' ? Colors.greenAccent.shade700 : Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
+            isDraft ? "Unpublished" : "Currently Open",
+            style: TextStyle(color: isDraft ? Colors.redAccent : Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
           ),
+          const SizedBox(height: 10),
+          Text("Registration: ${isDraft ? '-' : '${module.registeredCount} / ${module.capacity} Students'}", style: const TextStyle(fontSize: 13, color: Colors.black54)),
+          Text("Class Date: ${module.dateTime}", style: const TextStyle(fontSize: 13, color: Colors.black54)),
+          Text("Venue: ${module.venue.isEmpty ? '-' : module.venue}", style: const TextStyle(fontSize: 13, color: Colors.black54)),
+          Text("Lecturer Name: ${module.lecturerName.isEmpty ? '-' : module.lecturerName}", style: const TextStyle(fontSize: 13, color: Colors.black54)),
           const SizedBox(height: 12),
-          Text("Registration: $registered / $capacity Students"),
-          Text("Class Date: ${module['date_time']}"),
-          Text("Venue: ${module['venue']}"),
-          Text("Lecturer Name: ${module['lecturer_name']}"),
-          const SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              _cardButton("Edit", const Color(0xFF8ED46C)),
-              const SizedBox(width: 10),
-              _cardButton("View student", const Color(0xFF1E88E5)),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ModuleFormPage(existingModuleData: module),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDraft ? const Color(0xFF2196F3) : const Color(0xFF8BC34A),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  elevation: 0,
+                ),
+                child: Text(isDraft ? "Continue Edit →" : "Edit", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+              if (!isDraft) ...[
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1E88E5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    elevation: 0,
+                  ),
+                  child: const Text("View student", style: TextStyle(color: Colors.white, fontSize: 12)),
+                ),
+              ],
             ],
           ),
         ],
       ),
-    );
-  }
-
-  Widget _cardButton(String label, Color color) {
-    return ElevatedButton(
-      onPressed: () {},
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 0),
-        elevation: 0,
-      ),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -162,7 +214,10 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
       onTap: () => setState(() => selectedTab = label),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(color: isSelected ? const Color(0xFFE0F2F1) : Colors.transparent, borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFE0F2F1) : Colors.transparent, 
+          borderRadius: BorderRadius.circular(20)
+        ),
         child: Text(label, style: TextStyle(color: isSelected ? Colors.black : Colors.black45, fontWeight: FontWeight.bold)),
       ),
     );

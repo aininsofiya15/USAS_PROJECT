@@ -19,5 +19,6 @@ class Module extends Model
         'whatsapp_link',
         'pic_contact',
         'status',
+        'current_registration',
     ];
 }

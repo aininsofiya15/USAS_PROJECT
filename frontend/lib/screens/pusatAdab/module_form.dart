@@ -3,16 +3,19 @@ import 'package:provider/provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
-import '../../provider/module_provider.dart'; 
+import '../../provider/module_provider.dart';
+import '../../domain/module.dart'; 
 
-class AddModulePage extends StatefulWidget {
-  const AddModulePage({super.key});
+class ModuleFormPage extends StatefulWidget {
+  final Module? existingModuleData;
+
+   ModuleFormPage({super.key, this.existingModuleData});
 
   @override
-  State<AddModulePage> createState() => _AddModulePageState();
+  State<ModuleFormPage> createState() => ModuleFormPageState();
 }
 
-class _AddModulePageState extends State<AddModulePage> {
+class ModuleFormPageState extends State<ModuleFormPage> {
   final nameController = TextEditingController();
   final dateController = TextEditingController();
   final capacityController = TextEditingController();
@@ -21,8 +24,36 @@ class _AddModulePageState extends State<AddModulePage> {
   final descController = TextEditingController();
   final linkController = TextEditingController();
 
-  // --- COMBINED DATE & TIME PICKER ---
-  Future<void> _selectDateTime(BuildContext context) async {
+  bool get isEditMode => widget.existingModuleData != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (isEditMode) {
+      final data = widget.existingModuleData!;
+      nameController.text = data.activityName;
+      dateController.text = data.dateTime;
+      capacityController.text = data.capacity.toString();
+      venueController.text = data.venue;
+      lecturerController.text = data.lecturerName;
+      descController.text = data.description ?? ''; 
+      linkController.text = data.whatsappLink ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    dateController.dispose();
+    capacityController.dispose();
+    venueController.dispose();
+    lecturerController.dispose();
+    descController.dispose();
+    linkController.dispose();
+    super.dispose();
+  }
+
+  Future<void> selectDateTime(BuildContext context) async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -47,7 +78,7 @@ class _AddModulePageState extends State<AddModulePage> {
     }
   }
 
-  Future<void> _handleSave(BuildContext context, String status) async {
+  Future<void> handleSave(BuildContext context, String status) async {
     final moduleProvider = Provider.of<ModuleProvider>(context, listen: false);
 
     if (nameController.text.isEmpty || capacityController.text.isEmpty) {
@@ -57,22 +88,41 @@ class _AddModulePageState extends State<AddModulePage> {
       return;
     }
 
-    bool success = await moduleProvider.createModule(
-      activityName: nameController.text,
-      dateTime: dateController.text,
-      capacity: int.tryParse(capacityController.text) ?? 0,
-      venue: venueController.text,
-      lecturerName: lecturerController.text,
-      description: descController.text,
-      whatsappLink: linkController.text,
-      status: status,
-    );
+    bool success = false;
+
+    if (isEditMode) {
+      success = await moduleProvider.updateModule(
+        id: widget.existingModuleData!.activityName, 
+        activityName: nameController.text,
+        dateTime: dateController.text,
+        capacity: int.tryParse(capacityController.text) ?? 0,
+        venue: venueController.text,
+        lecturerName: lecturerController.text,
+        description: descController.text,
+        whatsappLink: linkController.text,
+        status: status,
+      );
+    } else {
+      success = await moduleProvider.createModule(
+        activityName: nameController.text,
+        dateTime: dateController.text,
+        capacity: int.tryParse(capacityController.text) ?? 0,
+        venue: venueController.text,
+        lecturerName: lecturerController.text,
+        description: descController.text,
+        whatsappLink: linkController.text,
+        status: status,
+      );
+    }
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Successfully saved as $status!")),
       );
-      if (status == 'published') Navigator.pop(context);
+      
+      // Pops screen back to ViewModulesPage after successful save
+      if (mounted) Navigator.pop(context);
+      
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Error: Check Laravel CORS or Server status.")),
@@ -91,7 +141,10 @@ class _AddModulePageState extends State<AddModulePage> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            const Text("Add Module", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Text(
+              isEditMode ? "Edit Module" : "Add Module", 
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
+            ),
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(20),
@@ -106,15 +159,12 @@ class _AddModulePageState extends State<AddModulePage> {
                   const Text("Default Fields", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
                   const SizedBox(height: 15),
                   _buildInput(Icons.edit_note, "Activity Name*", nameController),
-                  
-                  // Date Time Picker Field
                   GestureDetector(
-                    onTap: () => _selectDateTime(context),
+                    onTap: () => selectDateTime(context),
                     child: AbsorbPointer(
                       child: _buildInput(Icons.calendar_today, "Select Date & Time*", dateController),
                     ),
                   ),
-
                   _buildInput(Icons.people_outline, "Capacity*", capacityController, isNumber: true),
                   _buildInput(Icons.location_on_outlined, "Venue*", venueController),
                   _buildInput(Icons.person_outline, "Lecturer's Name*", lecturerController),
@@ -128,7 +178,7 @@ class _AddModulePageState extends State<AddModulePage> {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => _handleSave(context, 'draft'),
+                          onPressed: () => handleSave(context, 'draft'),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Colors.blue),
                             padding: const EdgeInsets.symmetric(vertical: 15),
@@ -140,7 +190,7 @@ class _AddModulePageState extends State<AddModulePage> {
                       const SizedBox(width: 15),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () => _handleSave(context, 'published'),
+                          onPressed: () => handleSave(context, 'published'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4CAF50),
                             padding: const EdgeInsets.symmetric(vertical: 15),
