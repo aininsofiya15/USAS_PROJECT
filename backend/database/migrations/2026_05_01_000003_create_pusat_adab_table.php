@@ -6,23 +6,15 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('pusat_adab', function (Blueprint $table) {
             $table->id();
-            $table->string('adab_id', 50)->unique();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // This connects to the users table
+            $table->foreignId('adab_id')->constrained('users')->onDelete('cascade');
             $table->timestamps();
-
-            });
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('pusat_adab');

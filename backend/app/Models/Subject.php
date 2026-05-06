@@ -2,30 +2,36 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Subject extends Model
 {
-    use HasFactory;
-
     protected $primaryKey = 'subject_id';
 
     protected $fillable = [
+        //'faculty_registrar_id',
         'subject_code',
         'subject_name',
         'credit_hours',
         'total_section',
         'total_lab',
         'subject_status',
-        'created_by',
+        //'created_by',
     ];
 
-    // --- Relationships ---
+    // Relationships
+    //public function facultyRegistrar()
+    //{
+    //    return $this->belongsTo(User::class, 'faculty_registrar_id');
+    //}
 
-    // A subject can have many Sections (e.g., Section 01, Section 02)
+    //public function creator()
+    //{
+    //    return $this->belongsTo(User::class, 'created_by');
+    //}
+
     public function sections()
     {
-        return $this->hasMany(Section::class);
+        return $this->hasMany(Section::class, 'subject_id', 'subject_id');
     }
 }

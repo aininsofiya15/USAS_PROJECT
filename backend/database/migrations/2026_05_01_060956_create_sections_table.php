@@ -6,27 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('sections', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('subject_id')->references('id')->on('subjects')->onDelete('cascade');
-            $table->foreignId('lecturer_id')->references('id')->on('lecturers')->onDelete('cascade');
-
-            $table->string('semester_code');
-            $table->string('section_name');
-            $table->string('subject_code');
+            $table->id('section_id');
+            $table->foreignId('lecturer_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('subject_id')->constrained('subjects', 'subject_id')->onDelete('cascade');
+            $table->string('section_no');
+            $table->string('lab_group')->nullable();
+            $table->integer('capacity');
+            $table->integer('enrolled')->default(0);
+            $table->time('schedule_time')->nullable();
+            $table->string('schedule_day')->nullable();
             $table->timestamps();
-
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('sections');

@@ -44,10 +44,26 @@ class UserSeeder extends Seeder
             'role' => 'pusat_adab',
         ]);
 
-        // 5. Lecturer - Wahidah
+        // 5. Lecturer - Wahidah (Malay)
         \App\Models\User::create([
             'name' => 'Wahidah',
             'email' => 'wahidah@umpsa.edu.my',
+            'password' => bcrypt('123456'),
+            'role' => 'lecturer',
+        ]);
+
+        // 6. Lecturer - Tan (Chinese)
+        \App\Models\User::create([
+            'name' => 'Tan Wei Meng',
+            'email' => 'tan@umpsa.edu.my',
+            'password' => bcrypt('123456'),
+            'role' => 'lecturer',
+        ]);
+
+        // 7. Lecturer - Raj (Indian)
+        \App\Models\User::create([
+            'name' => 'Rajesh Kumar',
+            'email' => 'rajesh@umpsa.edu.my',
             'password' => bcrypt('123456'),
             'role' => 'lecturer',
         ]);
