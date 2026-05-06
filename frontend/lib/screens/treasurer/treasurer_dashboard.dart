@@ -3,9 +3,6 @@ import 'package:provider/provider.dart';
 import '../../provider/treasurer_provider.dart';
 import '../../widgets/menu_card.dart';
 import '../../widgets/summary_card.dart';
-import '../../widgets/overview_card.dart';
-import '../../widgets/error.dart';
-import '../../widgets/loading.dart';
 import 'fees_management.dart';
 import 'financial_report.dart';
 
@@ -37,14 +34,12 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Welcome message
                 Text(
                   "Welcome, ${widget.name}!",
                   style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
 
-                // Categories section
                 const Text(
                   "Categories",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -85,7 +80,6 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
                 ),
                 const SizedBox(height: 15),
 
-                // Dynamic content based on state
                 _buildDynamicContent(treasuryProvider),
               ],
             ),
@@ -97,19 +91,25 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
 
   Widget _buildDynamicContent(TreasuryProvider treasuryProvider) {
     if (treasuryProvider.isLoading) {
-      return const TreasuryLoadingWidget();
+      return Center(child: CircularProgressIndicator());
     }
 
     if (treasuryProvider.errorMessage.isNotEmpty) {
-      return TreasuryErrorWidget(
-        errorMessage: treasuryProvider.errorMessage,
-        onRetry: () => treasuryProvider.fetchDashboardSummary(),
+      return Center(
+        child: Column(
+          children: [
+            Text(treasuryProvider.errorMessage),
+            ElevatedButton(
+              onPressed: () => treasuryProvider.fetchDashboardSummary(),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
       );
     }
 
     return Column(
       children: [
-        // Summary Cards Row (Paid, Unpaid, Blocked)
         Row(
           children: [
             Expanded(
@@ -141,29 +141,54 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
           ],
         ),
         const SizedBox(height: 15),
-
-        // Total Students Card
-        TreasuryOverviewCard(
-          label: "Total Students",
-          value: treasuryProvider.totalStudents.toString(),
-          icon: Icons.people,
-          color: Colors.purple,
-        ),
-        const SizedBox(height: 15),
-
-        // Financial Cards
-        TreasuryOverviewCard(
-          label: "Total Collected Today",
-          value: "RM ${treasuryProvider.totalCollectedToday.toStringAsFixed(2)}",
-          icon: Icons.today,
-          color: Colors.orange,
-        ),
-        const SizedBox(height: 15),
-        TreasuryOverviewCard(
-          label: "Total Collected This Week",
-          value: "RM ${treasuryProvider.totalCollectedThisWeek.toStringAsFixed(2)}",
-          icon: Icons.trending_up,
-          color: Colors.green,
+        Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Total Students',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    Text(
+                      treasuryProvider.totalStudents.toString(),
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Today\'s Collection'),
+                    Text(
+                      'RM ${treasuryProvider.totalCollectedToday.toStringAsFixed(2)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('This Week\'s Collection'),
+                    Text(
+                      'RM ${treasuryProvider.totalCollectedThisWeek.toStringAsFixed(2)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
