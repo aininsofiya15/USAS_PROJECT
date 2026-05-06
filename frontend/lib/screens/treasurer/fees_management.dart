@@ -1,117 +1,175 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../provider/manage_fees_provider.dart';
+import '../../widgets/stud_list_card.dart';
+import '../../widgets/filter_chip_row.dart';
+import 'stud_tuition_overview.dart';
 
 class FeesManagementPage extends StatefulWidget {
-  const FeesManagementPage({super.key});
+  const FeesManagementPage({Key? key}) : super(key: key);
 
   @override
   State<FeesManagementPage> createState() => _FeesManagementPageState();
 }
 
 class _FeesManagementPageState extends State<FeesManagementPage> {
-  // Student data as per SRS documentation
-  final List<Map<String, String>> students = [
-    {"id": "20001", "name": "Ahmad Bin Zaki", "status": "Paid", "balance": "RM 0.00"},
-    {"id": "20002", "name": "Siti Aminah", "status": "Unpaid", "balance": "RM 1,200.00"},
-    {"id": "20003", "name": "John Doe", "status": "Unpaid", "balance": "RM 450.00"},
-    {"id": "20004", "name": "Nurul Izzah", "status": "Paid", "balance": "RM 0.00"},
-  ];
+  final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<FeesManagementProvider>(context, listen: false)
+          .fetchStudentsFeeStatus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= 
+        _scrollController.position.maxScrollExtent - 200) {
+      Provider.of<FeesManagementProvider>(context, listen: false)
+          .loadMore();
+    }
+  }
+
+  void _searchStudents() {
+    Provider.of<FeesManagementProvider>(context, listen: false)
+        .searchStudents(_searchController.text);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      // USAS Header Style
       appBar: AppBar(
-        title: const Text(
-          "Tuition Fees Management",
-          style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.w600),
-        ),
-        backgroundColor: const Color(0xFFE8F8E3), 
+        title: const Text('Tuition Fees'),
+        backgroundColor: Colors.blue.shade700,
+        foregroundColor: Colors.white,
         elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(80),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Search Bar
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search by name or matric...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              _searchStudents();
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  onSubmitted: (_) => _searchStudents(),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: Column(
         children: [
-          // Search/Filter Bar - Matching Document Specification
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-            child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: const TextField(
-                decoration: InputDecoration(
-                  hintText: "Search Student ID or Name...",
-                  hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
+          // Filter Chips
+          Consumer<FeesManagementProvider>(
+            builder: (context, provider, child) {
+              return FilterChipRow(
+                currentFilter: provider.currentFilter,
+                onFilterChanged: (filter) {
+                  provider.setFilter(filter);
+                },
+              );
+            },
           ),
-
-          // Student List Header Labels
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 25, vertical: 5),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Student Info", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
-                Text("Status", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
-              ],
-            ),
-          ),
-          const Divider(indent: 20, endIndent: 20),
-
-          // List implementation matching UI-403 mockup
+          // Student List
           Expanded(
-            child: ListView.separated(
-              itemCount: students.length,
-              separatorBuilder: (context, index) => const Divider(height: 1, indent: 20, endIndent: 20),
-              itemBuilder: (context, index) {
-                final student = students[index];
-                bool isPaid = student['status'] == "Paid";
+            child: Consumer<FeesManagementProvider>(
+              builder: (context, provider, child) {
+                if (provider.isLoading && provider.students.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.grey.shade200,
-                    child: Text(
-                      student['id']!.substring(3),
-                      style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                if (provider.errorMessage.isNotEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
+                        const SizedBox(height: 16),
+                        Text(provider.errorMessage),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => provider.fetchStudentsFeeStatus(refresh: true),
+                          child: const Text('Retry'),
+                        ),
+                      ],
                     ),
-                  ),
-                  title: Text(
-                    student['name']!,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                  subtitle: Text(
-                    "ID: ${student['id']}\nBalance: ${student['balance']}",
-                    style: const TextStyle(fontSize: 13, color: Colors.black87),
-                  ),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isPaid ? const Color(0xFFC8E6C9) : const Color(0xFFFFCDD2),
-                      borderRadius: BorderRadius.circular(5),
+                  );
+                }
+
+                if (provider.students.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No students found',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ],
                     ),
-                    child: Text(
-                      student['status']!,
-                      style: TextStyle(
-                        color: isPaid ? Colors.green.shade900 : Colors.red.shade900,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
+                  );
+                }
+
+                return ListView.builder(
+                  controller: _scrollController,
+                  itemCount: provider.students.length + (provider.isLoadMore ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == provider.students.length) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    final student = provider.students[index];
+                    return StudentListCard(
+                      student: student,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => StudentFeeDetailPage(
+                              studentId: student.studentId,
+                              studentName: student.name,
+                            ),
+                          ),
+                        ).then((_) => provider.fetchStudentsFeeStatus(refresh: true));
+                      },
+                    );
+                  },
                 );
               },
             ),

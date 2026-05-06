@@ -3,28 +3,33 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB; // <-- This is required!
+use Illuminate\Support\Facades\DB;
 
 class SubjectSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         DB::table('subjects')->insert([
             [
-                'subject_code' => 'BCY3083',
-                'subject_name' => 'SECURE SOFTWARE DEVELOPMENT',
-                'created_at' => now(),
-                'updated_at' => now(),
+                'subject_code'   => 'BCY3083',
+                'subject_name'   => 'SECURE SOFTWARE DEVELOPMENT',
+                'credit_hours'   => 3,
+                'total_section'  => 3,
+                'total_lab'      => 1,
+                'subject_status' => 'active',
+                'created_at'     => now(),
+                'updated_at'     => now(),
             ],
             [
-                'subject_code' => 'BCY3073',
-                'subject_name' => 'PENETRATION TESTING',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
+                'subject_code'   => 'BCY3073',
+                'subject_name'   => 'PENETRATION TESTING',
+                'credit_hours'   => 3,
+                'total_section'  => 2,
+                'total_lab'      => 1,
+                'subject_status' => 'active',
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ],
         ]);
     }
 }

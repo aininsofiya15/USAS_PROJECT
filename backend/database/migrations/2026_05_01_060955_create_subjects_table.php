@@ -9,16 +9,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('subjects', function (Blueprint $table) {
-            $table->id();
-            $table->string('subject_code', 10);
-            $table->string('subject_name', 100);
+            $table->id('subject_id');
+            //$table->foreignId('faculty_registrar_id')->constrained('users')->onDelete('cascade');
+            $table->string('subject_code')->unique();
+            $table->string('subject_name');
             $table->integer('credit_hours');
-            $table->integer('total_section');
-            $table->integer('total_lab');
-            $table->string('subject_status');
-            $table->unsignedBigInteger('created_by')->nullable();
+            $table->integer('total_section')->default(0);
+            $table->integer('total_lab')->default(0);
+            $table->enum('subject_status', ['active', 'inactive'])->default('active');
+            //$table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->timestamps();
-            
         });
     }
 

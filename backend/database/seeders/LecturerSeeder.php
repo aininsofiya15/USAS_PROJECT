@@ -8,23 +8,25 @@ use App\Models\User;
 
 class LecturerSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Find Wahidah's user account created by the UserSeeder
-        $wahidahUser = User::where('email', 'wahidah@umpsa.edu.my')->first();
+        $lecturers = [
+            ['email' => 'wahidah@umpsa.edu.my', 'faculty' => 'Faculty of Computer Science'],
+            ['email' => 'tan@umpsa.edu.my',     'faculty' => 'Faculty of Engineering'],
+            ['email' => 'rajesh@umpsa.edu.my',  'faculty' => 'Faculty of Islamic Studies'],
+        ];
 
-        // Create the Lecturer profile and link it using her user_id
-        if ($wahidahUser) {
-            DB::table('lecturers')->insert([
-                'user_id' => $wahidahUser->id,
-                'lecturer_id' => '2213455', 
-                'full_name' => 'Ts. Dr. Wahidah',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        foreach ($lecturers as $lect) {
+            $user = User::where('email', $lect['email'])->first();
+
+            if ($user) {
+                DB::table('lecturers')->insert([
+                    'lecturer_id' => $user->id,
+                    'faculty'     => $lect['faculty'],
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ]);
+            }
         }
     }
 }

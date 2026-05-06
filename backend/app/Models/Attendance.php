@@ -1,23 +1,27 @@
 <?php
 
-namespace App\Models;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-
-class Attendance extends Model
+return new class extends Migration
 {
-    use HasFactory;
+    public function up(): void
+    {
+        Schema::create('attendances', function (Blueprint $table) {
+            $table->id(); // PK column is named 'id' — Attendance model updated to match
+            $table->foreignId('section_id')->references('id')->on('sections')->onDelete('cascade');
+            $table->string('attendance_code');
+            $table->decimal('geo_lat', 10, 8)->nullable();
+            $table->decimal('geo_long', 11, 8)->nullable();
+            $table->integer('geo_radius')->nullable();
+            $table->dateTime('time_validity');
+            $table->timestamps();
+        });
+    }
 
-    protected $primaryKey = 'attendance_id';
-
-    protected $fillable = [
-        'section_id',
-        //'booking_id',
-        'attendance_code',
-        'geo_lat',
-        'geo_long',
-        'geo_radius',
-        'time_validity',
-    ];
-}
+    public function down(): void
+    {
+        Schema::dropIfExists('attendances');
+    }
+};
