@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '1addAttendance_page.dart';
+import 'add_attendance.dart';
 
 class LecturerBody extends StatelessWidget {
   final String name;

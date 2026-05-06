@@ -4,6 +4,7 @@ import 'screens/login_page.dart';
 import 'provider/user_provider.dart';
 import 'provider/treasurer_provider.dart';
 import 'provider/module_provider.dart'; 
+import 'provider/attendance_provider.dart';
 
 void main() {
   runApp(
@@ -13,6 +14,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => ModuleProvider()), // 3. Register ModuleProvider
         ChangeNotifierProvider(create: (_) => TreasuryProvider()),
+        ChangeNotifierProvider(create: (_) => AttendanceProvider())
       ],
       child: const MyApp(),
     ),
