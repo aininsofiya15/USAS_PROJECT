@@ -15,11 +15,7 @@ return new class extends Migration
             $table->string('course_name');
             $table->integer('current_semester');
             $table->integer('year');
-<<<<<<< Updated upstream:backend/database/migrations/2026_05_01_000002_create_students_table.php
-=======
-            $table->string('matric_id')->unique();
             $table->boolean('is_blocked')->default(false);
->>>>>>> Stashed changes:backend/database/migrations/2026_05_05_062320_create_students_table.php
             $table->timestamps();
         });
     }
