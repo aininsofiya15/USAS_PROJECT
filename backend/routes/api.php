@@ -92,6 +92,19 @@ Route::post('/generate-attendance', function (Request $request) {
 Route::get('/treasury/student-count', [TreasurerController::class, 'getStudentCount']);
 
 // PUSAT ADAB ROUTES
+
 Route::get('/modules', [ModuleController::class, 'index']);
 Route::post('/modules', [ModuleController::class, 'store']);
 Route::post('/modules/update-existing', [ModuleController::class, 'update']);
+
+// STUDENT ROUTES
+//AININ 
+Route::post('/modules/apply', [ModuleController::class, 'applyModule']);
+Route::get('/students/{studentId}/bookings', [ModuleController::class, 'getStudentBookings']);
+Route::delete('/bookings/{id}', [ModuleController::class, 'destroy']);
+Route::put('/bookings/{id}/claim', [ModuleController::class, 'claimModule']);
+//YAYA
+
+//WIDA
+
+//JIHA

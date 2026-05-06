@@ -5,17 +5,18 @@ import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../provider/module_provider.dart';
+import '../../provider/user_provider.dart'; 
 import '../../domain/module.dart';
 
 class StudentActivitiesPage extends StatefulWidget {
-  const StudentActivitiesPage({super.key});
+   StudentActivitiesPage({super.key});
 
   @override
   State<StudentActivitiesPage> createState() => _StudentActivitiesPageState();
 }
 
 class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
-  String selectedTab = 'All'; // Filter toggle state: All vs Available
+  String selectedTab = 'All'; 
   
   // Track selected date slot per activity group
   final Map<String, Module> _selectedSubModules = {};
@@ -26,7 +27,6 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
   @override
   void initState() {
     super.initState();
-    // Fetch fresh module data created by Pusat ADAB staff from MySQL database
     Future.microtask(() => Provider.of<ModuleProvider>(context, listen: false).fetchModules());
   }
 
@@ -88,10 +88,9 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
           // Outer List Container Panel
           Expanded(
             child: Container(
-              margin: const EdgeInsets.fromLTRB(10, 0, 10, 15), // Added bottom margin to prevent clipping
+              margin: const EdgeInsets.fromLTRB(10, 0, 10, 15), 
               decoration: BoxDecoration(
                 color: const Color.fromARGB(255, 206, 229, 244), 
-                // Gives the overall panel perfectly rounded corners on ALL sides
                 borderRadius: BorderRadius.circular(40), 
                 boxShadow: [
                   BoxShadow(
@@ -99,12 +98,11 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
                     blurRadius: 15,
                     offset: const Offset(0, -2),
                   )
-                ]
+                ],
               ),
               child: moduleProvider.isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : ClipRRect(
-                      // Clip the list view area so cards don't bleed past the rounded panel edges
                       borderRadius: BorderRadius.circular(40),
                       child: ListView.builder(
                         padding: const EdgeInsets.all(20),
@@ -124,8 +122,8 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
   }
 
   Widget _buildStudentActivityCard(String activityName, List<Module> slots) {
-    // Put default values if this is the first time rendering the activity card row
-    _isExpanded.putIfAbsent(activityName, () => false);
+    // 🔥 FIX 1: Set default to false so they open closed/collapsed by default
+    _isExpanded.putIfAbsent(activityName, () => false); 
     if (!_selectedSubModules.containsKey(activityName) && slots.isNotEmpty) {
       _selectedSubModules[activityName] = slots.first;
     }
@@ -133,15 +131,13 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
     final currentSelectedSlot = _selectedSubModules[activityName]!;
     bool expanded = _isExpanded[activityName]!;
 
-    // FIXED: Calculate available remaining seat positions manually
     int availableSlots = currentSelectedSlot.capacity - currentSelectedSlot.registeredCount;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8FDFF), // Light blue tint matching mockup
-        // Explicitly rounds all 4 corners of individual modules cards
+        color: const Color(0xFFF8FDFF), 
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
@@ -155,11 +151,10 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Clickable Title Row Header
           GestureDetector(
             onTap: () {
               setState(() {
-                _isExpanded[activityName] = !expanded; // Toggle open state
+                _isExpanded[activityName] = !expanded; 
               });
             },
             behavior: HitTestBehavior.opaque,
@@ -183,14 +178,11 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
           const Text("Currently Open", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
           const SizedBox(height: 12),
           
-          // Information Fields Section (Bound dynamically to selected sub-slot chip below)
-          // UPDATED: Now shows Available Slots remaining calculation output text
           _buildInfoRow(Icons.people, "Available Slots: $availableSlots / ${currentSelectedSlot.capacity} Seats Left"),
           _buildInfoRow(Icons.access_time, "Class Time: ${currentSelectedSlot.dateTime}"),
           _buildInfoRow(Icons.location_on, "Venue: ${currentSelectedSlot.venue}"),
           _buildInfoRow(Icons.person, "Lecturer: ${currentSelectedSlot.lecturerName}"),
           
-          // Expandable Child Grid Array (Only builds when expanded variable is true)
           if (expanded) ...[
             const SizedBox(height: 10),
             const Divider(height: 1, color: Color(0xFFE0E0E0)),
@@ -198,20 +190,28 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
             const Text("Available Slots:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blue)),
             const SizedBox(height: 10),
 
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: slots.map((slot) {
+            // 🔥 FIX 2: Layout Grid instead of Wrap forces exactly 4 items in one clean line row
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: slots.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 4,          // Exact 4-column date chip tracking row count
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: 2.1,      // Sizing ratio scaling adjustments
+              ),
+              itemBuilder: (context, slotIndex) {
+                final slot = slots[slotIndex];
                 bool isFull = slot.registeredCount >= slot.capacity;
                 bool isSelected = currentSelectedSlot == slot;
 
-                // Format "2026-05-29 08:00:00" to readable "29 May"
                 String formattedDate;
                 try {
                   DateTime parsedDate = DateTime.parse(slot.dateTime);
                   formattedDate = DateFormat('d MMMM').format(parsedDate);
                 } catch (_) {
-                  formattedDate = slot.dateTime.split(' ')[0]; // Fallback string split
+                  formattedDate = slot.dateTime.split(' ')[0]; 
                 }
 
                 return InkWell(
@@ -222,41 +222,123 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
                   },
                   borderRadius: BorderRadius.circular(10),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                     decoration: BoxDecoration(
+                      // 🔥 FIX 3: Toggled from blue background to a solid neutral dark-grey hue accent selection state
                       color: isSelected 
-                          ? Colors.blue.shade400 
+                          ? Colors.grey.shade500 
                           : (isFull ? Colors.grey.shade300 : const Color(0xFFB2FF59)),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isSelected ? Colors.blue.shade700 : Colors.transparent,
+                        color: isSelected ? Colors.grey.shade700 : Colors.transparent,
                         width: 1,
                       ),
                     ),
                     child: Text(
                       formattedDate,
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: isFull && !isSelected ? Colors.black38 : Colors.black,
                         fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                        fontSize: 11,
                       ),
                     ),
                   ),
                 );
-              }).toList(),
+              },
             ),
           ],
           
           const SizedBox(height: 15),
-          // Action Execution Line
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton(
               onPressed: (currentSelectedSlot.registeredCount >= currentSelectedSlot.capacity) 
                   ? null 
-                  : () {
-                      // Connection target slot logic point
-                      print("Applying for module database row ID: ${currentSelectedSlot.activityName}");
+                  : () async {
+                      final moduleProvider = Provider.of<ModuleProvider>(context, listen: false);
+
+                      if (currentSelectedSlot.id == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Error: Module identifier missing.")),
+                        );
+                        return;
+                      }
+
+                      int liveUserId = Provider.of<UserProvider>(context, listen: false).userId;
+
+                      bool success = await moduleProvider.applyToModule(
+                        moduleId: currentSelectedSlot.id!,
+                        studentId: liveUserId.toString(),
+                      );
+
+                      if (!mounted) return;
+
+                      if (success) {
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xE8EAF6F1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    padding: const EdgeInsets.all(16),
+                                    child: const Icon(
+                                      Icons.check_circle_outline_rounded,
+                                      color: Color(0xFF00C853), 
+                                      size: 64,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  const Text(
+                                    "Module added successfully!",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold, 
+                                      fontSize: 18,
+                                      color: Colors.black87,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 48,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF00C853),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text(
+                                        "OK", 
+                                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Application failed. Already registered or slots full!"),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                      }
                     },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF007AFF),
@@ -276,7 +358,6 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
     );
   }
 
-  // FIXED: Clean text view container without the text underline lines
   Widget _buildInfoRow(IconData icon, String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('modules', function (Blueprint $table) {
             $table->id();
-            // Default Fields
+
             $table->string('activity_name');
             $table->dateTime('date_time');
             $table->integer('capacity');

@@ -3,102 +3,110 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Module; 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ModuleController extends Controller
 {
     /**
-     * Fetch all modules ordered by the latest created.
-     * High Cohesion: Only handles reading the module collection.
+     * Fetch all available co-curricular modules catalog
      */
     public function index()
     {
-        $modules = Module::orderBy('created_at', 'desc')->get();
-        
-        return response()->json([
-            'success' => true,
-            'data' => $modules
-        ], 200);
+        try {
+            $modules = DB::table('modules')->get();
+            return response()->json(['data' => $modules], 200);
+        } catch (\Exception $e) {
+            Log::error("Fetch Modules Error: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to load modules'], 500);
+        }
     }
 
     /**
-     * Store a newly created module in storage.
-     * High Cohesion: Only handles validating and creating a new record.
+     * Fetch all modules successfully booked by a specific student ID
      */
-    public function store(Request $request)
+    public function getStudentBookings($studentId)
     {
-        $validator = Validator::make($request->all(), [
-            'activity_name' => 'required|string|max:255',
-            'date_time' => 'required',
-            'capacity' => 'required|integer',
-            'venue' => 'required|string',
-            'lecturer_name' => 'required|string',
-            'status' => 'in:draft,published', 
-            'current_registration' => 'nullable|integer',
-        ]);
+        try {
+            $bookings = DB::table('bookings')
+                ->join('modules', 'bookings.module_id', '=', 'modules.id')
+                ->where('bookings.student_id', $studentId)
+                ->select(
+                    'modules.id as id',
+                    'modules.activity_name',
+                    'modules.date_time',
+                    'modules.venue',
+                    'bookings.attendance',
+                    'bookings.total_marks',
+                    'bookings.is_claimed'
+                )
+                ->get();
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false, 
-                'errors' => $validator->errors()
-            ], 422);
+            return response()->json($bookings, 200);
+        } catch (\Exception $e) {
+            Log::error("Booking Fetch Error: " . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        $module = Module::create($request->all());
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Module saved as ' . $module->status,
-            'data' => $module
-        ], 201);
     }
 
     /**
-     * Update an existing module using its current activity name as the natural key identifier.
-     * Low Coupling: Relies cleanly on request data payload values rather than fragile URL structures.
+     * Safe Application Logic Handler (Deducts exactly 1 seat safely)
      */
-    public function update(Request $request)
+    public function applyToModule(Request $request)
     {
-        // 1. Grab the natural key tracking identifier out of the request body
-        $currentName = $request->input('current_name');
-
-        // 2. Query for the row instance matching the natural key
-        $module = Module::where('activity_name', $currentName)->first();
-
-        if (!$module) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Module not found: ' . $currentName
-            ], 404);
-        }
-
-        // 3. Complete input field validation validation rules
-        $validator = Validator::make($request->all(), [
-            'activity_name' => 'required|string|max:255',
-            'date_time' => 'required',
-            'capacity' => 'required|integer',
-            'venue' => 'required|string',
-            'lecturer_name' => 'required|string',
-            'status' => 'in:draft,published', 
-            'current_registration' => 'nullable|integer',
+        $request->validate([
+            'module_id' => 'required|integer',
+            'student_id' => 'required|integer',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false, 
-                'errors' => $validator->errors()
-            ], 422);
-        }
+        $moduleId = $request->input('module_id');
+        $studentId = $request->input('student_id');
 
-        // 4. Commit values update directly to database row instance
-        $module->update($request->all());
+        // 🔥 ATOMIC TRANSACTION BLOCK: Locks rows while running to stop the -5 duplicate bug!
+        return DB::transaction(function () use ($moduleId, $studentId) {
+            
+            // 1. Check if this student already registered for this module row
+            $alreadyBooked = DB::table('bookings')
+                ->where('student_id', $studentId)
+                ->where('module_id', $moduleId)
+                ->exists();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Module updated successfully!',
-            'data' => $module
-        ], 200);
+            if ($alreadyBooked) {
+                return response()->json(['message' => 'Already registered for this module!'], 400);
+            }
+
+            // 2. Fetch the target module details and lock the row during assessment
+            $module = DB::table('modules')->where('id', $moduleId)->lockForUpdate()->first();
+
+            if (!$module) {
+                return response()->json(['message' => 'Module not found!'], 404);
+            }
+
+            // Calculate current remaining seats dynamically
+            $availableSeats = $module->capacity - $module->current_registration;
+
+            if ($availableSeats <= 0) {
+                return response()->json(['message' => 'Slots are completely full!'], 400);
+            }
+
+            // 3. Create the enrollment entry record in your bookings table
+            DB::table('bookings')->insert([
+                'student_id' => $studentId,
+                'module_id' => $moduleId,
+                'attendance' => '-',
+                'total_marks' => '-',
+                'is_claimed' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            // 4. FIXED: Atomic increment to add EXACTLY 1 to current_registration count column
+            DB::table('modules')
+                ->where('id', $moduleId)
+                ->increment('current_registration', 1);
+
+            return response()->json(['message' => 'Module added successfully!'], 200);
+        });
     }
 }

@@ -20,7 +20,8 @@ return new class extends Migration
             $table->string('section_name');
             $table->string('subject_code');
             $table->timestamps();
-
+            
+            $table->foreign('activity_name')->references('activity_name')->on('modules')->onDelete('cascade');
         });
     }
 

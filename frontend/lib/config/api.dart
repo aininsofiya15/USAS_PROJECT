@@ -8,6 +8,12 @@ class Api {
 
   // Pusat Adab Module
   static const String modules = "$baseUrl/modules";
-  //static const String attendance = "$baseUrl/attendance";
-  //static const String creditClaim = "$baseUrl/credit-claim";
+  
+
+  // Student
+  static const String applyModule = "$baseUrl/modules/apply";
+  static String studentBookings(String studentId) => "$baseUrl/students/$studentId/bookings";
+
+
+
 }
