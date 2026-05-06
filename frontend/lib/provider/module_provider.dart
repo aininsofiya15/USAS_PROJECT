@@ -150,6 +150,7 @@ class ModuleProvider with ChangeNotifier {
           'student_id': studentId,
         }),
       );
+      
 
       // 🔥 FIXED: Turning off loading state here ensures it drops the spinner on both success AND failure routes
       _isLoading = false;
@@ -190,4 +191,35 @@ class ModuleProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<bool> dropModule({required int bookingId, required String studentId}) async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    final response = await http.delete(
+      Uri.parse("${Api.baseUrl}/bookings/$bookingId"),
+    );
+
+    if (response.statusCode == 200) {
+      // 🔥 FIX: Remove the item from your local list immediately using its ID!
+      _bookedModules.removeWhere((item) => item.id == bookingId);
+      
+      _isLoading = false;
+      notifyListeners(); // This forces MyBookingsPage to instantly update and animate the card away!
+      return true;
+    }
+    
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  } catch (e) {
+    print("Error dropping module: $e");
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+}
+
+
 }

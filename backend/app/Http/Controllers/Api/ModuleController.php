@@ -106,7 +106,24 @@ class ModuleController extends Controller
                 ->where('id', $moduleId)
                 ->increment('current_registration', 1);
 
+            
             return response()->json(['message' => 'Module added successfully!'], 200);
         });
+    }
+
+    public function destroy($id)
+    {
+        // Find the booking record first so we know which module_id it belongs to
+        $booking = DB::table('bookings')->where('id', $id)->first();
+
+        if ($booking) {
+            // 1. Free up the seat by subtracting 1 from current_registration count
+            DB::table('modules')->where('id', $booking->module_id)->decrement('current_registration', 1);
+            
+            // 2. Delete the registration row from the database
+            DB::table('bookings')->where('id', $id)->delete();
+        }
+
+        return response()->json(['message' => 'Dropped successfully'], 200);
     }
 }

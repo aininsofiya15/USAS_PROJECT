@@ -29,11 +29,17 @@ Route::post('/modules/apply', [ModuleController::class, 'applyModule']);
 Route::get('/students/{studentId}/bookings', [ModuleController::class, 'getStudentBookings']);
 Route::delete('/bookings/{id}', [ModuleController::class, 'destroy']);
 Route::put('/bookings/{id}/claim', [ModuleController::class, 'claimModule']);
+
+
 //YAYA
+
 
 //WIDA
 
+
 //JIHA
+
+
 //TREASURER ROUTES
 Route::get('/treasurer/student-count', [TreasurerController::class, 'getStudentCount']);
 Route::get('/treasurer/dashboard-summary', [TreasurerController::class, 'dashboardSummary']);

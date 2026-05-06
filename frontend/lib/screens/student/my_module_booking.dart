@@ -8,7 +8,7 @@ import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
 
 class MyBookingsPage extends StatefulWidget {
-   MyBookingsPage({super.key});
+  MyBookingsPage({super.key});
 
   @override
   State<MyBookingsPage> createState() => _MyBookingsPageState();
@@ -32,7 +32,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   Widget build(BuildContext context) {
     final moduleProvider = Provider.of<ModuleProvider>(context);
     
-    // 1. Grabs the complete list directly from your provider without grouping filters
+    // 🔥 LIVE RE-RENDERING FIX: Reads directly from your dynamic booked list provider context state!
     final bookedActivities = moduleProvider.bookedModules;
 
     return Scaffold(
@@ -68,7 +68,6 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                       : Column(
                           children: [
                             Expanded(
-                              // 2. Loops through EVERY booking row received from the database
                               child: ListView.builder(
                                 itemCount: bookedActivities.length,
                                 itemBuilder: (context, index) {
@@ -99,7 +98,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
     // Evaluate logic boundaries for responsive layout switches
     bool isPresent = currentAttendance.toLowerCase() == "present";
     bool hasMarks = currentMarks != "-" && currentMarks.trim().isNotEmpty;
-    bool isModuleClaimed = booking.isClaimed == 1; // 1 = claimed, 0 = uncompleted
+    bool isModuleClaimed = booking.isClaimed == 1; 
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -117,6 +116,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
+          // 🔥 COLLAPSED FIX: Set to false so the accordion panels load closed initially
           initiallyExpanded: false,
           onExpansionChanged: (bool value) {
             setState(() {
@@ -149,7 +149,6 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                   _buildAttendanceRow("Attendance", currentAttendance, isPresent),
                   const SizedBox(height: 15),
                   
-                  // Live status button condition tree mappings
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -163,8 +162,26 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                           // Action trigger for single module claim operation
                         }),
                       ] else ...[
-                        _buildActionButton("Drop", Colors.red, () {
-                          // Action trigger for drop registration row delete
+                        _buildActionButton("Drop", Colors.red, () async {
+                          final provider = Provider.of<ModuleProvider>(context, listen: false);
+                          final user = Provider.of<UserProvider>(context, listen: false);
+
+                          if (booking.id != null) {
+                            bool success = await provider.dropModule(
+                              bookingId: booking.id!, 
+                              studentId: user.userId.toString(),
+                            );
+                            
+                            if (success) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Module dropped successfully!")),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Failed to drop module."), backgroundColor: Colors.red),
+                              );
+                            }
+                          }
                         }),
                         const SizedBox(width: 10),
                         _buildActionButton("Attendance", const Color(0xFF007AFF), () {
