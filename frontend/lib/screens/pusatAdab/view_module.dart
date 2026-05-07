@@ -6,6 +6,7 @@ import '../../widgets/app_sidebar.dart';
 import '../../provider/module_provider.dart';
 import '../../domain/module.dart'; 
 import 'module_form.dart'; 
+import 'module_student_list.dart';
 
 class ViewModulesPage extends StatefulWidget {
    ViewModulesPage({super.key});
@@ -191,7 +192,14 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
               if (!isDraft) ...[
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StudentListPage(module: module),
+                      ),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E88E5),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),

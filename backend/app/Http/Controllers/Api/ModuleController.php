@@ -23,31 +23,55 @@ class ModuleController extends Controller
         }
     }
 
+    public function update(Request $request)
+    {
+        $id = $request->input('id');
+
+        if (!$id) {
+            return response()->json(['message' => 'Module ID is missing!'], 400);
+        }
+
+        try {
+            DB::table('modules')
+                ->where('id', $id)
+                ->update([
+                    'activity_name' => $request->input('activity_name'),
+                    'date_time'     => $request->input('date_time'),
+                    'capacity'      => $request->input('capacity'),
+                    'venue'         => $request->input('venue'),
+                    'lecturer_name' => $request->input('lecturer_name'),
+                    'description'   => $request->input('description'),
+                    'whatsapp_link' => $request->input('whatsapp_link'),
+                    'pic_contact'   => $request->input('pic_contact'),
+                    'status'        => $request->input('status'), 
+                    'updated_at'    => now(),
+                ]);
+
+            return response()->json(['message' => 'Module updated successfully!'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Database Error: ' . $e->getMessage()], 500);
+        }
+    }
     /**
      * Fetch all modules successfully booked by a specific student ID
      */
     public function getStudentBookings($studentId)
     {
-        try {
-            $bookings = DB::table('bookings')
-                ->join('modules', 'bookings.module_id', '=', 'modules.id')
-                ->where('bookings.student_id', $studentId)
-                ->select(
-                    'modules.id as id',
-                    'modules.activity_name',
-                    'modules.date_time',
-                    'modules.venue',
-                    'bookings.attendance',
-                    'bookings.total_marks',
-                    'bookings.is_claimed'
-                )
-                ->get();
+        $bookings = DB::table('bookings')
+            ->join('modules', 'bookings.module_id', '=', 'modules.id')
+            ->where('bookings.student_id', $studentId)
+            ->select(
+                'bookings.id as id',          // 🔥 Use Column #1 from your screenshot!
+                'modules.activity_name',
+                'modules.date_time',
+                'modules.venue',
+                'bookings.attendance',
+                'bookings.total_marks',
+                'bookings.is_claimed'
+            )
+            ->get();
 
-            return response()->json($bookings, 200);
-        } catch (\Exception $e) {
-            Log::error("Booking Fetch Error: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        return response()->json($bookings, 200);
     }
 
     /**
@@ -65,11 +89,23 @@ class ModuleController extends Controller
 
         // 🔥 ATOMIC TRANSACTION BLOCK: Locks rows while running to stop the -5 duplicate bug!
         return DB::transaction(function () use ($moduleId, $studentId) {
-            
+            Log::info("Checking duplicate for Student: $studentId and Module: $moduleId");
             // 1. Check if this student already registered for this module row
             $alreadyBooked = DB::table('bookings')
                 ->where('student_id', $studentId)
                 ->where('module_id', $moduleId)
+                ->exists();
+
+            // 1. Check if this student already registered for ANY module with this same name
+            $alreadyBooked = DB::table('bookings')
+                ->join('modules', 'bookings.module_id', '=', 'modules.id')
+                ->where('bookings.student_id', $studentId)
+                ->where('modules.activity_name', function($query) use ($moduleId) {
+                    // This sub-query finds the name of the module the student is trying to join
+                    $query->select('activity_name')
+                        ->from('modules')
+                        ->where('id', $moduleId);
+                })
                 ->exists();
 
             if ($alreadyBooked) {
@@ -113,17 +149,45 @@ class ModuleController extends Controller
 
     public function destroy($id)
     {
-        // Find the booking record first so we know which module_id it belongs to
+        // Find the record using the ID from your screenshot
         $booking = DB::table('bookings')->where('id', $id)->first();
 
         if ($booking) {
-            // 1. Free up the seat by subtracting 1 from current_registration count
-            DB::table('modules')->where('id', $booking->module_id)->decrement('current_registration', 1);
-            
-            // 2. Delete the registration row from the database
+            // Use the module_id (Column #3 in your screenshot) to free a seat
+            DB::table('modules')
+                ->where('id', $booking->module_id)
+                ->decrement('current_registration', 1);
+
+            // Delete the row from the bookings table
             DB::table('bookings')->where('id', $id)->delete();
+
+            return response()->json(['message' => 'Successfully deleted'], 200);
         }
 
-        return response()->json(['message' => 'Dropped successfully'], 200);
+        return response()->json(['message' => 'Booking ID not found'], 404);
+    }
+
+//VIEW ALL REGISTERED STUDENTS FOR A PARTICULAR MODULE (PUSAT ADAB)
+    public function getRegisteredStudents($id)
+    {
+        try {
+            // 🔥 FIX 1: Cast to int to match the BigInt in your DB
+            $moduleId = (int)$id;
+
+            $students = DB::table('bookings')
+                ->join('users', 'bookings.student_id', '=', 'users.id')
+                ->where('bookings.module_id', $moduleId)
+                ->select(
+                    'bookings.id as booking_id', // 🔥 FIX 2: Need booking ID to delete later!
+                    'users.id as user_id', 
+                    'users.name as student_name'
+                )
+                ->get();
+
+            return response()->json($students, 200);
+        } catch (\Exception $e) {
+            Log::error("Fetch Registered Students Error: " . $e->getMessage());
+            return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
+        }
     }
 }

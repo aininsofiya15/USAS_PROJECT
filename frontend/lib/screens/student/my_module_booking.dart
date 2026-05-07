@@ -32,7 +32,6 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   Widget build(BuildContext context) {
     final moduleProvider = Provider.of<ModuleProvider>(context);
     
-    // 🔥 LIVE RE-RENDERING FIX: Reads directly from your dynamic booked list provider context state!
     final bookedActivities = moduleProvider.bookedModules;
 
     return Scaffold(

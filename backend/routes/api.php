@@ -23,14 +23,15 @@ Route::post('/attendance/store', [AttendanceController::class, 'store']);
 Route::get('/modules', [ModuleController::class, 'index']);
 Route::post('/modules', [ModuleController::class, 'store']);
 Route::post('/modules/update-existing', [ModuleController::class, 'update']);
+Route::get('/modules/{id}/students', [ModuleController::class, 'getRegisteredStudents']);
 
 // STUDENT ROUTES
 //AININ 
-Route::post('/modules/apply', [ModuleController::class, 'applyModule']);
+Route::post('/modules/apply', [ModuleController::class, 'applyToModule']);
 Route::get('/students/{studentId}/bookings', [ModuleController::class, 'getStudentBookings']);
 Route::delete('/bookings/{id}', [ModuleController::class, 'destroy']);
 Route::put('/bookings/{id}/claim', [ModuleController::class, 'claimModule']);
-
+Route::delete('/bookings/{id}', [ModuleController::class, 'destroy']);
 
 //YAYA
 
