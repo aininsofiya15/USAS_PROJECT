@@ -39,8 +39,9 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200 && data['success'] == true) {
         String role = data['user']['role'];
         String name = data['user']['name'];
+        int userId = data['user']['id']; // Capture the user ID from the response
 
-        Provider.of<UserProvider>(context, listen: false).createSession(name, role);
+        Provider.of<UserProvider>(context, listen: false).createSession(name, role, userId);
 
         // 1. Show the success message
         ScaffoldMessenger.of(context).showSnackBar(
@@ -52,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
 
         // 2. NAVIGATE to the Dashboard automatically
         
-        Provider.of<UserProvider>(context, listen: false).createSession(name, role);
+        Provider.of<UserProvider>(context, listen: false).createSession(name, role, userId);
 
         Navigator.pushReplacement(
           context,

@@ -19,9 +19,27 @@ Route::get('/lecturer/subjects', [AttendanceController::class, 'getLecturerSubje
 Route::post('/attendance/store', [AttendanceController::class, 'store']);
 
 // PUSAT ADAB ROUTES
+
 Route::get('/modules', [ModuleController::class, 'index']);
 Route::post('/modules', [ModuleController::class, 'store']);
 Route::post('/modules/update-existing', [ModuleController::class, 'update']);
+
+// STUDENT ROUTES
+//AININ 
+Route::post('/modules/apply', [ModuleController::class, 'applyModule']);
+Route::get('/students/{studentId}/bookings', [ModuleController::class, 'getStudentBookings']);
+Route::delete('/bookings/{id}', [ModuleController::class, 'destroy']);
+Route::put('/bookings/{id}/claim', [ModuleController::class, 'claimModule']);
+
+
+//YAYA
+
+
+//WIDA
+
+
+//JIHA
+
 
 //TREASURER ROUTES
 Route::get('/treasurer/student-count', [TreasurerController::class, 'getStudentCount']);

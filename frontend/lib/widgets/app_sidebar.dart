@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../provider/user_provider.dart';
 import '../screens/student/module_booking.dart';
 import 'package:USAS/screens/faculty/subject_registration_page.dart';
+import '../screens/student/my_module_booking.dart';
 
 
 class AppSidebar extends StatelessWidget {
@@ -143,7 +144,7 @@ class AppSidebar extends StatelessWidget {
                     _buildSubMenuItem(context, "List of Registered Subjects", role),
                     const Divider(color: Colors.white24, height: 10),
                     _buildMenuItem(context, Icons.menu_book, "Curriculum Activity", role),
-                    _buildSubMenuItem(context, "View My Module", role),
+                    _buildSubMenuItem(context, "View My Module", role, destination: MyBookingsPage()),
                     _buildSubMenuItem(context, "Module Booking", role, destination: StudentActivitiesPage()),
                     _buildSubMenuItem(context, "Claim Credit", role),
                     const Divider(color: Colors.white24, height: 10),
