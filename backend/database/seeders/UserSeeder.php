@@ -4,21 +4,42 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // --- Existing Users ---
-       User::create(['name' => 'Sharmila', 'email' => 'sharmila@umpsa.edu.my', 'password' => bcrypt('123456'), 'role' => 'student']);
-       User::create(['name' => 'Najihah', 'email' => 'najihah@umpsa.edu.my', 'password' => bcrypt('123456'), 'role' => 'treasury']);
-       User::create(['name' => 'Hidayah', 'email' => 'hidayah@umpsa.edu.my', 'password' => bcrypt('123456'), 'role' => 'faculty']);
-       User::create(['name' => 'Ainin', 'email' => 'ainin@umpsa.edu.my', 'password' => bcrypt('123456'), 'role' => 'pusat_adab']);
-       User::create(['name' => 'Wahidah', 'email' => 'wahidah@umpsa.edu.my', 'password' => bcrypt('123456'), 'role' => 'lecturer']);
-       User::create(['name' => 'Tan Wei Meng', 'email' => 'tan@umpsa.edu.my', 'password' => bcrypt('123456'), 'role' => 'lecturer']);
-       User::create(['name' => 'Rajesh Kumar', 'email' => 'rajesh@umpsa.edu.my', 'password' => bcrypt('123456'), 'role' => 'lecturer']);
+        // Helper function for random phone numbers
+        $generatePhone = function() {
+            $prefixes = ['011', '012', '013', '014', '016', '017', '018', '019'];
+            return $prefixes[array_rand($prefixes)] . '-' . rand(1000000, 9999999);
+        };
 
-        // --- 15 New Students (from Prototype) ---
+        // --- 1. Core Users ---
+        $coreUsers = [
+            ['name' => 'Sharmila', 'email' => 'sharmila@umpsa.edu.my', 'role' => 'student'],
+            ['name' => 'Najihah', 'email' => 'najihah@umpsa.edu.my', 'role' => 'treasury'],
+            ['name' => 'Hidayah', 'email' => 'hidayah@umpsa.edu.my', 'role' => 'faculty'],
+            ['name' => 'Ainin', 'email' => 'ainin@umpsa.edu.my', 'role' => 'pusat_adab'],
+            ['name' => 'Wahidah', 'email' => 'wahidah@umpsa.edu.my', 'role' => 'lecturer'],
+            ['name' => 'Tan Wei Meng', 'email' => 'tan@umpsa.edu.my', 'role' => 'lecturer'],
+            ['name' => 'Rajesh Kumar', 'email' => 'rajesh@umpsa.edu.my', 'role' => 'lecturer'],
+        ];
+
+        foreach ($coreUsers as $u) {
+            User::updateOrCreate(
+                ['email' => $u['email']], // SEARCH by email only
+                [
+                    'name' => $u['name'],
+                    'password' => Hash::make('123456'),
+                    'role' => $u['role'],
+                    'phone_num' => $generatePhone(),
+                ]
+            );
+        }
+
+        // --- 2. 15 Prototype Students ---
         $students = [
             ['name' => 'Nur Aqilah', 'email' => 'aqilah@umpsa.edu.my'],
             ['name' => 'Norfardilla', 'email' => 'dilla@umpsa.edu.my'],
@@ -37,13 +58,16 @@ class UserSeeder extends Seeder
             ['name' => 'Ahmad Fauzi', 'email' => 'fauzi@umpsa.edu.my'],
         ];
 
-        foreach ($students as $student) {
-            User::create([
-                'name' => $student['name'],
-                'email' => $student['email'],
-                'password' => bcrypt('123456'),
-                'role' => 'student',
-            ]);
+        foreach ($students as $s) {
+            User::updateOrCreate(
+                ['email' => $s['email']], // SEARCH by email only
+                [
+                    'name' => $s['name'],
+                    'password' => Hash::make('123456'),
+                    'role' => 'student',
+                    'phone_num' => $generatePhone(),
+                ]
+            );
         }
     }
 }
