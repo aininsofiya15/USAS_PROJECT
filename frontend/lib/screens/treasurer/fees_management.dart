@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/manage_fees_provider.dart';
-import '../../widgets/stud_list_card.dart';
-import '../../widgets/filter_chip_row.dart';
 import 'stud_tuition_overview.dart';
 import 'auto_block_config.dart';
+import '../../provider/user_provider.dart';
+import '../../widgets/app_sidebar.dart';
+import '../../widgets/header.dart';
+import '../../widgets/navigation_bar.dart';
 
 class FeesManagementPage extends StatefulWidget {
   const FeesManagementPage({Key? key}) : super(key: key);
@@ -35,10 +37,9 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= 
+    if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
-      Provider.of<FeesManagementProvider>(context, listen: false)
-          .loadMore();
+      Provider.of<FeesManagementProvider>(context, listen: false).loadMore();
     }
   }
 
@@ -47,87 +48,55 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
         .searchStudents(_searchController.text);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFE8F5E9), 
-      appBar: AppBar(
-        title: const Text('Tuition Fees'),
-        backgroundColor: Colors.blue.shade700,
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: Column(
+  // --- STUDENT ROW WITH CLICKABLE NAME ---
+  Widget _buildStudentRow(StudentFeeStatus student) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
         children: [
-          Container(
-            color: Colors.blue.shade700,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by name or matric...',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                // FIX: If BorderRadius still shows red, ensure you are using 'const' 
-                // and that the closing parentheses are correct.
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              onSubmitted: (_) => _searchStudents(),
-            ),
-          ),
-
           Expanded(
-            child: Consumer<FeesManagementProvider>(
-              builder: (context, provider, child) {
-                if (provider.isLoading && provider.students.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                return SingleChildScrollView(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildSummaryCard(provider),
-                      
-                      const SizedBox(height: 20),
-                      const Text(
-                        "Student Fee Status",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 10),
-
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: provider.students.length,
-                          itemBuilder: (context, index) {
-                            final student = provider.students[index];
-                            // FIX: Added the missing 'onTap' parameter required by StudentListCard
-                            return StudentListCard(
-                              student: student,
-                              onTap: () {
-                                // Add your navigation or logic here
-                                print("Tapped on ${student.name}");
-                              },
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+            flex: 3,
+            child: Text(student.matricId, style: const TextStyle(fontSize: 12)),
+          ),
+          Expanded(
+            flex: 4,
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    // Pass the student's ID and remove 'const'
+                    builder: (context) => StudentTuitionOverviewPage(userId: student.userId), 
                   ),
                 );
               },
+              child: Text(
+                student.name,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.blue, // Blue color to indicate clickability
+                  fontWeight: FontWeight.w500,
+                  decoration: TextDecoration.underline, // Optional: makes it look like a link
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text("RM ${student.outstandingAmount.toStringAsFixed(2)}",
+                style: const TextStyle(fontSize: 12)),
+          ),
+          Expanded(
+            flex: 3,
+            child: _buildStatusOval(student.status),
+          ),
+          Expanded(
+            flex: 2,
+            child: Icon(
+              student.isBlocked ? Icons.block : Icons.do_not_disturb_on_outlined,
+              color: student.isBlocked ? Colors.red : Colors.grey,
+              size: 20,
             ),
           ),
         ],
@@ -135,16 +104,154 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
     );
   }
 
+  Widget _buildStatusOval(String status) {
+    bool isPaid = status.toLowerCase() == 'paid';
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      decoration: BoxDecoration(
+        color: isPaid ? Colors.green : Colors.red,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+            color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = Provider.of<UserProvider>(context);
+    // You can use the 'role' variable here if you need to change 
+    // colors or visibility based on who is logged in.
+    final String role = user.role; 
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFE8F5E9),
+      // 1. Keep the Custom Header
+      appBar: const UsasHeader(), 
+      // 2. Sidebar and Bottom Nav
+      drawer: const AppSidebar(),
+      bottomNavigationBar: const UsasBottomNav(),
+      body: Consumer<FeesManagementProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading && provider.students.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          return SingleChildScrollView(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSummaryCard(provider),
+                const SizedBox(height: 20),
+
+                // --- STUDENT LIST CONTAINER ---
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5))
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 1. Title inside the card
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Text(
+                          "Student Fee Status",
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+
+                      // 2. Search Bar below the title
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search...',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: const Icon(Icons.filter_list), // Matches prototype
+                            filled: true,
+                            fillColor: Colors.grey.shade100,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          onSubmitted: (_) => _searchStudents(),
+                        ),
+                      ),
+
+                      const SizedBox(height: 10),
+
+                      // 3. Table Header
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        child: Row(
+                          children: const [
+                            Expanded(flex: 3, child: Text("Matric ID", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                            Expanded(flex: 4, child: Text("Name", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                            Expanded(flex: 3, child: Text("Outstanding", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                            Expanded(flex: 3, child: Text("Status", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                            Expanded(flex: 2, child: Text("Actions", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+
+                      // 4. Table Body
+                      provider.students.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Center(child: Text("No students found")),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: provider.students.length,
+                              separatorBuilder: (context, index) => const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                return _buildStudentRow(provider.students[index]);
+                              },
+                            ),
+                      const SizedBox(height: 10),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Summary Card remains similar but cleaner
   Widget _buildSummaryCard(FeesManagementProvider provider) {
     return Card(
-      elevation: 4,
+      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Current Status", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text("Current Status",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -155,15 +262,18 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
               ],
             ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            SizedBox(
+              width: 150,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const AutoBlockConfigPage()));
+                },
+                child: const Text("Block Settings", style: TextStyle(color: Colors.white)),
               ),
-              onPressed: () {
-                 Navigator.push(context, MaterialPageRoute(builder: (context) => const AutoBlockConfigPage()));
-              },
-              child: const Text("Block Settings", style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -174,9 +284,9 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
   Widget _buildStatItem(String label, String value, Color color) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
         const SizedBox(height: 8),
-        Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+        Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
       ],
     );
   }

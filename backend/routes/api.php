@@ -38,9 +38,9 @@ Route::put('/bookings/{id}/claim', [ModuleController::class, 'claimModule']);
 //WIDA
 
 
-//JIHA
-
-
-//TREASURER ROUTES
+//JIHA (TREASURER + STUDENT)
 Route::get('/treasurer/student-count', [TreasurerController::class, 'getStudentCount']);
 Route::get('/treasurer/dashboard-summary', [TreasurerController::class, 'dashboardSummary']);
+Route::get('/treasurer/fees-summary', [TreasurerController::class, 'getTuitionFeesSummary']);
+
+
