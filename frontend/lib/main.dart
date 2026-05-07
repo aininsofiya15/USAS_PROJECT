@@ -5,6 +5,8 @@ import 'provider/user_provider.dart';
 import 'provider/treasurer_provider.dart';
 import 'provider/module_provider.dart'; 
 import 'provider/attendance_provider.dart';
+import 'provider/manage_fees_provider.dart';
+
 
 void main() {
   runApp(
@@ -14,7 +16,8 @@ void main() {
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => ModuleProvider()), // 3. Register ModuleProvider
         ChangeNotifierProvider(create: (_) => TreasuryProvider()),
-        ChangeNotifierProvider(create: (_) => AttendanceProvider())
+        ChangeNotifierProvider(create: (_) => AttendanceProvider()),
+        ChangeNotifierProvider(create: (_) => FeesManagementProvider()),
       ],
       child: const MyApp(),
     ),

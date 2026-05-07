@@ -4,6 +4,7 @@ import '../../provider/manage_fees_provider.dart';
 import '../../widgets/stud_list_card.dart';
 import '../../widgets/filter_chip_row.dart';
 import 'stud_tuition_overview.dart';
+import 'auto_block_config.dart';
 
 class FeesManagementPage extends StatefulWidget {
   const FeesManagementPage({Key? key}) : super(key: key);
@@ -49,60 +50,36 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFE8F5E9), 
       appBar: AppBar(
         title: const Text('Tuition Fees'),
         backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
+        centerTitle: true,
         elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(80),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                // Search Bar
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search by name or matric...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                              _searchStudents();
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                  onSubmitted: (_) => _searchStudents(),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
       body: Column(
         children: [
-          // Filter Chips
-          Consumer<FeesManagementProvider>(
-            builder: (context, provider, child) {
-              return FilterChipRow(
-                currentFilter: provider.currentFilter,
-                onFilterChanged: (filter) {
-                  provider.setFilter(filter);
-                },
-              );
-            },
+          Container(
+            color: Colors.blue.shade700,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by name or matric...',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                // FIX: If BorderRadius still shows red, ensure you are using 'const' 
+                // and that the closing parentheses are correct.
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onSubmitted: (_) => _searchStudents(),
+            ),
           ),
-          // Student List
+
           Expanded(
             child: Consumer<FeesManagementProvider>(
               builder: (context, provider, child) {
@@ -110,72 +87,97 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (provider.errorMessage.isNotEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
-                        const SizedBox(height: 16),
-                        Text(provider.errorMessage),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () => provider.fetchStudentsFeeStatus(refresh: true),
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                if (provider.students.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.people_outline, size: 64, color: Colors.grey.shade400),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No students found',
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-
-                return ListView.builder(
+                return SingleChildScrollView(
                   controller: _scrollController,
-                  itemCount: provider.students.length + (provider.isLoadMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == provider.students.length) {
-                      return const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    final student = provider.students[index];
-                    return StudentListCard(
-                      student: student,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => StudentFeeDetailPage(
-                              studentId: student.studentId,
-                              studentName: student.name,
-                            ),
-                          ),
-                        ).then((_) => provider.fetchStudentsFeeStatus(refresh: true));
-                      },
-                    );
-                  },
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSummaryCard(provider),
+                      
+                      const SizedBox(height: 20),
+                      const Text(
+                        "Student Fee Status",
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 10),
+
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: provider.students.length,
+                          itemBuilder: (context, index) {
+                            final student = provider.students[index];
+                            // FIX: Added the missing 'onTap' parameter required by StudentListCard
+                            return StudentListCard(
+                              student: student,
+                              onTap: () {
+                                // Add your navigation or logic here
+                                print("Tapped on ${student.name}");
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSummaryCard(FeesManagementProvider provider) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Current Status", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem("Paid", provider.summary['paid'].toString(), Colors.green),
+                _buildStatItem("Unpaid", provider.summary['unpaid'].toString(), Colors.red),
+                _buildStatItem("Blocked", provider.summary['blocked'].toString(), Colors.black),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () {
+                 Navigator.push(context, MaterialPageRoute(builder: (context) => const AutoBlockConfigPage()));
+              },
+              child: const Text("Block Settings", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+      ],
     );
   }
 }
