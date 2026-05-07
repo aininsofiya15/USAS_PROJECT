@@ -35,4 +35,40 @@ class AttendanceProvider with ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+  Future<String?> generateAttendance({
+    required int sectionId,
+    required double lat,
+    required double lng,
+    required String date,
+    required String time,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await http.post(
+        Uri.parse("http://10.0.2.2:8000/api/attendance/store"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          'section_id': sectionId,
+          'geo_lat': lat,
+          'geo_long': lng,
+          'date': date,
+          'time': time,
+        }),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final resData = jsonDecode(response.body);
+        return resData['code']; // Returns the generated code (e.g., 'A7B2X9')
+      }
+    } catch (e) {
+      print("Error generating attendance: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return null;
+  }
 }

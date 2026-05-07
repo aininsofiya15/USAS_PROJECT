@@ -34,4 +34,16 @@ class AttendanceController extends Controller
             'data' => $subjects
         ], 200);
     }
+
+    public function store(Request $request) {
+        $attendance = new \App\Models\Attendance();
+        $attendance->section_id = $request->section_id;
+        $attendance->attendance_code = strtoupper(bin2hex(random_bytes(3))); // Generates a random 6-char code
+        $attendance->geo_lat = $request->geo_lat;
+        $attendance->geo_long = $request->geo_long;
+        $attendance->time_validity = now()->addMinutes(15); // Valid for 15 mins
+        $attendance->save();
+
+        return response()->json(['success' => true, 'code' => $attendance->attendance_code]);
+    }
 }

@@ -41,3 +41,32 @@ class AttendanceSection {
     );
   }
 }
+
+class Attendance {
+  final int? sectionId;
+  final String? attendanceCode;
+  final String? type; // Lecture or Lab
+  final String? date;
+  final String? time;
+  final double? lat;
+  final double? long;
+
+  Attendance({
+    this.sectionId,
+    this.attendanceCode,
+    this.type,
+    this.date,
+    this.time,
+    this.lat,
+    this.long,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'section_id': sectionId,
+    'type': type,
+    'date': date,
+    'time': time,
+    'geo_lat': lat,
+    'geo_long': long,
+  };
+}

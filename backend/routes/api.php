@@ -16,6 +16,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 //LECTURER ROUTES
 Route::get('/lecturer/subjects', [AttendanceController::class, 'getLecturerSubjects']);
+Route::post('/attendance/store', [AttendanceController::class, 'store']);
 
 // PUSAT ADAB ROUTES
 

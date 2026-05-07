@@ -5,6 +5,7 @@ import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../provider/attendance_provider.dart';
 import '../../domain/attendance.dart';
+import 'generate_attendance_code.dart';
 
 class AddAttendancePage extends StatefulWidget {
   const AddAttendancePage({super.key});
@@ -111,8 +112,16 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        // Action for when a section is clicked
-                        print("Selected Section: ${section.sectionNo}");
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GenerateAttendanceCode(
+                              subjectName: subject.subjectName,
+                              sectionNo: section.sectionNo,
+                              sectionId: section.sectionId,
+                            ),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF007BFF), // Bright blue
