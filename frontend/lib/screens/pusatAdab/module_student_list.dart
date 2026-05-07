@@ -128,12 +128,73 @@ class _StudentListPageState extends State<StudentListPage> {
                                           ),
                                         ),
                                         IconButton(
-                                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                            onPressed: () async {
-                                              final bId = student['booking_id']; // The ID from the select query
-                                              final mId = widget.module.id!;     // The current module ID
+                                          icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                          onPressed: () async {
+                                            final bId = student['booking_id']; // The ID from the select query
+                                            final mId = widget.module.id!;     // The current module ID
 
-                                              if (bId != null) {
+                                            if (bId != null) {
+                                              // 1. SHOW THE WARNING MESSAGE FIRST
+                                              bool? confirm = await showDialog<bool>(
+                                                context: context,
+                                                builder: (BuildContext context) {
+                                                  return Dialog(
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                                    child: Padding(
+                                                      padding: const EdgeInsets.all(25),
+                                                      child: Column(
+                                                        mainAxisSize: MainAxisSize.min, // Prevents full-screen height
+                                                        children: [
+                                                          const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 80),
+                                                          const SizedBox(height: 20),
+                                                          const Text(
+                                                            "Are you sure to remove this student?",
+                                                            textAlign: TextAlign.center,
+                                                            style: TextStyle(
+                                                              fontWeight: FontWeight.bold,
+                                                              fontSize: 18,
+                                                              color: Colors.black87,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(height: 30),
+                                                          Row(
+                                                            children: [
+                                                              // BACK BUTTON
+                                                              Expanded(
+                                                                child: ElevatedButton(
+                                                                  onPressed: () => Navigator.pop(context, false), // Returns false
+                                                                  style: ElevatedButton.styleFrom(
+                                                                    backgroundColor: Colors.blue,
+                                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                                                  ),
+                                                                  child: const Text("Back", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(width: 15),
+                                                              // CONFIRM BUTTON
+                                                              Expanded(
+                                                                child: ElevatedButton(
+                                                                  onPressed: () => Navigator.pop(context, true), // Returns true
+                                                                  style: ElevatedButton.styleFrom(
+                                                                    backgroundColor: Colors.red,
+                                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                                                  ),
+                                                                  child: const Text("Confirm", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          )
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              );
+
+                                              // 2. ONLY DELETE IF USER CLICKED "CONFIRM"
+                                              if (confirm == true) {
                                                 bool success = await moduleProvider.removeStudentFromModule(
                                                   bookingId: bId, 
                                                   moduleId: mId
@@ -145,8 +206,9 @@ class _StudentListPageState extends State<StudentListPage> {
                                                   );
                                                 }
                                               }
-                                            },
-                                          ),
+                                            }
+                                          },
+                                        ),
                                       ],
                                     ),
                                   );

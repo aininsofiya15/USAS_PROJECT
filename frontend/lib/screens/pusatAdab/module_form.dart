@@ -92,7 +92,7 @@ class ModuleFormPageState extends State<ModuleFormPage> {
 
     if (isEditMode) {
       success = await moduleProvider.updateModule(
-        id: widget.existingModuleData!.activityName, 
+        id: widget.existingModuleData!.id.toString(), 
         activityName: nameController.text,
         dateTime: dateController.text,
         capacity: int.tryParse(capacityController.text) ?? 0,

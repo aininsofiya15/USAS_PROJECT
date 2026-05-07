@@ -106,7 +106,7 @@ class ModuleProvider with ChangeNotifier {
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          'current_name': id,            
+          'id': id,            
           'activity_name': activityName,   
           'date_time': dateTime,
           'capacity': capacity,

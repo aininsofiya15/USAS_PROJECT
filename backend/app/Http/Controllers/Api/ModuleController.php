@@ -23,6 +23,35 @@ class ModuleController extends Controller
         }
     }
 
+    public function update(Request $request)
+    {
+        $id = $request->input('id');
+
+        if (!$id) {
+            return response()->json(['message' => 'Module ID is missing!'], 400);
+        }
+
+        try {
+            DB::table('modules')
+                ->where('id', $id)
+                ->update([
+                    'activity_name' => $request->input('activity_name'),
+                    'date_time'     => $request->input('date_time'),
+                    'capacity'      => $request->input('capacity'),
+                    'venue'         => $request->input('venue'),
+                    'lecturer_name' => $request->input('lecturer_name'),
+                    'description'   => $request->input('description'),
+                    'whatsapp_link' => $request->input('whatsapp_link'),
+                    'pic_contact'   => $request->input('pic_contact'),
+                    'status'        => $request->input('status'), 
+                    'updated_at'    => now(),
+                ]);
+
+            return response()->json(['message' => 'Module updated successfully!'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Database Error: ' . $e->getMessage()], 500);
+        }
+    }
     /**
      * Fetch all modules successfully booked by a specific student ID
      */
