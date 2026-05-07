@@ -22,29 +22,33 @@ class TreasurerController extends Controller
         ]);
     }
 
-    public function dashboardSummary()
-    {
-        $paidStudents = StudentFee::where('status', 'paid')->count();
-        $unpaidStudents = StudentFee::where('status', 'unpaid')->count();
-        $blockedStudents = StudentFee::where('status', 'blocked')
-            ->orWhere(function($q) {
-                $q->whereNotNull('block_start_date')->where('block_start_date', '<=', now());
-            })->count();
-        
+    public function getTuitionFeesSummary() {
+    // Summary Counts
+    $paidCount = \App\Models\Fee::where('status', 'paid')->count();
+    $unpaidCount = \App\Models\Fee::where('status', 'unpaid')->count();
+    $blockedCount = \App\Models\Student::where('is_blocked', true)->count();
 
-        $totalStudents = User::where('role', 'student')->count();
-        $totalCollectedToday = Payment::whereDate('paid_at', today())->sum('amount');
-        $totalCollectedThisWeek = Payment::whereBetween('paid_at', [now()->startOfWeek(), now()->endOfWeek()])->sum('amount');
-        
+    $students = \DB::table('students')
+        ->join('users', 'students.user_id', '=', 'users.user_id')
+        ->join('fees', 'students.user_id', '=', 'fees.user_id')
+        ->select(
+            'students.matric_id', 
+            'users.name', 
+            'fees.outstanding_amount', 
+            'fees.status',
+            'students.is_blocked'
+        )
+        ->get();
+
         return response()->json([
-            'paid_students' => $paidStudents,
-            'unpaid_students' => $unpaidStudents,
-            'blocked_students' => $blockedStudents,
-            'total_students' => $totalStudents,
-            'total_collected_today' => $totalCollectedToday,
-            'total_collected_this_week' => $totalCollectedThisWeek
-        ]);
-    }
+            'summary' => [
+                'paid' => $paidCount,
+                'unpaid' => $unpaidCount,
+                'blocked' => $blockedCount
+            ],
+            'students' => $students
+    ]);
+}
     
     public function getStudentsFeeStatus(Request $request)
     {

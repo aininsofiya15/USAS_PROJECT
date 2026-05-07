@@ -3,42 +3,38 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class StudentFeeStatus {
-  final int studentId;
+  final int userId; // Changed from studentId to userId for Inheritance
   final String name;
-  final String matricNo;
-  final double totalFees;
-  final double paidAmount;
-  final double balance;
+  final String matricId; // Matches your DB 'matric_id'
+  final double outstandingAmount; // Matches your DB field
   final String status;
   final bool isBlocked;
 
   StudentFeeStatus({
-    required this.studentId,
+    required this.userId,
     required this.name,
-    required this.matricNo,
-    required this.totalFees,
-    required this.paidAmount,
-    required this.balance,
+    required this.matricId,
+    required this.outstandingAmount,
     required this.status,
     required this.isBlocked,
   });
 
   factory StudentFeeStatus.fromJson(Map<String, dynamic> json) {
     return StudentFeeStatus(
-      studentId: json['student_id'],
-      name: json['name'],
-      matricNo: json['matric_no'],
-      totalFees: (json['total_fees'] ?? 0).toDouble(),
-      paidAmount: (json['paid_amount'] ?? 0).toDouble(),
-      balance: (json['balance'] ?? 0).toDouble(),
+      userId: json['user_id'],
+      name: json['name'] ?? 'N/A',
+      matricId: json['matric_id'] ?? 'N/A',
+      outstandingAmount: (json['outstanding_amount'] ?? 0).toDouble(),
       status: json['status'] ?? 'unpaid',
-      isBlocked: json['is_blocked'] ?? false,
+      isBlocked: (json['is_blocked'] == 1 || json['is_blocked'] == true),
     );
   }
 }
 
 class FeesManagementProvider extends ChangeNotifier {
   List<StudentFeeStatus> students = [];
+  Map<String, int> summary = {'paid': 0, 'unpaid': 0, 'blocked': 0}; 
+  
   bool isLoading = false;
   bool isLoadMore = false;
   String errorMessage = '';
@@ -53,18 +49,15 @@ class FeesManagementProvider extends ChangeNotifier {
       students.clear();
     }
     
-    if (currentPage == 1) {
-      isLoading = true;
-    } else {
-      isLoadMore = true;
-    }
+    isLoading = currentPage == 1;
+    if (currentPage > 1) isLoadMore = true;
     
     errorMessage = '';
     notifyListeners();
 
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/treasurer/students-fee-status?page=$currentPage&status=$currentFilter&search=$searchQuery'),
+        Uri.parse('http://10.0.2.2:8000/api/treasurer/fees-summary?page=$currentPage&status=$currentFilter&search=$searchQuery'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -73,6 +66,10 @@ class FeesManagementProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+        if (data['summary'] != null) {
+          summary = Map<String, int>.from(data['summary']);
+        }
+
         final List<dynamic> studentsJson = data['students'];
         final newStudents = studentsJson.map((json) => StudentFeeStatus.fromJson(json)).toList();
         
@@ -95,6 +92,7 @@ class FeesManagementProvider extends ChangeNotifier {
     }
   }
 
+  // RE-ADDED THESE METHODS FOR THE UI
   Future<void> loadMore() async {
     if (currentPage < totalPages && !isLoadMore && !isLoading) {
       currentPage++;
@@ -109,11 +107,6 @@ class FeesManagementProvider extends ChangeNotifier {
 
   void searchStudents(String query) {
     searchQuery = query;
-    fetchStudentsFeeStatus(refresh: true);
-  }
-
-  void clearSearch() {
-    searchQuery = '';
     fetchStudentsFeeStatus(refresh: true);
   }
 }

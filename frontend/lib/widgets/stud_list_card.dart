@@ -47,17 +47,19 @@ class StudentListCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            Text('Matric: ${student.matricNo}'),
+            // FIX: Changed student_id to matricId
+            Text('Matric: ${student.matricId}'), 
             const SizedBox(height: 4),
             Row(
               children: [
                 Icon(Icons.attach_money, size: 14, color: Colors.grey.shade600),
                 const SizedBox(width: 2),
                 Text(
-                  'Balance: RM ${student.balance.toStringAsFixed(2)}',
+                  // FIX: Changed balance to outstandingAmount
+                  'Balance: RM ${student.outstandingAmount.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontWeight: FontWeight.w500,
-                    color: student.balance > 0 ? Colors.red.shade700 : Colors.green.shade700,
+                    color: student.outstandingAmount > 0 ? Colors.red.shade700 : Colors.green.shade700,
                   ),
                 ),
               ],
