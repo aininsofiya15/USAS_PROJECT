@@ -11,6 +11,9 @@ class ModuleProvider with ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
+
   List<Module> _bookedModules = [];
   List<Module> get bookedModules => _bookedModules;
 
@@ -138,7 +141,8 @@ class ModuleProvider with ChangeNotifier {
 
   /// Sends a registration application request to the Laravel backend database
   Future<bool> applyToModule({required int moduleId, required String studentId}) async {
-    _isLoading = true;
+    _isLoading = false;
+    _errorMessage = null; // Clear old errors before starting
     notifyListeners();
 
     try {
@@ -150,22 +154,33 @@ class ModuleProvider with ChangeNotifier {
           'student_id': studentId,
         }),
       );
-      
 
-      // 🔥 FIXED: Turning off loading state here ensures it drops the spinner on both success AND failure routes
       _isLoading = false;
 
       if (response.statusCode == 200) {
         await fetchModules(); 
         await fetchStudentBookings(studentId); 
+        // notifyListeners is usually called inside the fetch methods above, 
+        // so we just return true here.
         return true;
+      } 
+      else {
+        // 🔥 NEW: Parse the error message from Laravel (e.g., "Already registered!")
+        try {
+          final data = jsonDecode(response.body);
+            _errorMessage = data['message']; 
+          } catch (_) {
+            // If Laravel sends back something that isn't JSON, we use this fallback
+            _errorMessage = "You are already registered for this module.";
+          }
+        
+        notifyListeners(); 
+        return false;
       }
       
-      // 🔥 FIXED: Notify the UI that loading stopped when status code isn't 200 (e.g. slots full)
-      notifyListeners(); 
-      return false;
     } catch (e) {
       print("Error during module application: $e");
+      _errorMessage = "Network error. Check your connection.";
       _isLoading = false;
       notifyListeners();
       return false;
@@ -192,34 +207,40 @@ class ModuleProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> dropModule({required int bookingId, required String studentId}) async {
-  _isLoading = true;
-  notifyListeners();
+//DROP MODULE
 
-  try {
-    final response = await http.delete(
-      Uri.parse("${Api.baseUrl}/bookings/$bookingId"),
-    );
+Future<bool> dropModule({required int bookingId, required String studentId}) async {
+    _isLoading = true;
+    notifyListeners();
 
-    if (response.statusCode == 200) {
-      // 🔥 FIX: Remove the item from your local list immediately using its ID!
-      _bookedModules.removeWhere((item) => item.id == bookingId);
+    try {
+      final response = await http.delete(
+        Uri.parse("${Api.baseUrl}/bookings/$bookingId"),
+      );
+
+      if (response.statusCode == 200) {
+        // 1. Physically remove it from the local list as a backup
+        _bookedModules.removeWhere((item) => item.id == bookingId);
+        
+        // 2. 🔥 THE ULTIMATE FIX: Force a fresh pull from MySQL
+        // This ensures the UI matches the database 100%
+        await fetchStudentBookings(studentId); 
+        
+        _isLoading = false;
+        notifyListeners(); 
+        return true;
+      }
       
       _isLoading = false;
-      notifyListeners(); // This forces MyBookingsPage to instantly update and animate the card away!
-      return true;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      print("Error dropping module: $e");
+      _isLoading = false;
+      notifyListeners();
+      return false;
     }
-    
-    _isLoading = false;
-    notifyListeners();
-    return false;
-  } catch (e) {
-    print("Error dropping module: $e");
-    _isLoading = false;
-    notifyListeners();
-    return false;
   }
-}
 
 
 }
