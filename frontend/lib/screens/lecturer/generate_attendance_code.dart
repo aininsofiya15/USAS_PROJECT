@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../widgets/header.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
+import 'release_attendance.dart';
 
 class GenerateAttendanceCode extends StatefulWidget {
   final String subjectName;
@@ -185,6 +186,16 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
       ),
     );
   }
+  void _showSnackbar(String message, {bool isError = false}) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: isError ? Colors.red : Colors.green,
+      behavior: SnackBarBehavior.floating, // Optional: makes it look modern
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+  );
+}
 
   // --- Logic Methods (Date, Time, Location) ---
 
@@ -206,24 +217,58 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
   }
 
   Future<void> _getCurrentLocation() async {
-    setState(() => _isLoadingLocation = true);
-    try {
-      Position position = await Geolocator.getCurrentPosition();
+  setState(() => _isLoadingLocation = true);
+  try {
+    // 1. Check permissions first
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    // 2. Add a TIMEOUT (This prevents the "Not Responding" error)
+    final Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+      timeLimit: const Duration(seconds: 5), // If it takes > 5s, it will move to 'catch'
+    );
+
+    setState(() {
       _latController.text = position.latitude.toStringAsFixed(6);
       _longController.text = position.longitude.toStringAsFixed(6);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Location Error")));
-    } finally {
-      setState(() => _isLoadingLocation = false);
-    }
+    });
+    _showSnackbar('Location fetched!');
+    
+  } catch (e) {
+    // If it times out or fails, use a fallback so the user isn't stuck
+    _showSnackbar('Location timed out. Please enter manually or check Emulator GPS.', isError: true);
+    print("Error: $e");
+  } finally {
+    setState(() => _isLoadingLocation = false);
   }
+}
 
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
+
+      // Simulate API call/Logic
       Future.delayed(const Duration(seconds: 1), () {
         setState(() => _isSubmitting = false);
-        Navigator.pop(context);
+        
+        // Randomly generated code for the student
+        String generatedCode = "XJ92KL"; 
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReleaseAttendanceCodePage(
+              subjectName: widget.subjectName,
+              sectionNo: widget.sectionNo,
+              date: _dateController.text,
+              time: _timeController.text,
+              code: generatedCode,
+            ),
+          ),
+        );
       });
     }
   }
