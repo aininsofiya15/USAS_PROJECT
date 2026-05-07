@@ -23,6 +23,7 @@ Route::post('/attendance/store', [AttendanceController::class, 'store']);
 Route::get('/modules', [ModuleController::class, 'index']);
 Route::post('/modules', [ModuleController::class, 'store']);
 Route::post('/modules/update-existing', [ModuleController::class, 'update']);
+Route::get('/modules/{id}/students', [ModuleController::class, 'getRegisteredStudents']);
 
 // STUDENT ROUTES
 //AININ 

@@ -137,4 +137,28 @@ class ModuleController extends Controller
 
         return response()->json(['message' => 'Booking ID not found'], 404);
     }
+
+//VIEW ALL REGISTERED STUDENTS FOR A PARTICULAR MODULE (PUSAT ADAB)
+    public function getRegisteredStudents($id)
+    {
+        try {
+            // 🔥 FIX 1: Cast to int to match the BigInt in your DB
+            $moduleId = (int)$id;
+
+            $students = DB::table('bookings')
+                ->join('users', 'bookings.student_id', '=', 'users.id')
+                ->where('bookings.module_id', $moduleId)
+                ->select(
+                    'bookings.id as booking_id', // 🔥 FIX 2: Need booking ID to delete later!
+                    'users.id as user_id', 
+                    'users.name as student_name'
+                )
+                ->get();
+
+            return response()->json($students, 200);
+        } catch (\Exception $e) {
+            Log::error("Fetch Registered Students Error: " . $e->getMessage());
+            return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
 }
