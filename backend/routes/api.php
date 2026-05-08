@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\TreasurerController;
+use App\Http\Controllers\TuitionFeesController;
 use App\Http\Controllers\Api\ModuleController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Models\Section;
@@ -43,8 +43,10 @@ Route::post('/attendance/store', [AttendanceController::class, 'store']);
 
 
 //JIHA (TREASURER + STUDENT)
-Route::get('/treasurer/student-count', [TreasurerController::class, 'getStudentCount']);
-Route::get('/treasurer/dashboard-summary', [TreasurerController::class, 'dashboardSummary']);
-Route::get('/treasurer/fees-summary', [TreasurerController::class, 'getTuitionFeesSummary']);
-
-
+Route::get('/treasurer/student-count', [TuitionFeesController::class, 'getStudentCount']);
+Route::get('/treasurer/dashboard-summary', [TuitionFeesController::class, 'dashboardSummary']);
+Route::get('/treasurer/fees-summary', [TuitionFeesController::class, 'getTuitionFeesSummary']);
+Route::get('/treasurer/fees-status', [TuitionFeesController::class, 'getStudentsFeeStatus']);
+Route::get('/treasurer/student-details/{userId}', [TuitionFeesController::class, 'getStudentDetail']);
+Route::get('/treasurer/unpaid-count', [TuitionFeesController::class, 'getUnpaidCount']);
+Route::post('/treasurer/save-block-settings', [TuitionFeesController::class, 'saveBlockSettings']);

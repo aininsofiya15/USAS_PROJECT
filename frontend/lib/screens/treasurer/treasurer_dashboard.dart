@@ -120,7 +120,7 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFC1F6AC), // Prototype Color
+                      color: const Color(0xFFC1F6AC), 
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: _buildOverviewGrid(treasuryProvider),

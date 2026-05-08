@@ -7,6 +7,7 @@ import '../../provider/user_provider.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
+import 'auto_block_config.dart';
 
 class FeesManagementPage extends StatefulWidget {
   const FeesManagementPage({super.key});
@@ -240,7 +241,6 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
     );
   }
 
-  // Summary Card remains similar but cleaner
   Widget _buildSummaryCard(FeesManagementProvider provider) {
     return Card(
       elevation: 2,
@@ -262,6 +262,7 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
               ],
             ),
             const SizedBox(height: 20),
+            // THE MOVED BUTTON
             SizedBox(
               width: 150,
               child: ElevatedButton(
@@ -270,7 +271,10 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const AutoBlockConfigPage()));
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (context) => const AutoBlockConfigPage())
+                  );
                 },
                 child: const Text("Block Settings", style: TextStyle(color: Colors.white)),
               ),
