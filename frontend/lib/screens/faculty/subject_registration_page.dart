@@ -1,24 +1,259 @@
-import 'package:flutter/material.dart';
-import 'subject_form_page.dart';
+import 'dart:convert';
 
-class SubjectRegistrationPage extends StatelessWidget {
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import 'subject_form_page.dart';
+import 'subject_details_page.dart';
+
+class SubjectRegistrationPage extends StatefulWidget {
   const SubjectRegistrationPage({super.key});
 
   @override
+  State<SubjectRegistrationPage> createState() =>
+      _SubjectRegistrationPageState();
+}
+
+class _SubjectRegistrationPageState
+    extends State<SubjectRegistrationPage> {
+
+  List subjects = [];
+
+  Future<void> fetchSubjects() async {
+
+    var url = Uri.parse(
+      "http://10.0.2.2:8000/api/subjects",
+    );
+
+    var response = await http.get(url);
+
+    if (response.statusCode == 200) {
+
+      setState(() {
+
+        subjects = jsonDecode(response.body);
+
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchSubjects();
+  }
+
+  @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      appBar: AppBar(title: const Text("Subject Registration")),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const SubjectFormPage(),
+
+      backgroundColor: const Color(0xFFF6F0D8),
+
+      appBar: AppBar(
+        title: const Text("Subject Registration"),
+        backgroundColor: Colors.white,
+      ),
+
+      body: Padding(
+
+        padding: const EdgeInsets.all(16),
+
+        child: Container(
+
+          padding: const EdgeInsets.all(16),
+
+          decoration: BoxDecoration(
+
+            color: const Color(0xFFF3EDC8),
+
+            borderRadius: BorderRadius.circular(20),
+
+          ),
+
+          child: Column(
+
+            children: [
+
+              TextField(
+
+                decoration: InputDecoration(
+
+                  hintText: "Search Subject",
+
+                  prefixIcon: const Icon(Icons.search),
+
+                  filled: true,
+
+                  fillColor: Colors.white,
+
+                  border: OutlineInputBorder(
+
+                    borderRadius: BorderRadius.circular(30),
+
+                    borderSide: BorderSide.none,
+                  ),
+                ),
               ),
-            );
-          },
-          child: const Text("+ Add Subject"),
+
+              const SizedBox(height: 20),
+
+              Align(
+
+                alignment: Alignment.centerLeft,
+
+                child: ElevatedButton(
+
+                  style: ElevatedButton.styleFrom(
+
+                    backgroundColor: const Color(0xFFD8C7A3),
+
+                    foregroundColor: Colors.black,
+
+                    shape: RoundedRectangleBorder(
+
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+
+                  onPressed: () async {
+
+                    await Navigator.push(
+
+                      context,
+
+                      MaterialPageRoute(
+                        builder: (_) => const SubjectFormPage(),
+                      ),
+                    );
+
+                    fetchSubjects();
+                  },
+
+                  child: const Text("+ Add Subject"),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              Expanded(
+
+                child: ListView.builder(
+
+                  itemCount: subjects.length,
+
+                  itemBuilder: (context, index) {
+
+                    var subject = subjects[index];
+
+                    return GestureDetector(
+
+                      onTap: () {
+
+                        Navigator.push(
+
+                          context,
+
+                          MaterialPageRoute(
+                           builder: (_) => SubjectDetailsPage(
+  subject: subject,
+),
+                          ),
+                        );
+                      },
+
+                      child: Container(
+
+                        margin: const EdgeInsets.only(bottom: 15),
+
+                        padding: const EdgeInsets.all(20),
+
+                        decoration: BoxDecoration(
+
+                          color: Colors.white,
+
+                          borderRadius: BorderRadius.circular(20),
+
+                          boxShadow: const [
+
+                            BoxShadow(
+                              blurRadius: 5,
+                              color: Colors.black12,
+                            )
+                          ],
+                        ),
+
+                        child: Column(
+
+                          crossAxisAlignment: CrossAxisAlignment.start,
+
+                          children: [
+
+                            Text(
+
+                              "${subject['subject_code']} - ${subject['subject_name']}",
+
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            Text(
+                              "Credit Hours : ${subject['credit_hours']}",
+                            ),
+
+                            const SizedBox(height: 5),
+
+                            Text(
+                              "Total Section : ${subject['total_section']}",
+                            ),
+
+                            const SizedBox(height: 5),
+
+                            Text(
+                              "Total Lab : ${subject['total_lab']}",
+                            ),
+
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+
+      bottomNavigationBar: Container(
+
+        margin: const EdgeInsets.all(20),
+
+        padding: const EdgeInsets.symmetric(vertical: 15),
+
+        decoration: BoxDecoration(
+
+          color: Colors.white,
+
+          borderRadius: BorderRadius.circular(30),
+
+        ),
+
+        child: const Row(
+
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+
+          children: [
+
+            Icon(Icons.home),
+            Icon(Icons.notifications),
+            Icon(Icons.person),
+
+          ],
         ),
       ),
     );

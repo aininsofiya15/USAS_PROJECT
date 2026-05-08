@@ -9,7 +9,7 @@ import 'module_form.dart';
 import 'module_student_list.dart';
 
 class ViewModulesPage extends StatefulWidget {
-   ViewModulesPage({super.key});
+   const ViewModulesPage({super.key});
 
   @override
   State<ViewModulesPage> createState() => _ViewModulesPageState();

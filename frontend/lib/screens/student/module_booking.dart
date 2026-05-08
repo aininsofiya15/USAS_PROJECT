@@ -9,7 +9,7 @@ import '../../provider/user_provider.dart';
 import '../../domain/module.dart';
 
 class StudentActivitiesPage extends StatefulWidget {
-  StudentActivitiesPage({super.key});
+  const StudentActivitiesPage({super.key});
 
   @override
   State<StudentActivitiesPage> createState() => _StudentActivitiesPageState();

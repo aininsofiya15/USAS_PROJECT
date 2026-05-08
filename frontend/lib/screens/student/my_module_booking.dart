@@ -8,7 +8,7 @@ import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
 
 class MyBookingsPage extends StatefulWidget {
-  MyBookingsPage({super.key});
+  const MyBookingsPage({super.key});
 
   @override
   State<MyBookingsPage> createState() => _MyBookingsPageState();

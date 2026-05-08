@@ -5,10 +5,10 @@ class TreasurySummaryCard extends StatelessWidget {
   final String value;
 
   const TreasurySummaryCard({
-    Key? key,
+    super.key,
     required this.label,
     required this.value,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

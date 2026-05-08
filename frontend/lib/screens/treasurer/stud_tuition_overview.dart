@@ -8,7 +8,7 @@ import '../../widgets/navigation_bar.dart';
 
 class StudentTuitionOverviewPage extends StatefulWidget {
   final int userId;
-  const StudentTuitionOverviewPage({Key? key, required this.userId}) : super(key: key);
+  const StudentTuitionOverviewPage({super.key, required this.userId});
 
   @override
   State<StudentTuitionOverviewPage> createState() => _StudentTuitionOverviewPageState();

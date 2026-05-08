@@ -9,7 +9,7 @@ import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
 
 class FeesManagementPage extends StatefulWidget {
-  const FeesManagementPage({Key? key}) : super(key: key);
+  const FeesManagementPage({super.key});
 
   @override
   State<FeesManagementPage> createState() => _FeesManagementPageState();

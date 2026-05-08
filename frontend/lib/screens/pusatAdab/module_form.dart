@@ -9,7 +9,7 @@ import '../../domain/module.dart';
 class ModuleFormPage extends StatefulWidget {
   final Module? existingModuleData;
 
-   ModuleFormPage({super.key, this.existingModuleData});
+   const ModuleFormPage({super.key, this.existingModuleData});
 
   @override
   State<ModuleFormPage> createState() => ModuleFormPageState();

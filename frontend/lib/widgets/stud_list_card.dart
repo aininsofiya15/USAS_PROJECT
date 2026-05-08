@@ -6,10 +6,10 @@ class StudentListCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const StudentListCard({
-    Key? key,
+    super.key,
     required this.student,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   Color _getStatusColor() {
     if (student.status == 'paid') return Colors.green;
