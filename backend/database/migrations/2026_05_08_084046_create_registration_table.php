@@ -12,17 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('registration', function (Blueprint $table) {
+
             $table->id('registration_id');
 
-            $table->foreignId('student_id')
-                  ->nullable()
-                  ->constrained('users')
-                  ->onDelete('cascade');
+            $table->unsignedBigInteger('student_id')->nullable();
 
-            $table->foreignId('section_id')
-                  ->nullable()
-                  ->constrained('sections')
-                  ->onDelete('cascade');
+            $table->unsignedBigInteger('section_id')->nullable();
 
             $table->enum('status', ['active', 'dropped'])
                   ->default('active');
