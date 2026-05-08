@@ -45,11 +45,12 @@ class AttendanceSection {
 class Attendance {
   final int? sectionId;
   final String? attendanceCode;
-  final String? type; // Lecture or Lab
+  final String? type;
   final String? date;
   final String? time;
   final double? lat;
   final double? long;
+  final int? radius; // Added to Domain
 
   Attendance({
     this.sectionId,
@@ -59,6 +60,7 @@ class Attendance {
     this.time,
     this.lat,
     this.long,
+    this.radius,
   });
 
   Map<String, dynamic> toJson() => {
@@ -68,5 +70,7 @@ class Attendance {
     'time': time,
     'geo_lat': lat,
     'geo_long': long,
+    'radius': radius ?? 500, // Default in domain
   };
+
 }

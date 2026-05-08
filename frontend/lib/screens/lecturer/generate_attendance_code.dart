@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../widgets/header.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
+import '../../provider/attendance_provider.dart';
 import 'release_attendance.dart';
 
 class GenerateAttendanceCode extends StatefulWidget {
@@ -23,20 +25,84 @@ class GenerateAttendanceCode extends StatefulWidget {
 
 class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
   final _formKey = GlobalKey<FormState>();
-
   final TextEditingController _dateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
   final TextEditingController _latController = TextEditingController();
   final TextEditingController _longController = TextEditingController();
-  final TextEditingController _radiusController = TextEditingController();
 
-  bool _isLoadingLocation = false;
-  bool _isSubmitting = false;
+  @override
+  void dispose() {
+    _dateController.dispose();
+    _timeController.dispose();
+    _latController.dispose();
+    _longController.dispose();
+    super.dispose();
+  }
+
+  // --- Logic: Fetch Location ---
+  Future<void> _handleLocationFetch() async {
+    setState(() => _isLoadingLocationInside = true);
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 5),
+      );
+
+      setState(() {
+        _latController.text = position.latitude.toStringAsFixed(6);
+        _longController.text = position.longitude.toStringAsFixed(6);
+      });
+      _showSnackbar("Location fetched successfully!");
+    } catch (e) {
+      _showSnackbar("Location timeout. Enter manually or check Emulator GPS.", isError: true);
+    } finally {
+      setState(() => _isLoadingLocationInside = false);
+    }
+  }
+
+  bool _isLoadingLocationInside = false;
+
+  // --- Logic: Submit to Provider ---
+  void _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      final provider = Provider.of<AttendanceProvider>(context, listen: false);
+
+      final String? generatedCode = await provider.generateAttendance(
+        sectionId: widget.sectionId,
+        lat: double.parse(_latController.text),
+        lng: double.parse(_longController.text),
+        date: _dateController.text,
+        time: _timeController.text,
+      );
+
+      if (generatedCode != null && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ReleaseAttendanceCodePage(
+              subjectName: widget.subjectName,
+              sectionNo: widget.sectionNo,
+              date: _dateController.text,
+              time: _timeController.text,
+              code: generatedCode,
+            ),
+          ),
+        );
+      } else {
+        _showSnackbar("Failed to generate code. Check server connection.", isError: true);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3D8DA), // Consistency: Pink background
+      backgroundColor: const Color(0xFFF3D8DA),
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
@@ -51,8 +117,6 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
-              
-              // The White Card (Module Form Style)
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -67,8 +131,9 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
                   children: [
                     _buildInfoRow("Subject:", widget.subjectName),
                     _buildInfoRow("Section:", widget.sectionNo.split('-').last),
+                    _buildInfoRow("Radius:", "500m (Fixed)"),
                     const Divider(height: 30),
-
+                    
                     _buildLabel("Attendance Details"),
                     _buildInputField(
                       controller: _dateController,
@@ -91,9 +156,11 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
                       children: [
                         _buildLabel("Geo Location"),
                         TextButton.icon(
-                          onPressed: _isLoadingLocation ? null : _getCurrentLocation,
-                          icon: const Icon(Icons.my_location, size: 16),
-                          label: Text(_isLoadingLocation ? "Fetching..." : "Use Current"),
+                          onPressed: _isLoadingLocationInside ? null : _handleLocationFetch,
+                          icon: _isLoadingLocationInside 
+                            ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.my_location, size: 16),
+                          label: Text(_isLoadingLocationInside ? "Fetching..." : "Use Current"),
                           style: TextButton.styleFrom(foregroundColor: const Color(0xFF3F51B5)),
                         ),
                       ],
@@ -110,26 +177,26 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
                       icon: Icons.location_on,
                       isNumber: true,
                     ),
-                    _buildInputField(
-                      controller: _radiusController,
-                      hint: "Radius (meters)",
-                      icon: Icons.radar,
-                      isNumber: true,
-                    ),
 
                     const SizedBox(height: 25),
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isSubmitting ? null : _submitForm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF007BFF),
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      child: Consumer<AttendanceProvider>(
+                        builder: (context, provider, _) => ElevatedButton(
+                          onPressed: provider.isLoading ? null : _submitForm,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF007BFF),
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          ),
+                          child: provider.isLoading
+                              ? const SizedBox(
+                                  height: 20, 
+                                  width: 20, 
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                                )
+                              : const Text("GENERATE CODE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         ),
-                        child: _isSubmitting
-                            ? const CircularProgressIndicator(color: Colors.white)
-                            : const Text("GENERATE CODE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -142,12 +209,18 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
     );
   }
 
-  // --- UI Helpers (Module Form Style) ---
+  // --- UI Helper Methods ---
 
-  Widget _buildLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
-  );
+  void _showSnackbar(String message, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
 
   Widget _buildInfoRow(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
@@ -158,6 +231,11 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
         Text(value, style: const TextStyle(color: Color(0xFF3F51B5), fontWeight: FontWeight.bold)),
       ],
     ),
+  );
+
+  Widget _buildLabel(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
   );
 
   Widget _buildInputField({
@@ -175,7 +253,7 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
         controller: controller,
         readOnly: readOnly,
         onTap: onTap,
-        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
         decoration: InputDecoration(
           hintText: hint,
           prefixIcon: Icon(icon, color: Colors.black45, size: 20),
@@ -186,18 +264,6 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
       ),
     );
   }
-  void _showSnackbar(String message, {bool isError = false}) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(message),
-      backgroundColor: isError ? Colors.red : Colors.green,
-      behavior: SnackBarBehavior.floating, // Optional: makes it look modern
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ),
-  );
-}
-
-  // --- Logic Methods (Date, Time, Location) ---
 
   Future<void> _pickDate() async {
     final DateTime? picked = await showDatePicker(
@@ -214,62 +280,5 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
   Future<void> _pickTime() async {
     final TimeOfDay? picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
     if (picked != null) setState(() => _timeController.text = picked.format(context));
-  }
-
-  Future<void> _getCurrentLocation() async {
-  setState(() => _isLoadingLocation = true);
-  try {
-    // 1. Check permissions first
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-
-    // 2. Add a TIMEOUT (This prevents the "Not Responding" error)
-    final Position position = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-      timeLimit: const Duration(seconds: 5), // If it takes > 5s, it will move to 'catch'
-    );
-
-    setState(() {
-      _latController.text = position.latitude.toStringAsFixed(6);
-      _longController.text = position.longitude.toStringAsFixed(6);
-    });
-    _showSnackbar('Location fetched!');
-    
-  } catch (e) {
-    // If it times out or fails, use a fallback so the user isn't stuck
-    _showSnackbar('Location timed out. Please enter manually or check Emulator GPS.', isError: true);
-    print("Error: $e");
-  } finally {
-    setState(() => _isLoadingLocation = false);
-  }
-}
-
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isSubmitting = true);
-
-      // Simulate API call/Logic
-      Future.delayed(const Duration(seconds: 1), () {
-        setState(() => _isSubmitting = false);
-        
-        // Randomly generated code for the student
-        String generatedCode = "XJ92KL"; 
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ReleaseAttendanceCodePage(
-              subjectName: widget.subjectName,
-              sectionNo: widget.sectionNo,
-              date: _dateController.text,
-              time: _timeController.text,
-              code: generatedCode,
-            ),
-          ),
-        );
-      });
-    }
   }
 }

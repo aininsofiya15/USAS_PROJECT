@@ -1,27 +1,30 @@
 <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+namespace App\Models;
 
-return new class extends Migration
+use Illuminate\Database\Eloquent\Model;
+
+class Attendance extends Model
 {
-    public function up(): void
+    protected $table = 'attendances';
+
+    protected $fillable = [
+        'section_id',
+        'attendance_code',
+        'geo_lat',
+        'geo_long',
+        'geo_radius',
+        'date',
+        'time',
+    ];
+
+    public function section()
     {
-        Schema::create('attendances', function (Blueprint $table) {
-            $table->id(); // PK column is named 'id' — Attendance model updated to match
-            $table->foreignId('section_id')->references('id')->on('sections')->onDelete('cascade');
-            $table->string('attendance_code');
-            $table->decimal('geo_lat', 10, 8)->nullable();
-            $table->decimal('geo_long', 11, 8)->nullable();
-            $table->integer('geo_radius')->nullable();
-            $table->dateTime('time_validity');
-            $table->timestamps();
-        });
+        return $this->belongsTo(Section::class, 'section_id', 'section_id');
     }
 
-    public function down(): void
+    public function attendanceRecords()
     {
-        Schema::dropIfExists('attendances');
+        return $this->hasMany(AttendanceRecord::class, 'attendance_id');
     }
-};
+}

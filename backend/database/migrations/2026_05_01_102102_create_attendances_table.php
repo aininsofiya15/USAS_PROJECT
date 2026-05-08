@@ -15,8 +15,9 @@ return new class extends Migration
             $table->string('attendance_code');
             $table->decimal('geo_lat', 10, 8)->nullable();
             $table->decimal('geo_long', 11, 8)->nullable();
-            $table->integer('geo_radius')->nullable();
-            $table->dateTime('time_validity');  // Changed from integer to dateTime if it's a timestamp
+            $table->integer('geo_radius')->default(500); // Fixed at 500m
+            $table->date('date');
+            $table->time('time');
             $table->timestamps();
 
         });
