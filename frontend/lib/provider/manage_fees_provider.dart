@@ -3,10 +3,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class StudentFeeStatus {
-  final int userId; // Changed from studentId to userId for Inheritance
+  final int userId;
   final String name;
-  final String matricId; // Matches your DB 'matric_id'
-  final double outstandingAmount; // Matches your DB field
+  final String matricId; 
+  final double outstandingAmount;
   final String status;
   final bool isBlocked;
 
@@ -21,12 +21,12 @@ class StudentFeeStatus {
 
   factory StudentFeeStatus.fromJson(Map<String, dynamic> json) {
     return StudentFeeStatus(
-      userId: json['user_id'],
+      userId: json['id'] ?? 0,
       name: json['name'] ?? 'N/A',
-      matricId: json['matric_id'] ?? 'N/A',
-      outstandingAmount: (json['outstanding_amount'] ?? 0).toDouble(),
+      matricId: json['student_id'] ?? 'N/A', // Must match 'students.student_id' from SQL
+      outstandingAmount: double.tryParse(json['outstanding_amount']?.toString() ?? '0') ?? 0.0,
       status: json['status'] ?? 'unpaid',
-      isBlocked: (json['is_blocked'] == 1 || json['is_blocked'] == true),
+      isBlocked: json['is_blocked'] == 1 || json['is_blocked'] == true,
     );
   }
 }
@@ -34,6 +34,7 @@ class StudentFeeStatus {
 class FeesManagementProvider extends ChangeNotifier {
   List<StudentFeeStatus> students = [];
   Map<String, int> summary = {'paid': 0, 'unpaid': 0, 'blocked': 0}; 
+  Map<String, dynamic>? selectedStudentDetail;
   
   bool isLoading = false;
   bool isLoadMore = false;
@@ -92,7 +93,24 @@ class FeesManagementProvider extends ChangeNotifier {
     }
   }
 
-  // RE-ADDED THESE METHODS FOR THE UI
+  Future<void> fetchStudentDetail(int userId) async {
+    isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.0.2.2:8000/api/treasurer/student-detail/$userId'),
+      );
+      if (response.statusCode == 200) {
+        selectedStudentDetail = json.decode(response.body);
+      }
+    } catch (e) {
+      errorMessage = e.toString();
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> loadMore() async {
     if (currentPage < totalPages && !isLoadMore && !isLoading) {
       currentPage++;

@@ -6,7 +6,7 @@ import 'provider/treasurer_provider.dart';
 import 'provider/module_provider.dart'; 
 import 'provider/attendance_provider.dart';
 import 'provider/manage_fees_provider.dart';
-
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(
@@ -35,6 +35,9 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF004D73)),
         useMaterial3: true,
+        textTheme: GoogleFonts.interTextTheme(
+          Theme.of(context).textTheme,
+        ),
       ),
       home: const LoginPage(), 
     );

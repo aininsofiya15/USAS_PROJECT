@@ -19,6 +19,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/modules', [ModuleController::class, 'index']);
 Route::post('/modules', [ModuleController::class, 'store']);
 Route::post('/modules/update-existing', [ModuleController::class, 'update']);
+Route::get('/modules/{id}/students', [ModuleController::class, 'getRegisteredStudents']);
 
 // STUDENT ROUTES
 //AININ 
@@ -38,9 +39,9 @@ Route::post('/attendance/store', [AttendanceController::class, 'store']);
 
 
 
-//JIHA
-
-
-//TREASURER ROUTES
+//JIHA (TREASURER + STUDENT)
 Route::get('/treasurer/student-count', [TreasurerController::class, 'getStudentCount']);
 Route::get('/treasurer/dashboard-summary', [TreasurerController::class, 'dashboardSummary']);
+Route::get('/treasurer/fees-summary', [TreasurerController::class, 'getTuitionFeesSummary']);
+
+

@@ -106,7 +106,7 @@ class ModuleProvider with ChangeNotifier {
         url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
-          'current_name': id,            
+          'id': id,            
           'activity_name': activityName,   
           'date_time': dateTime,
           'capacity': capacity,
@@ -241,6 +241,50 @@ Future<bool> dropModule({required int bookingId, required String studentId}) asy
       return false;
     }
   }
+
+  //VIEW ALL REGISTERED STUDENTS FOR A MODULE (PUSAT ADAB)
+  List<dynamic> _registeredStudents = [];
+  List<dynamic> get registeredStudents => _registeredStudents;
+
+  Future<void> fetchRegisteredStudents(int moduleId) async {
+      _isLoading = true;
+      notifyListeners();
+
+      try {
+          final response = await http.get(Uri.parse("${Api.baseUrl}/modules/$moduleId/students"));
+          if (response.statusCode == 200) {
+              _registeredStudents = jsonDecode(response.body);
+          }
+      } catch (e) {
+          print("Error fetching students: $e");
+      }
+      _isLoading = false;
+      notifyListeners();
+  }
+
+  Future<bool> removeStudentFromModule({required int bookingId, required int moduleId}) async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    final response = await http.delete(
+      Uri.parse("${Api.baseUrl}/bookings/$bookingId"),
+    );
+
+    if (response.statusCode == 200) {
+      // Refresh the specific student list for Pusat ADAB view
+      await fetchRegisteredStudents(moduleId); 
+      return true;
+    }
+    return false;
+  } catch (e) {
+    print("Error removing student: $e");
+    return false;
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
 
 
 }

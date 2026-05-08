@@ -31,7 +31,7 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
   }
 
   // 🔥 REUSABLE DIALOG: Handles both success and error states
-  void _showResultDialog({required BuildContext context, required String title, required bool isSuccess}) {
+  void showResultDialog({required BuildContext context, required String title, required bool isSuccess}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -295,14 +295,14 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
                       if (!mounted) return;
 
                       if (success) {
-                        _showResultDialog(
+                        showResultDialog(
                           context: context,
                           title: "Module added successfully!",
                           isSuccess: true,
                         );
                       } else {
                         // Shows "Already registered" or other backend error messages
-                        _showResultDialog(
+                        showResultDialog(
                           context: context,
                           title: moduleProvider.errorMessage ?? "Registration failed",
                           isSuccess: false,

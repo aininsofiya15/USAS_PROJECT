@@ -23,6 +23,35 @@ class ModuleController extends Controller
         }
     }
 
+    public function update(Request $request)
+    {
+        $id = $request->input('id');
+
+        if (!$id) {
+            return response()->json(['message' => 'Module ID is missing!'], 400);
+        }
+
+        try {
+            DB::table('modules')
+                ->where('id', $id)
+                ->update([
+                    'activity_name' => $request->input('activity_name'),
+                    'date_time'     => $request->input('date_time'),
+                    'capacity'      => $request->input('capacity'),
+                    'venue'         => $request->input('venue'),
+                    'lecturer_name' => $request->input('lecturer_name'),
+                    'description'   => $request->input('description'),
+                    'whatsapp_link' => $request->input('whatsapp_link'),
+                    'pic_contact'   => $request->input('pic_contact'),
+                    'status'        => $request->input('status'), 
+                    'updated_at'    => now(),
+                ]);
+
+            return response()->json(['message' => 'Module updated successfully!'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Database Error: ' . $e->getMessage()], 500);
+        }
+    }
     /**
      * Fetch all modules successfully booked by a specific student ID
      */
@@ -136,5 +165,29 @@ class ModuleController extends Controller
         }
 
         return response()->json(['message' => 'Booking ID not found'], 404);
+    }
+
+//VIEW ALL REGISTERED STUDENTS FOR A PARTICULAR MODULE (PUSAT ADAB)
+    public function getRegisteredStudents($id)
+    {
+        try {
+            // 🔥 FIX 1: Cast to int to match the BigInt in your DB
+            $moduleId = (int)$id;
+
+            $students = DB::table('bookings')
+                ->join('users', 'bookings.student_id', '=', 'users.id')
+                ->where('bookings.module_id', $moduleId)
+                ->select(
+                    'bookings.id as booking_id', // 🔥 FIX 2: Need booking ID to delete later!
+                    'users.id as user_id', 
+                    'users.name as student_name'
+                )
+                ->get();
+
+            return response()->json($students, 200);
+        } catch (\Exception $e) {
+            Log::error("Fetch Registered Students Error: " . $e->getMessage());
+            return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
+        }
     }
 }

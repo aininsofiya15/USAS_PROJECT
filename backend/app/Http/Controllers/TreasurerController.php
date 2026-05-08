@@ -22,31 +22,44 @@ class TreasurerController extends Controller
         ]);
     }
 
-    public function getTuitionFeesSummary() {
-    // Summary Counts
+    public function getTuitionFeesSummary(Request $request) 
+{
+    // 1. Get Summary Counts
     $paidCount = \App\Models\Fee::where('status', 'paid')->count();
     $unpaidCount = \App\Models\Fee::where('status', 'unpaid')->count();
     $blockedCount = \App\Models\Student::where('is_blocked', true)->count();
 
-    $students = \DB::table('students')
-        ->join('users', 'students.user_id', '=', 'users.user_id')
-        ->join('fees', 'students.user_id', '=', 'fees.user_id')
+    // 2. Fetch Students with JOINs
+    $students = \DB::table('users')
+        ->where('users.role', 'student')
+        ->join('students', 'users.id', '=', 'students.id') // Link users.id to students.id
+        ->leftJoin('fees', 'students.id', '=', 'fees.student_id') // Link students.id to fees.student_id
         ->select(
-            'students.matric_id', 
+            'users.id',
             'users.name', 
+            'students.student_id', // This is the Matric ID string (e.g., CA24030)
             'fees.outstanding_amount', 
             'fees.status',
             'students.is_blocked'
-        )
-        ->get();
+        );
 
-        return response()->json([
-            'summary' => [
-                'paid' => $paidCount,
-                'unpaid' => $unpaidCount,
-                'blocked' => $blockedCount
-            ],
-            'students' => $students
+    // 3. Apply Search if user typed in the search bar
+    if ($request->has('search') && $request->search != '') {
+        $searchTerm = $request->search;
+        $students->where(function($q) use ($searchTerm) {
+            $q->where('users.name', 'like', "%$searchTerm%")
+              ->orWhere('students.student_id', 'like', "%$searchTerm%");
+        });
+    }
+
+    return response()->json([
+        'summary' => [
+            'paid' => $paidCount,
+            'unpaid' => $unpaidCount,
+            'blocked' => $blockedCount
+        ],
+        'students' => $students->get(), // Returns the full list
+        'total_pages' => 1 // For now, keep it simple
     ]);
 }
     
@@ -90,29 +103,19 @@ class TreasurerController extends Controller
         ]);
     }
     
-    public function getStudentFeeDetail($studentId)
+    public function getStudentFeeDetail($id)
     {
-        $student = Student::with(['user', 'fee', 'fee.payments', 'bankAccount'])
-            ->findOrFail($studentId);
-            
-        return response()->json([
-            'student' => [
-                'id' => $student->student_id,
-                'name' => $student->user ? $student->user->name : 'N/A',
-                'email' => $student->user ? $student->user->email : 'N/A',
-                'matric_no' => $student->student_id,
-                'faculty' => $student->faculty,
-                'course' => $student->course_name,
-                'semester' => $student->current_semester
-            ],
-            'fee_summary' => [
-                'total_fees' => $student->fee ? $student->fee->total_fees : 0,
-                'paid_amount' => $student->fee ? $student->fee->paid_amount : 0,
-                'balance' => $student->fee ? $student->fee->balance : 0,
-                'status' => $student->fee ? $student->fee->status : 'unpaid'
-            ],
-            'payment_history' => $student->fee ? $student->fee->payments : [],
-            'bank_account' => $student->bankAccount
-        ]);
+        $student = \DB::table('users')
+            ->join('students', 'users.id', '=', 'students.id')
+            ->leftJoin('fees', 'students.id', '=', 'fees.student_id')
+            ->select(
+                'users.name', 'users.email', 'users.phone_num',
+                'students.student_id as matric_id', 'students.faculty', 'students.course_name', 'students.program',
+                'fees.total_fee', 'fees.paid_amount', 'fees.outstanding_amount', 'fees.status'
+            )
+            ->where('users.id', $id)
+            ->first();
+
+        return response()->json($student);
     }
 }
