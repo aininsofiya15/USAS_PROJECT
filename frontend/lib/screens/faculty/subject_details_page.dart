@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'add_section_page.dart';
 
 class SubjectDetailsPage extends StatelessWidget {
 
