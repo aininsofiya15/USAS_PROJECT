@@ -48,6 +48,7 @@ class Attendance {
   final double? lat;
   final double? long;
   final int? radius; // Added to Domain
+  
 
   Attendance({
     this.sectionId,

@@ -2,15 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../provider/attendance_provider.dart';
-import 'attendance_record_list.dart'; // Where you will do the grading
+import '../../domain/module.dart';
+import 'attendance_record_list.dart';
 import '../../widgets/header.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
 
 class ModuleAttendanceSelectionPage extends StatefulWidget {
-  final dynamic module;
-  const ModuleAttendanceSelectionPage({super.key, this.module});
-  
+  const ModuleAttendanceSelectionPage({super.key});
+
   @override
   State<ModuleAttendanceSelectionPage> createState() => _ModuleAttendanceSelectionPageState();
 }
@@ -21,9 +21,8 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
   @override
   void initState() {
     super.initState();
-    // CALL YOUR PART: Fetch only the curriculum modules from bookings
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AttendanceProvider>(context, listen: false).fetchPusatAdabSessions();
+      Provider.of<AttendanceProvider>(context, listen: false).fetchPusatAdabModules();
     });
   }
 
@@ -31,8 +30,8 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
   Widget build(BuildContext context) {
     final provider = Provider.of<AttendanceProvider>(context);
 
-    // Filter Logic: Show modules matching the selected date from the calendar
-    final displayedModules = provider.subjects.where((module) {
+    // Filter Logic using your Module class properties
+    final displayedModules = provider.pusatAdabModules.where((module) {
       if (selectedDate == null) return true;
       String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
       return module.dateTime.contains(formattedDate);
@@ -51,10 +50,7 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 15),
-
-          // Date Selector Bar (image_1acc8f.png)
           _buildDateFilter(),
-
           Expanded(
             child: provider.isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -98,17 +94,12 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
               if (picked != null) setState(() => selectedDate = picked);
             },
           ),
-          if (selectedDate != null)
-            GestureDetector(
-              onTap: () => setState(() => selectedDate = null),
-              child: const Icon(Icons.close, size: 20, color: Colors.grey),
-            )
         ],
       ),
     );
   }
 
-  Widget _buildModuleCard(dynamic module) {
+  Widget _buildModuleCard(Module module) {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(20),
@@ -119,31 +110,28 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // module.name comes from activity_name in bookings table
+          // FIX for image_9fc158.png: Use activityName instead of name
           Text(
-            module.name.toUpperCase(),
+            module.activityName.toUpperCase(),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 5),
-          // module.dateTime comes from booking_date
           Text(
-            "Class Date: ${module.dateTime} 08:00 AM - 17:00 PM",
+            "Class Date: ${module.dateTime} | Venue: ${module.venue}",
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 15),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              _actionButton("Edit", Colors.green.shade400, () {
-                // Future task: Edit the booking
-              }),
-              const SizedBox(width: 8),
               _actionButton("View Attendance", const Color(0xFF007AFF), () {
-                // Navigate to your student record list with the module ID
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AttendanceRecordListPage(module: module),
+                    builder: (context) => AttendanceRecordListPage(
+                      bookingId: module.id ?? 0, 
+                      module: module,
+                    ),
                   ),
                 );
               }),
@@ -162,7 +150,6 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
           backgroundColor: color,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           padding: const EdgeInsets.symmetric(horizontal: 15),
-          elevation: 0,
         ),
         onPressed: onTap,
         child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),

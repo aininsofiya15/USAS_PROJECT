@@ -1,145 +1,210 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/attendance_provider.dart';
+import '../../domain/module.dart'; // Import your Module domain
+import '../../widgets/header.dart';
+import '../../widgets/app_sidebar.dart';
+import '../../widgets/navigation_bar.dart';
 
 class AttendanceRecordListPage extends StatefulWidget {
-  final dynamic module; 
-  const AttendanceRecordListPage({super.key, required this.module});
+  final Module module; 
+  final int bookingId; 
+
+  const AttendanceRecordListPage({
+    super.key, 
+    required this.bookingId, 
+    required this.module
+  });
 
   @override
   State<AttendanceRecordListPage> createState() => _AttendanceRecordListPageState();
 }
 
 class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
+  bool showPresent = true;
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
+    // Fetch Pusat ADAB records immediately using the bookingId
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Use the ID from the modules table to fetch present students
-      Provider.of<AttendanceProvider>(context, listen: false)
-          .fetchPresentStudents(widget.module.id);
+      context.read<AttendanceProvider>().fetchAttendanceDetails(widget.bookingId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<AttendanceProvider>(context);
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFD1FFF3),
-      appBar: AppBar(title: const Text("Attendance Records")),
-      body: Column(
-        children: [
-          // FIX 1: Pass the whole widget.module object, not just the name
-          _buildHeader(widget.module), 
-          
-          _buildStatusToggle(),
-
-          Expanded(
-            child: provider.isLoading 
-              ? const Center(child: CircularProgressIndicator())
-              : _buildStudentList(provider.presentStudents),
+    return Consumer<AttendanceProvider>(
+      builder: (context, provider, child) {
+        final students = provider.studentRecords; 
+        
+        return Scaffold(
+          backgroundColor: const Color(0xFFD1FFF3),
+          appBar: const UsasHeader(),
+          drawer: const AppSidebar(),
+          bottomNavigationBar: const UsasBottomNav(),
+          body: Column(
+            children: [
+              // Uses widget.module directly for initial load
+              _buildHeader(widget.module),
+              const SizedBox(height: 10),
+              _buildStatusToggle(),
+              const SizedBox(height: 10),
+              Expanded(
+                child: provider.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _buildStudentList(students),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  // FIX 2: This now correctly receives the object and accesses its properties
-  Widget _buildHeader(dynamic module) {
+  // Changed dynamic to Module to ensure type safety
+  Widget _buildHeader(Module module) {
     return Container(
-      margin: const EdgeInsets.all(15),
-      width: double.infinity,
-      padding: const EdgeInsets.all(15),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white, 
-        borderRadius: BorderRadius.circular(15)
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Uses activity_name from image_0e98f6.png
           Text(
-            module.activityName.toUpperCase(), 
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)
+            module.activityName.toUpperCase(),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 10),
-          // Uses date_time from image_0e98f6.png
+          const SizedBox(height: 12),
           Text("Class Date: ${module.dateTime}"),
-          Text("Venue: ${module.venue ?? 'Dewan Serbaguna'}"), 
-          Text("Lecturer Name: ${module.lecturerName ?? 'Staff'}"),
+          Text("Venue: ${module.venue}"),
+          Text("Lecturer: ${module.lecturerName}"),
         ],
       ),
     );
   }
 
   Widget _buildStatusToggle() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      height: 45,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ElevatedButton(
-            onPressed: () {}, 
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD1E3FF)),
-            child: const Text("Present", style: TextStyle(color: Colors.black))
-          ),
-          const SizedBox(width: 10),
-          OutlinedButton(
-            onPressed: () {}, 
-            style: OutlinedButton.styleFrom(backgroundColor: Colors.white),
-            child: const Text("Not Present", style: TextStyle(color: Colors.black))
-          ),
+          _toggleItem("Present", showPresent, () => setState(() => showPresent = true)),
+          _toggleItem("Not Present", !showPresent, () => setState(() => showPresent = false)),
         ],
       ),
     );
   }
 
+  Widget _toggleItem(String label, bool isSelected, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFFD1E3FF) : Colors.transparent,
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.blue[900] : Colors.grey,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildStudentList(List<dynamic> students) {
+    final filtered = students.where((s) {
+      bool statusMatch = showPresent 
+          ? s.status.toLowerCase() == 'present' 
+          : s.status.toLowerCase() != 'present';
+      
+      bool searchMatch = _searchController.text.isEmpty || 
+          s.studentName.toLowerCase().contains(_searchController.text.toLowerCase()) ||
+          s.studentId.contains(_searchController.text);
+          
+      return statusMatch && searchMatch;
+    }).toList();
+
     return Container(
-      margin: const EdgeInsets.all(15),
+      margin: const EdgeInsets.all(20),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white, 
-        borderRadius: BorderRadius.circular(15)
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         children: [
-          const TextField(
+          TextField(
+            controller: _searchController,
             decoration: InputDecoration(
-              hintText: "Search",
-              prefixIcon: Icon(Icons.search),
-              border: UnderlineInputBorder(),
+              hintText: "Search student...",
+              prefixIcon: const Icon(Icons.search),
+              border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey[300]!)),
             ),
+            onChanged: (val) => setState(() {}),
           ),
+          const SizedBox(height: 10),
           Expanded(
-            child: ListView.separated(
-              itemCount: students.length,
-              separatorBuilder: (context, index) => const Divider(),
-              itemBuilder: (context, index) {
-                final student = students[index];
-                return ListTile(
-                  leading: Text("${index + 1}"),
-                  // Maps to student_id in image_0e9838.png
-                  title: Text(
-                    student['student_id'], 
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)
-                  ),
-                  // Faculty information from image_0e9838.png
-                  subtitle: Text(student['faculty'] ?? 'Faculty of Computing'),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
+            child: filtered.isEmpty 
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _actionBtn("Grade", Colors.green, () {
-                        // Mark update logic for attendance_records table
-                      }),
-                      const SizedBox(width: 5),
-                      _actionBtn("Edit", Colors.blue, () {}),
+                      Icon(Icons.person_off_outlined, size: 50, color: Colors.grey[400]),
+                      const SizedBox(height: 10),
+                      Text(
+                        "No student data found for this module.",
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                      ),
                     ],
                   ),
-                );
-              },
-            ),
+                )
+              : ListView.separated(
+                  itemCount: filtered.length,
+                  separatorBuilder: (context, index) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final student = filtered[index];
+                    return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.grey[200],
+                          child: Text("${index + 1}", style: const TextStyle(fontSize: 12)),
+                        ),
+                        title: Text(
+                          student.studentId, 
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        subtitle: Text(student.studentName),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _actionBtn("Grade", Colors.greenAccent[400]!, () => _showGradeDialog(student)),
+                            const SizedBox(width: 4),
+                            _actionBtn("Edit", Colors.blueAccent, () {}),
+                          ],
+                        ),
+                      );
+                  },
+                ),
           ),
         ],
       ),
@@ -147,14 +212,53 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   }
 
   Widget _actionBtn(String label, Color color, VoidCallback onTap) {
-    return ElevatedButton(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        minimumSize: const Size(60, 30),
-        padding: EdgeInsets.zero,
+    return SizedBox(
+      height: 28,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+        ),
+        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10)),
       ),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+    );
+  }
+
+  void _showGradeDialog(dynamic student) {
+    final TextEditingController gradeController = 
+        TextEditingController(text: student.marks?.toString() ?? "");
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Grade ${student.studentName}"),
+        content: TextField(
+          controller: gradeController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: "Enter Marks (0-100)"),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              final double? marks = double.tryParse(gradeController.text);
+              if (marks != null) {
+                String category = marks >= 50 ? "Pass" : "Fail";
+                await context.read<AttendanceProvider>().updateStudentGrade(
+                  student.id, 
+                  marks, 
+                  category, 
+                );
+                if (mounted) Navigator.pop(context);
+              }
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
     );
   }
 }

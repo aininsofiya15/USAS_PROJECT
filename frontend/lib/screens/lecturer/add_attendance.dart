@@ -17,13 +17,23 @@ class AddAttendancePage extends StatefulWidget {
 
 class _AddAttendancePageState extends State<AddAttendancePage> {
   @override
-void initState() {
-  super.initState();
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    // FORCE TEST ID 1
-    Provider.of<AttendanceProvider>(context, listen: false).fetchLecturerSubjects(1);
-  });
-}
+  void initState() {
+    super.initState();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 1. Get the current logged-in user from your Auth/User Provider
+      final authProvider = Provider.of<UserProvider>(context, listen: false);
+      final int? currentLecturerId = authProvider.userId;
+
+      // 2. Pass that dynamic ID to the fetch function
+      if (currentLecturerId != null) {
+        Provider.of<AttendanceProvider>(context, listen: false)
+            .fetchLecturerSubjects(currentLecturerId);
+      } else {
+        debugPrint("Error: No logged-in user found.");
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

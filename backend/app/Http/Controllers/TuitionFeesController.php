@@ -1,6 +1,6 @@
 <?php
 namespace App\Http\Controllers;
-
+use Illuminate\Support\Facades\DB; 
 use App\Models\User;
 use App\Models\Student;
 use App\Models\StudentFee;
@@ -170,5 +170,33 @@ class TuitionFeesController extends Controller
         );
 
         return response()->json(['message' => 'Block start date has been set!']);
+    }
+
+    //students
+    public function getStudentFinancialProfile($userId)
+    {
+        $data = DB::table('students')
+            ->join('users', 'users.id', '=', 'students.id') 
+            ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id')
+            ->leftJoin('bank_accounts', 'students.student_id', '=', 'bank_accounts.student_id')
+            ->select(
+                'users.name',                // Added for the Declaration Box
+                'students.ic_no',           // Added for the Declaration Box
+                'students.course_name',
+                'students.program',
+                'bank_accounts.bank_name',
+                'bank_accounts.acc_no',
+                'fees.total_fee as total_invoice', 
+                'fees.paid_amount as total_payment',
+                'fees.outstanding_amount' 
+            )
+            ->where('users.id', $userId)
+            ->first();
+
+        if (!$data) {
+            return response()->json(['message' => 'Student not found'], 404);
+        }
+
+        return response()->json($data);
     }
 }
