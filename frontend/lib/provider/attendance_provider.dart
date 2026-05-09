@@ -9,8 +9,8 @@ import '../../domain/module.dart';
 class AttendanceProvider with ChangeNotifier {
 
   // --- Academic Subjects (Friend's Part) ---
-  List<AttendanceSubject> _subjects = [];
-  List<AttendanceSubject> get subjects => _subjects;
+  List<Subject> _subjects = [];
+  List<Subject> get subjects => _subjects;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -46,7 +46,7 @@ class AttendanceProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         final List<dynamic> subjectList = data['data'];
-        _subjects = subjectList.map((json) => AttendanceSubject.fromJson(json)).toList();
+        _subjects = subjectList.map((json) => Subject.fromJson(json)).toList();
       }
     } catch (e) {
       debugPrint("Network Error: ${e.toString()}");
