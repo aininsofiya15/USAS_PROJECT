@@ -2,13 +2,19 @@ class AttendanceSubject {
   final int subjectId;
   final String subjectCode;
   final String subjectName;
+  //AININ
+  final String dateTime; // Added to Domain
+  final String venue; // Added to Domain
   final List<AttendanceSection> sections;
 
   AttendanceSubject({
     required this.subjectId,
     required this.subjectCode,
     required this.subjectName,
+    //AININ
     required this.sections,
+    required this.dateTime, // Added to Domain
+    required this.venue, // Added to Domain 
   });
 
   factory AttendanceSubject.fromJson(Map<String, dynamic> json) {
@@ -20,6 +26,8 @@ class AttendanceSubject {
       sections: (json['sections'] as List? ?? [])
           .map((s) => AttendanceSection.fromJson(s))
           .toList(),
+      dateTime: json['date_time'] ?? '',
+      venue: json['venue'] ?? '',
     );
   }
 }
@@ -46,6 +54,8 @@ class Attendance {
   final double? lat;
   final double? long;
   final int? radius; // Added to Domain
+  final String? dateTime; // Added to Domain
+  final String? venue; // Added to Domain
 
   Attendance({
     this.sectionId,
@@ -56,6 +66,8 @@ class Attendance {
     this.lat,
     this.long,
     this.radius,
+    this.dateTime,
+    this.venue,
   });
 
   Map<String, dynamic> toJson() => {

@@ -6,6 +6,7 @@ import '../domain/attendance.dart';
 import '../domain/attendance_record.dart';
 
 class AttendanceProvider with ChangeNotifier {
+
   // --- Academic Subjects (Friend's Part) ---
   List<AttendanceSubject> _subjects = [];
   List<AttendanceSubject> get subjects => _subjects;
@@ -13,8 +14,7 @@ class AttendanceProvider with ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  // --- Pusat ADAB & Grading (Your Part - Project Lead) ---
-  // FIX: Declaring the names exactly as used in your fetch functions
+  // --- Pusat ADAB & Grading 
   AttendanceSubject? _currentActivityHeader;
   AttendanceSubject? get currentActivityHeader => _currentActivityHeader;
 
