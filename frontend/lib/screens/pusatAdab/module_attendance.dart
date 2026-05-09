@@ -7,6 +7,7 @@ import '../../widgets/header.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
 
+
 class ModuleAttendanceSelectionPage extends StatefulWidget {
   final dynamic module;
   const ModuleAttendanceSelectionPage({super.key, this.module});
@@ -23,7 +24,7 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
     super.initState();
     // CALL YOUR PART: Fetch only the curriculum modules from bookings
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AttendanceProvider>(context, listen: false).fetchPusatAdabSessions();
+      Provider.of<AttendanceProvider>(context, listen: false).fetchPusatAdabSessions(widget.module.id);
     });
   }
 
@@ -143,7 +144,7 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AttendanceRecordListPage(module: module),
+                    builder: (context) => AttendanceRecordListPage(bookingId: module.id, module: module),
                   ),
                 );
               }),

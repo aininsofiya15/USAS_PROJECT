@@ -29,6 +29,9 @@ Route::get('/attendance-records/{attendanceId}', [AttendanceRecordController::cl
 Route::patch('/attendance-records/{id}/grade', [AttendanceRecordController::class, 'updateGrade']);
 Route::get('/pusat-adab/modules', [AttendanceRecordController::class, 'fetchPusatAdabModules']);
 Route::get('/pusat-adab/modules/{moduleId}/present', [AttendanceRecordController::class, 'getPresentStudents']);
+
+Route::get('/attendance/details/{bookingId}', [AttendanceController::class, 'getPusatAdabAttendance']);
+Route::put('/attendance-records/{id}', [AttendanceController::class, 'updateGrade']);
 //--------------------------------------------------------------------------------------------------------------------//
 
 

@@ -18,14 +18,15 @@ class AttendanceRecord extends Model
     ];
 
     // This allows you to pull Student name and Matric ID easily
-    public function student(): BelongsTo
+    public function attendance()
     {
-        return $this->belongsTo(Student::class);
+        return $this->belongsTo(Attendance::class, 'attendance_id');
     }
 
-    public function attendance(): BelongsTo
+    // Links to the student profile to get their name and matric ID
+    public function student()
     {
-        return $this->belongsTo(Attendance::class);
+        return $this->belongsTo(Student::class, 'student_id');
     }
 
      public function booking() 
