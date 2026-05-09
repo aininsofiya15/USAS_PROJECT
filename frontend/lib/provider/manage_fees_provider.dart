@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../config/api.dart'; // Make sure this path to your api.dart is correct
 
 class StudentFeeStatus {
   final int userId;
@@ -23,7 +24,7 @@ class StudentFeeStatus {
     return StudentFeeStatus(
       userId: json['id'] ?? 0,
       name: json['name'] ?? 'N/A',
-      matricId: json['student_id'] ?? 'N/A', // Must match 'students.student_id' from SQL
+      matricId: json['student_id'] ?? 'N/A', 
       outstandingAmount: double.tryParse(json['outstanding_amount']?.toString() ?? '0') ?? 0.0,
       status: json['status'] ?? 'unpaid',
       isBlocked: json['is_blocked'] == 1 || json['is_blocked'] == true,
@@ -46,6 +47,12 @@ class FeesManagementProvider extends ChangeNotifier {
   int unpaidCount = 0;
   DateTime selectedBlockDate = DateTime.now();
 
+  // Helper for headers to keep code clean
+  Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
   Future<void> fetchStudentsFeeStatus({bool refresh = false}) async {
     if (refresh) {
       currentPage = 1;
@@ -60,11 +67,8 @@ class FeesManagementProvider extends ChangeNotifier {
 
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/treasurer/fees-summary?page=$currentPage&status=$currentFilter&search=$searchQuery'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        Uri.parse('${Api.baseUrl}/treasurer/fees-summary?page=$currentPage&status=$currentFilter&search=$searchQuery'),
+        headers: _headers,
       );
 
       if (response.statusCode == 200) {
@@ -97,51 +101,48 @@ class FeesManagementProvider extends ChangeNotifier {
 
   Future<void> fetchStudentDetail(int userId) async {
     isLoading = true;
-    selectedStudentDetail = null; // Clear old data to prevent showing wrong student
+    selectedStudentDetail = null; 
     notifyListeners();
     
     try {
       final response = await http.get(
-        // FIX: Changed 'fees-details' to 'student-details' to match api.php
-        Uri.parse('http://10.0.2.2:8000/api/treasurer/student-details/$userId'), 
+        Uri.parse('${Api.baseUrl}/treasurer/student-details/$userId'),
+        headers: _headers,
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        // If the backend returns null, selectedStudentDetail remains null
-        selectedStudentDetail = data; 
+        selectedStudentDetail = json.decode(response.body); 
       }
     } catch (e) {
-      print("Fetch Error: $e");
+      debugPrint("Fetch Error: $e");
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
 
-  // New: Fetch count of students with 'unpaid' status for preview
   Future<void> fetchUnpaidCount() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:8000/api/treasurer/unpaid-count'),
+        Uri.parse('${Api.baseUrl}/treasurer/unpaid-count'),
+        headers: _headers,
       );
       if (response.statusCode == 200) {
         unpaidCount = json.decode(response.body)['unpaid_count'];
         notifyListeners();
       }
     } catch (e) {
-      print("Error fetching unpaid count: $e");
+      debugPrint("Error fetching unpaid count: $e");
     }
   }
 
-  // New: Save the block date to the database
   Future<bool> saveBlockDate() async {
     isLoading = true;
     notifyListeners();
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:8000/api/treasurer/save-block-settings'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('${Api.baseUrl}/treasurer/save-block-settings'),
+        headers: _headers,
         body: json.encode({
           'block_date': selectedBlockDate.toIso8601String().split('T')[0],
         }),
@@ -155,8 +156,32 @@ class FeesManagementProvider extends ChangeNotifier {
       return false;
     }
   }
-  
-  // Method to update date from the UI
+
+  // --- NEW STUDENT PORTAL METHOD ---
+  Future<void> fetchStudentFinancialProfile(String studentId) async {
+    isLoading = true;
+    errorMessage = '';
+    notifyListeners();
+    
+    try {
+      final response = await http.get(
+        Uri.parse('${Api.baseUrl}/student/financial-details/$studentId'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        selectedStudentDetail = json.decode(response.body); 
+      } else {
+        errorMessage = 'Failed to load financial records';
+      }
+    } catch (e) {
+      errorMessage = 'Network error: ${e.toString()}';
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   void updateBlockDate(DateTime date) {
     selectedBlockDate = date;
     notifyListeners();

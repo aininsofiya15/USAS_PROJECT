@@ -22,6 +22,12 @@ class DatabaseSeeder extends Seeder
           $this->call(BookingSeeder::class);
         $this->call(ModuleSeeder::class);
         $this->call(StudentSeeder::class );
+<<<<<<< Updated upstream
         $this->call(AttendanceRecordSeeder::class);
     }
+=======
+        $this->call(StudentFeeSeeder::class );
+        $this->call(BankAccSeeder::class );
+        }
+>>>>>>> Stashed changes
 }

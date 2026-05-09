@@ -7,7 +7,7 @@ import '../widgets/navigation_bar.dart';
 import 'pusatAdab/adab_dashboard.dart';
 import 'lecturer/lecturerDashboard.dart';
 import 'treasurer/treasurer_dashboard.dart';
-
+import 'student/student_dashboard.dart';
 
 class DashboardPage extends StatelessWidget {
   // Notice: No variables passed in constructor anymore!
@@ -32,33 +32,42 @@ class DashboardPage extends StatelessWidget {
     final String name = user.name;
     final String role = user.role;
 
-    return Scaffold(
-      backgroundColor: getBackgroundColor(role),
-      appBar: const UsasHeader(),
-      drawer: const AppSidebar(), // Sidebar also uses Provider now!
-      bottomNavigationBar: const UsasBottomNav(),
-      body: _buildRoleSpecificBody(name, role),
-    );
+    return _buildRoleSpecificBody(name, role);
   }
 
   Widget _buildRoleSpecificBody(String name, String role) {
-    if (role == 'pusat_adab') {
-      return PusatAdabBody(name: name);
-    } 
-    else if (role == 'lecturer') {
-      return LecturerBody(name: name);
-    } 
-    else if (role == 'treasury') {
-      return TreasuryDashboardBody(name: name);
-    }
-    return Center(
-      child: Text(
-        "Welcome back, $name!\nRole: ${role.toUpperCase()}",
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 18),
-      ),
-    );
-    
+  switch (role) {
+    case 'student':
+      return StudentDashboard(name: name);
+    case 'pusat_adab':
+      return Scaffold(
+        backgroundColor: const Color(0xFFD5FFF7),
+        appBar: const UsasHeader(),
+        drawer: const AppSidebar(),
+        bottomNavigationBar: const UsasBottomNav(),
+        body: PusatAdabBody(name: name),
+      );
+    case 'lecturer':
+      return Scaffold(
+        backgroundColor: const Color(0xFFFBEBEB),
+        appBar: const UsasHeader(),
+        drawer: const AppSidebar(),
+        bottomNavigationBar: const UsasBottomNav(),
+        body: LecturerBody(name: name),
+      );
+    case 'treasury':
+      return Scaffold(
+        backgroundColor: const Color(0xFFE8F8E3),
+        appBar: const UsasHeader(),
+        drawer: const AppSidebar(),
+        bottomNavigationBar: const UsasBottomNav(),
+        body: TreasuryDashboardBody(name: name),
+      );
+    default:
+      return Scaffold(
+        appBar: const UsasHeader(),
+        body: Center(child: Text("Welcome back, $name!\nRole: ${role.toUpperCase()}")),
+      );
   }
-  
+  }
 }

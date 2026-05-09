@@ -10,7 +10,6 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Helper function for random phone numbers
         $generatePhone = function() {
             $prefixes = ['011', '012', '013', '014', '016', '017', '018', '019'];
             return $prefixes[array_rand($prefixes)] . '-' . rand(1000000, 9999999);
@@ -29,7 +28,7 @@ class UserSeeder extends Seeder
 
         foreach ($coreUsers as $u) {
             User::updateOrCreate(
-                ['email' => $u['email']], // SEARCH by email only
+                ['email' => $u['email']],
                 [
                     'name' => $u['name'],
                     'password' => Hash::make('123456'),
@@ -39,28 +38,61 @@ class UserSeeder extends Seeder
             );
         }
 
-        // --- 2. 15 Prototype Students ---
+        // --- 2. 45 Prototype Students ---
         $students = [
+            // ... (Your previous 35 students here)
             ['name' => 'Nur Aqilah', 'email' => 'aqilah@umpsa.edu.my'],
             ['name' => 'Norfardilla', 'email' => 'dilla@umpsa.edu.my'],
             ['name' => 'Amir Mustaqim', 'email' => 'amir@umpsa.edu.my'],
             ['name' => 'Aqil Wafiq', 'email' => 'wafiq@umpsa.edu.my'],
-            ['name' => 'Nurunajihah', 'email' => 'nuruna@umpsa.edu.my'],
-            ['name' => 'Wahidah Syarini', 'email' => 'syarini@umpsa.edu.my'],
-            ['name' => 'Siti Nur Hidayah', 'email' => 'cthidayah@umpsa.edu.my'],
-            ['name' => 'Ainin Sofiya', 'email' => 'sofiya@umpsa.edu.my'],
+            ['name' => 'Ainul Mardhiah', 'email' => 'ainul@umpsa.edu.my'],
+            ['name' => 'Nurin Irdina', 'email' => 'nurin@umpsa.edu.my'],
+            ['name' => 'Nor Ain Athirah', 'email' => 'ainathirah@umpsa.edu.my'],
+            ['name' => 'Emmirul Iqmal', 'email' => 'emmirul@umpsa.edu.my'],
             ['name' => 'Farhah Natasya', 'email' => 'farhah@umpsa.edu.my'],
             ['name' => 'Alif Asyraf', 'email' => 'alif@umpsa.edu.my'],
             ['name' => 'Zulhelmi', 'email' => 'zul@umpsa.edu.my'],
             ['name' => 'Nurul Izzah', 'email' => 'izzah@umpsa.edu.my'],
             ['name' => 'Khairul Anwar', 'email' => 'anwar@umpsa.edu.my'],
-            ['name' => 'Batrisyia', 'email' => 'bat@umpsa.edu.my'],
+            ['name' => 'Batrisyia', 'email' => 'batrisyia@umpsa.edu.my'],
             ['name' => 'Ahmad Fauzi', 'email' => 'fauzi@umpsa.edu.my'],
+            ['name' => 'Siti Aminah', 'email' => 'aminah@umpsa.edu.my'],
+            ['name' => 'Muhammad Hafiz', 'email' => 'hafiz@umpsa.edu.my'],
+            ['name' => 'Lee Wei Lian', 'email' => 'lian@umpsa.edu.my'],
+            ['name' => 'Chong Mei Yee', 'email' => 'meiyee@umpsa.edu.my'],
+            ['name' => 'Arif Hamdan', 'email' => 'arif@umpsa.edu.my'],
+            ['name' => 'Nurul Huda', 'email' => 'huda@umpsa.edu.my'],
+            ['name' => 'Syafiqah Alias', 'email' => 'syafiqah@umpsa.edu.my'],
+            ['name' => 'Badrul Hisham', 'email' => 'badrul@umpsa.edu.my'],
+            ['name' => 'Zaidatul Akmal', 'email' => 'zaidatul@umpsa.edu.my'],
+            ['name' => 'Firdaus Othman', 'email' => 'firdaus@umpsa.edu.my'],
+            ['name' => 'Aisha Humaira', 'email' => 'aisha@umpsa.edu.my'],
+            ['name' => 'Kavitha Devi', 'email' => 'kavitha@umpsa.edu.my'],
+            ['name' => 'Santhosh Nair', 'email' => 'santhosh@umpsa.edu.my'],
+            ['name' => 'Hazwan Hashim', 'email' => 'hazwan@umpsa.edu.my'],
+            ['name' => 'Puteri Balqis', 'email' => 'puteri@umpsa.edu.my'],
+            ['name' => 'Daniel Hakim', 'email' => 'daniel@umpsa.edu.my'],
+            ['name' => 'Sarah Natasha', 'email' => 'sarah@umpsa.edu.my'],
+            ['name' => 'Haikal Zikri', 'email' => 'haikal@umpsa.edu.my'],
+            ['name' => 'Nabila Razali', 'email' => 'nabila@umpsa.edu.my'],
+            ['name' => 'Azman Ali', 'email' => 'azman@umpsa.edu.my'],
+            
+            // --- New 10 Computing-focused Students ---
+            ['name' => 'Fakhrul Razi', 'email' => 'fakhrul@umpsa.edu.my'],
+            ['name' => 'Nurul Ainani', 'email' => 'ainani@umpsa.edu.my'],
+            ['name' => 'Chew Kar Heng', 'email' => 'karheng@umpsa.edu.my'],
+            ['name' => 'Wan Nurul Izzati', 'email' => 'izzati@umpsa.edu.my'],
+            ['name' => 'Muhammad Luqman', 'email' => 'luqman@umpsa.edu.my'],
+            ['name' => 'Tan Siew Lan', 'email' => 'siewlan@umpsa.edu.my'],
+            ['name' => 'Syed Azmi', 'email' => 'syed@umpsa.edu.my'],
+            ['name' => 'Nurul Syuhada', 'email' => 'syuhada@umpsa.edu.my'],
+            ['name' => 'Lim Wei Kiat', 'email' => 'weikiat@umpsa.edu.my'],
+            ['name' => 'Farah Adiba', 'email' => 'adiba@umpsa.edu.my'],
         ];
 
         foreach ($students as $s) {
             User::updateOrCreate(
-                ['email' => $s['email']], // SEARCH by email only
+                ['email' => $s['email']],
                 [
                     'name' => $s['name'],
                     'password' => Hash::make('123456'),

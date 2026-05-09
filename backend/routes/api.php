@@ -64,3 +64,4 @@ Route::get('/treasurer/fees-status', [TuitionFeesController::class, 'getStudents
 Route::get('/treasurer/student-details/{userId}', [TuitionFeesController::class, 'getStudentDetail']);
 Route::get('/treasurer/unpaid-count', [TuitionFeesController::class, 'getUnpaidCount']);
 Route::post('/treasurer/save-block-settings', [TuitionFeesController::class, 'saveBlockSettings']);
+Route::get('/student/financial-details/{id}', [TuitionFeesController::class, 'getStudentFinancialProfile']);
