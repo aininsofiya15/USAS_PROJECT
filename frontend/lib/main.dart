@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/login_page.dart'; 
+import 'screens/student/bank_acc_info.dart';
 import 'provider/user_provider.dart';
 import 'provider/treasurer_provider.dart';
 import 'provider/module_provider.dart'; 
@@ -34,13 +35,21 @@ class MyApp extends StatelessWidget {
       title: 'USAS System',
       debugShowCheckedModeBanner: false, 
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF004D73)),
-        useMaterial3: true,
-        textTheme: GoogleFonts.interTextTheme(
-          Theme.of(context).textTheme,
-        ),
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF004D73)),
+      useMaterial3: true,
+      textTheme: GoogleFonts.interTextTheme(
+        Theme.of(context).textTheme,
+      ).copyWith(
+        // Applying a semi-bold weight globally to common text styles
+        bodyLarge: const TextStyle(fontWeight: FontWeight.w600), 
+        bodyMedium: const TextStyle(fontWeight: FontWeight.w600),
+        titleLarge: const TextStyle(fontWeight: FontWeight.bold),
       ),
+    ),
       home: const LoginPage(), 
+      routes: {
+        '/bank_acc_info': (context) => const BankAccountInfoPage(),
+      },
     );
   }
 }

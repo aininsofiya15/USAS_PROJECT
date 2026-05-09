@@ -9,31 +9,28 @@ class PaymentSeeder extends Seeder
 {
     public function run(): void
     {
-        // Fetch existing fees
+        // Fetch fees to see who has paid what
         $fees = DB::table('fees')->get();
 
         if ($fees->isEmpty()) {
-            $this->command->error("No fees found! Please seed the Fees table first with valid student_ids.");
+            $this->command->error("No fees found! Seed StudentFeeSeeder first.");
             return;
         }
 
-        foreach ($fees as $fee) {
-            // Verify if this student_id actually exists in the students table
-            $studentExists = DB::table('students')->where('student_id', $fee->student_id)->exists();
-
-            if ($studentExists) {
+        foreach ($fees as $index => $fee) {
+            // Only create a payment record if the student has actually paid something
+            if ($fee->paid_amount > 0) {
                 DB::table('payments')->insert([
-                    'student_id'     => $fee->student_id,
+                    'student_id'    => $fee->student_id,
                     'fee_id'         => $fee->fee_id,
-                    'amount'         => 7500.00,
-                    'payment_method' => 'Internet Banking',
+                    'amount'         => $fee->paid_amount,
+                    'total_payment'  => $fee->paid_amount, // The new column
+                    'payment_method' => ($index % 2 == 0) ? 'Internet Banking' : 'Credit Card',
                     'status'         => 'Success',
-                    'payment_date'   => now(),
+                    'payment_date'   => now()->subDays(rand(1, 30)),
                     'created_at'     => now(),
                     'updated_at'     => now(),
                 ]);
-            } else {
-                $this->command->warn("Skipping Fee ID {$fee->fee_id}: Student ID '{$fee->student_id}' not found in students table.");
             }
         }
     }

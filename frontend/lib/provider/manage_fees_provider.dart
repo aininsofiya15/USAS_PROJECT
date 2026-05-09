@@ -182,6 +182,46 @@ class FeesManagementProvider extends ChangeNotifier {
     }
   }
 
+  // lib/provider/manage_fees_provider.dart
+
+Future<bool> updateBankAccount(String studentId, String accNo, String bankName) async {
+  isLoading = true; // Use 'isLoading' to match your class variable
+  notifyListeners();
+
+  try {
+    // 1. SEND DATA TO BACKEND
+    final response = await http.post(
+      Uri.parse('${Api.baseUrl}/student/update-bank'), // Your actual API endpoint
+      headers: _headers,
+      body: json.encode({
+        'student_id': studentId,
+        'acc_no': accNo,
+        'bank_name': bankName,
+      }),
+    );
+
+    // Inside updateBankAccount in manage_fees_provider.dart
+    if (response.statusCode == 200) {
+        if (selectedStudentDetail != null) {
+            selectedStudentDetail!['acc_no'] = accNo;
+            selectedStudentDetail!['bank_name'] = bankName;
+        }
+        notifyListeners();
+        return true;
+    } else {
+      errorMessage = 'Failed to update database';
+      isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  } catch (e) {
+    errorMessage = 'Network error: ${e.toString()}';
+    isLoading = false;
+    notifyListeners();
+    return false;
+  }
+}
+
   void updateBlockDate(DateTime date) {
     selectedBlockDate = date;
     notifyListeners();

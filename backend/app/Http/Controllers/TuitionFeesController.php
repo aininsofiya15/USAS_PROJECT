@@ -175,28 +175,77 @@ class TuitionFeesController extends Controller
     //students
     public function getStudentFinancialProfile($userId)
     {
+        // 1. Fetch the profile
         $data = DB::table('students')
             ->join('users', 'users.id', '=', 'students.id') 
             ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id')
             ->leftJoin('bank_accounts', 'students.student_id', '=', 'bank_accounts.student_id')
             ->select(
-                'users.name',                // Added for the Declaration Box
-                'students.ic_no',           // Added for the Declaration Box
+                'users.name',
+                'students.student_id', // CRITICAL: You must include this to use it in the next query
+                'students.ic_no',
                 'students.course_name',
                 'students.program',
                 'bank_accounts.bank_name',
                 'bank_accounts.acc_no',
-                'fees.total_fee as total_invoice', 
-                'fees.paid_amount as total_payment',
+                'fees.total_invoice', 
                 'fees.outstanding_amount' 
             )
             ->where('users.id', $userId)
             ->first();
 
+        // 2. Check if student exists
         if (!$data) {
             return response()->json(['message' => 'Student not found'], 404);
         }
 
-        return response()->json($data);
+        // 3. Calculate Total Payment
+        // We use $data->student_id (the matric string) to find payments
+        $totalPayment = DB::table('payments')
+            ->where('student_id', $data->student_id) 
+            ->sum('total_payment');
+
+        // 4. Merge and Return
+        $result = (array)$data;
+        $result['total_payment'] = (float)$totalPayment;
+
+        return response()->json($result);
+    }
+
+    public function updateStudentBank(Request $request)
+    {
+        try {
+            // 1. Validate the incoming data
+            $request->validate([
+                'student_id' => 'required', // This is the numerical User ID
+                'acc_no' => 'required|numeric',
+                'bank_name' => 'required|string',
+            ]);
+
+            // 2. Find the matric number (student_id string) from the students table 
+            // because bank_accounts table uses the matric number, not user_id
+            $matricId = DB::table('students')
+                ->where('id', $request->student_id)
+                ->value('student_id');
+
+            if (!$matricId) {
+                return response()->json(['message' => 'Student record not found'], 404);
+            }
+
+            // 3. Update or Insert the bank account info
+            DB::table('bank_accounts')->updateOrInsert(
+                ['student_id' => $matricId], // Match based on Matric No (e.g., CA24030)
+                [
+                    'acc_no' => $request->acc_no,
+                    'bank_name' => $request->bank_name,
+                    'updated_at' => now()
+                ]
+            );
+
+            return response()->json(['message' => 'Record has been saved!'], 200);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 }
