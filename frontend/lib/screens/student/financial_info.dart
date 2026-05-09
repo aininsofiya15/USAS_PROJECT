@@ -71,7 +71,6 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                         ),
-                        // NAVIGATION FIXED HERE
                         onPressed: () => Navigator.pushNamed(context, '/bank_acc_info'),
                         child: const Text("Add or Edit", style: TextStyle(fontSize: 10, color: Colors.white)),
                       ),

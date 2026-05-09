@@ -30,7 +30,6 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
   Widget build(BuildContext context) {
     final provider = Provider.of<AttendanceProvider>(context);
 
-    // Filter Logic using your Module class properties
     final displayedModules = provider.pusatAdabModules.where((module) {
       if (selectedDate == null) return true;
       String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
@@ -79,8 +78,8 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
         children: [
           const Text("DATE:", style: TextStyle(fontWeight: FontWeight.bold)),
           const Spacer(),
-          Text(selectedDate == null 
-              ? "Select Date" 
+          Text(selectedDate == null
+              ? "Select Date"
               : DateFormat('dd-MM-yyyy').format(selectedDate!)),
           IconButton(
             icon: const Icon(Icons.calendar_month_outlined),
@@ -110,7 +109,6 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // FIX for image_9fc158.png: Use activityName instead of name
           Text(
             module.activityName.toUpperCase(),
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -124,19 +122,25 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              // ── Edit button ──────────────────────────────────────────
+              _actionButton("Edit", const Color(0xFF00CC66), () {
+                // TODO: wire up your edit navigation
+              }),
+              const SizedBox(width: 8),
+              // ── View Attendance button ───────────────────────────────
               _actionButton("View Attendance", const Color(0xFF007AFF), () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => AttendanceRecordListPage(
-                      bookingId: module.id ?? 0, 
+                      bookingId: module.id ?? 0,
                       module: module,
                     ),
                   ),
                 );
               }),
             ],
-          )
+          ),
         ],
       ),
     );

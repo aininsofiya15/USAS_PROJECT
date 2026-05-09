@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/attendance_provider.dart';
-import '../../domain/module.dart'; // Import your Module domain
+import '../../domain/module.dart';
 import '../../widgets/header.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
+import 'module_grading.dart';
 
 class AttendanceRecordListPage extends StatefulWidget {
-  final Module module; 
-  final int bookingId; 
+  final Module module;
+  final int bookingId;
 
   const AttendanceRecordListPage({
-    super.key, 
-    required this.bookingId, 
-    required this.module
+    super.key,
+    required this.bookingId,
+    required this.module,
   });
 
   @override
-  State<AttendanceRecordListPage> createState() => _AttendanceRecordListPageState();
+  State<AttendanceRecordListPage> createState() =>
+      _AttendanceRecordListPageState();
 }
 
 class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
@@ -27,9 +29,10 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   @override
   void initState() {
     super.initState();
-    // Fetch Pusat ADAB records immediately using the bookingId
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AttendanceProvider>().fetchAttendanceDetails(widget.bookingId);
+      context
+          .read<AttendanceProvider>()
+          .fetchAttendanceDetails(widget.bookingId);
     });
   }
 
@@ -37,8 +40,8 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   Widget build(BuildContext context) {
     return Consumer<AttendanceProvider>(
       builder: (context, provider, child) {
-        final students = provider.studentRecords; 
-        
+        final students = provider.studentRecords;
+
         return Scaffold(
           backgroundColor: const Color(0xFFD1FFF3),
           appBar: const UsasHeader(),
@@ -46,11 +49,30 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
           bottomNavigationBar: const UsasBottomNav(),
           body: Column(
             children: [
-              // Uses widget.module directly for initial load
-              _buildHeader(widget.module),
-              const SizedBox(height: 10),
+              // ── Page Title ──────────────────────────────────────────────
+              const Padding(
+                padding: EdgeInsets.only(top: 16, bottom: 8),
+                child: Text(
+                  'Attendance Records',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+
+              // ── Module Info Card ─────────────────────────────────────────
+              _buildModuleCard(widget.module, provider),
+
+              const SizedBox(height: 12),
+
+              // ── Present / Not Present Toggle ─────────────────────────────
               _buildStatusToggle(),
-              const SizedBox(height: 10),
+
+              const SizedBox(height: 12),
+
+              // ── Student List ─────────────────────────────────────────────
               Expanded(
                 child: provider.isLoading
                     ? const Center(child: CircularProgressIndicator())
@@ -63,46 +85,88 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
     );
   }
 
-  // Changed dynamic to Module to ensure type safety
-  Widget _buildHeader(Module module) {
+  // ── Module Info Card ──────────────────────────────────────────────────────
+  Widget _buildModuleCard(Module module, AttendanceProvider provider) {
+    // Count present students for the "Number of Student" line
+    final presentCount = provider.studentRecords
+        .where((s) => s.status.toLowerCase() == 'present')
+        .length;
+    final totalCount = provider.studentRecords.length;
+
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
         children: [
           Text(
             module.activityName.toUpperCase(),
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 12),
-          Text("Class Date: ${module.dateTime}"),
-          Text("Venue: ${module.venue}"),
-          Text("Lecturer: ${module.lecturerName}"),
+          const SizedBox(height: 10),
+          _infoRow('Number of Student: $presentCount / $totalCount Students'),
+          _infoRow('Class Date: ${module.dateTime}'),
+          _infoRow('Venue: ${module.venue}'),
+          _infoRow('Lecturer Name: ${module.lecturerName}'),
         ],
       ),
     );
   }
 
+  Widget _infoRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 13, color: Colors.black87),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  // ── Present / Not Present Toggle ──────────────────────────────────────────
   Widget _buildStatusToggle() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      height: 45,
+      height: 44,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+          ),
+        ],
       ),
       child: Row(
         children: [
-          _toggleItem("Present", showPresent, () => setState(() => showPresent = true)),
-          _toggleItem("Not Present", !showPresent, () => setState(() => showPresent = false)),
+          _toggleItem(
+            'Present',
+            showPresent,
+            () => setState(() => showPresent = true),
+          ),
+          _toggleItem(
+            'Not Present',
+            !showPresent,
+            () => setState(() => showPresent = false),
+          ),
         ],
       ),
     );
@@ -112,17 +176,20 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: isSelected ? const Color(0xFFD1E3FF) : Colors.transparent,
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(18),
           ),
           child: Center(
             child: Text(
               label,
               style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.blue[900] : Colors.grey,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: isSelected ? const Color(0xFF1A3C7A) : Colors.grey,
               ),
             ),
           ),
@@ -131,80 +198,209 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
     );
   }
 
+  // ── Student List ──────────────────────────────────────────────────────────
   Widget _buildStudentList(List<dynamic> students) {
     final filtered = students.where((s) {
-      bool statusMatch = showPresent 
-          ? s.status.toLowerCase() == 'present' 
+      final statusMatch = showPresent
+          ? s.status.toLowerCase() == 'present'
           : s.status.toLowerCase() != 'present';
-      
-      bool searchMatch = _searchController.text.isEmpty || 
-          s.studentName.toLowerCase().contains(_searchController.text.toLowerCase()) ||
-          s.studentId.contains(_searchController.text);
-          
+
+      final query = _searchController.text.toLowerCase();
+      final searchMatch = query.isEmpty ||
+          s.studentName.toLowerCase().contains(query) ||
+          s.studentId.toLowerCase().contains(query);
+
       return statusMatch && searchMatch;
     }).toList();
 
     return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(10),
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+          ),
+        ],
       ),
       child: Column(
         children: [
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: "Search student...",
-              prefixIcon: const Icon(Icons.search),
-              border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey[300]!)),
-            ),
-            onChanged: (val) => setState(() {}),
-          ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: filtered.isEmpty 
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.person_off_outlined, size: 50, color: Colors.grey[400]),
-                      const SizedBox(height: 10),
-                      Text(
-                        "No student data found for this module.",
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.separated(
-                  itemCount: filtered.length,
-                  separatorBuilder: (context, index) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final student = filtered[index];
-                    return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.grey[200],
-                          child: Text("${index + 1}", style: const TextStyle(fontSize: 12)),
-                        ),
-                        title: Text(
-                          student.studentId, 
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        subtitle: Text(student.studentName),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _actionBtn("Grade", Colors.greenAccent[400]!, () => _showGradeDialog(student)),
-                            const SizedBox(width: 4),
-                            _actionBtn("Edit", Colors.blueAccent, () {}),
-                          ],
-                        ),
-                      );
-                  },
+          // ── Search Bar ────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+            child: Container(
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (_) => setState(() {}),
+                style: const TextStyle(fontSize: 14),
+                decoration: const InputDecoration(
+                  hintText: 'Search',
+                  hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey, size: 20),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 11),
                 ),
+              ),
+            ),
+          ),
+
+          // ── Table Header ──────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: const [
+                SizedBox(
+                  width: 32,
+                  child: Text(
+                    'No',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+                SizedBox(
+                  width: 72,
+                  child: Text(
+                    'Student ID',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Name',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16),
+
+          // ── Student Rows ──────────────────────────────────────────────
+          Expanded(
+            child: filtered.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.person_off_outlined,
+                            size: 48, color: Colors.grey[400]),
+                        const SizedBox(height: 10),
+                        Text(
+                          'No student data found for this module.',
+                          style: TextStyle(
+                              color: Colors.grey[500], fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const Divider(
+                      height: 1,
+                      thickness: 1,
+                      indent: 16,
+                      endIndent: 16,
+                    ),
+                    itemBuilder: (context, index) {
+                      final student = filtered[index];
+                      return _buildStudentRow(index + 1, student);
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudentRow(int no, dynamic student) {
+    return Padding(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // No column
+          SizedBox(
+            width: 32,
+            child: Text(
+              '$no',
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Student ID + Name stacked
+          SizedBox(
+            width: 72,
+            child: Text(
+              student.studentId,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Name
+          Expanded(
+            child: Text(
+              student.studentName,
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+
+          // Grade & Edit buttons
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _actionBtn(
+                'Grade',
+                const Color(0xFF00CC66),
+                () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => GradeStudentPage(
+                      student: student,
+                      module: widget.module,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              _actionBtn(
+                'Edit',
+                const Color(0xFF4D8EFF),
+                () {},
+              ),
+            ],
           ),
         ],
       ),
@@ -213,52 +409,30 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
 
   Widget _actionBtn(String label, Color color, VoidCallback onTap) {
     return SizedBox(
-      height: 28,
+      height: 24,
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-        ),
-        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10)),
-      ),
-    );
-  }
-
-  void _showGradeDialog(dynamic student) {
-    final TextEditingController gradeController = 
-        TextEditingController(text: student.marks?.toString() ?? "");
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Grade ${student.studentName}"),
-        content: TextField(
-          controller: gradeController,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: "Enter Marks (0-100)"),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () async {
-              final double? marks = double.tryParse(gradeController.text);
-              if (marks != null) {
-                String category = marks >= 50 ? "Pass" : "Fail";
-                await context.read<AttendanceProvider>().updateStudentGrade(
-                  student.id, 
-                  marks, 
-                  category, 
-                );
-                if (mounted) Navigator.pop(context);
-              }
-            },
-            child: const Text("Save"),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6),
           ),
-        ],
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          minimumSize: Size.zero,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
+
 }
+
