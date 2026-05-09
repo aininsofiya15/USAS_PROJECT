@@ -168,26 +168,23 @@ class ModuleController extends Controller
     }
 
 //VIEW ALL REGISTERED STUDENTS FOR A PARTICULAR MODULE (PUSAT ADAB)
-    public function getRegisteredStudents($id)
-    {
-        try {
-            // 🔥 FIX 1: Cast to int to match the BigInt in your DB
-            $moduleId = (int)$id;
 
-            $students = DB::table('bookings')
-                ->join('users', 'bookings.student_id', '=', 'users.id')
-                ->where('bookings.module_id', $moduleId)
-                ->select(
-                    'bookings.id as booking_id', // 🔥 FIX 2: Need booking ID to delete later!
-                    'users.id as user_id', 
-                    'users.name as student_name'
-                )
-                ->get();
+public function getRegisteredStudents($moduleId) {
+    $students = DB::table('bookings')
+        // 1. Link bookings to students (Primary Key match)
+        ->join('students', 'bookings.student_id', '=', 'students.id') 
+        
+        // 2. Link students to users via the shared ID column
+        ->join('users', 'students.id', '=', 'users.id') 
+        
+        ->where('bookings.module_id', $moduleId)
+        ->select(
+            'bookings.id as booking_id', 
+            'users.name as student_name',      // Found in the users table
+            'students.student_id as matric_id' // This is the varchar(255) like CA24000
+        )
+        ->get();
 
-            return response()->json($students, 200);
-        } catch (\Exception $e) {
-            Log::error("Fetch Registered Students Error: " . $e->getMessage());
-            return response()->json(['message' => 'Error: ' . $e->getMessage()], 500);
-        }
-    }
+    return response()->json($students);
+}
 }

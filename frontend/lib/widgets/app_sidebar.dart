@@ -7,6 +7,8 @@ import '../provider/user_provider.dart';
 import '../screens/student/module_booking.dart';
 import 'package:USAS/screens/faculty/subject_registration_page.dart';
 import '../screens/student/my_module_booking.dart';
+import '../screens/pusatAdab/attendance_record_list.dart';
+import '../screens/pusatAdab/module_attendance.dart';
 
 
 class AppSidebar extends StatelessWidget {
@@ -132,9 +134,13 @@ class AppSidebar extends StatelessWidget {
 
                     _buildMenuItem(context, Icons.description_outlined, "Credit Claim Application", role),
                     _buildSubMenuItem(context, "View Student Application", role),
+
+                    const Divider(color: Colors.black12, height: 10),
+
+                    _buildMenuItem(context, Icons.description_outlined, "Attendance", role),
+                    _buildSubMenuItem(context, "Module Attendance", role, destination:const ModuleAttendanceSelectionPage()),
+                    _buildSubMenuItem(context, "Attendance Records", role,),
                   ] 
-
-
 
 
                   else ...[ //student

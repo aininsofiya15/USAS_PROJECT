@@ -12,6 +12,7 @@ class Api {
 
   // Student
   static String applyModule = "$baseUrl/modules/apply";
+  static String moduleStudents(int moduleId) => "$baseUrl/modules/$moduleId/students";
   static String studentBookings(String studentId) => "$baseUrl/students/$studentId/bookings";
 
   // Attendance 

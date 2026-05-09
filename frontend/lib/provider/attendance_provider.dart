@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api.dart';
 import '../domain/attendance.dart';
+import '../domain/attendance_record.dart';
 
 class AttendanceProvider with ChangeNotifier {
   List<AttendanceSubject> _subjects = [];
@@ -74,5 +75,50 @@ class AttendanceProvider with ChangeNotifier {
       notifyListeners();
     }
     return null;
+  }
+
+  // --- YOUR PART: PUSAT ADAB & GRADING (Project Lead) ---
+
+  // 1. Define the student list (Fixes image_1bad16.png)
+  List<AttendanceRecord> _attendanceRecords = []; 
+  List<AttendanceRecord> get attendanceRecords => _attendanceRecords;
+
+  // 2. Fetch Modules from Bookings (For image_1acc8f.png)
+  Future<void> fetchPusatAdabSessions() async {
+      _isLoading = true;
+      notifyListeners();
+      try {
+        final response = await http.get(Uri.parse("${Api.baseUrl}/pusat-adab/modules"));
+        
+        if (response.statusCode == 200) {
+          List data = json.decode(response.body);
+          // This will now only contain 'published' modules
+          _subjects = data.map((item) => AttendanceSubject.fromJson(item)).toList();
+        }
+      } catch (e) {
+        debugPrint("Error: $e");
+      } finally {
+        _isLoading = false;
+        notifyListeners();
+      }
+    }
+
+  List<dynamic> _presentStudents = [];
+  List<dynamic> get presentStudents => _presentStudents;
+
+  Future<void> fetchPresentStudents(int moduleId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.get(Uri.parse("${Api.baseUrl}/pusat-adab/modules/$moduleId/present"));
+      if (response.statusCode == 200) {
+        _presentStudents = json.decode(response.body);
+      }
+    } catch (e) {
+      print("Error fetching students: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\TuitionFeesController;
 use App\Http\Controllers\Api\ModuleController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\AttendanceRecordController;
 use App\Models\Section;
 use Illuminate\Http\Request;
 use App\Models\Attendance;
@@ -15,12 +16,22 @@ use App\Http\Controllers\Api\RegistrarSubjectController;
 // This is the "door" the Flutter app is knocking on
 Route::post('/login', [AuthController::class, 'login']);
 
+//--------------------------------------------------------------------------------------------------------------------//
 // PUSAT ADAB ROUTES
 
 Route::get('/modules', [ModuleController::class, 'index']);
 Route::post('/modules', [ModuleController::class, 'store']);
 Route::post('/modules/update-existing', [ModuleController::class, 'update']);
 Route::get('/modules/{id}/students', [ModuleController::class, 'getRegisteredStudents']);
+
+//PUSAT ADAB Attendance Records
+Route::get('/attendance-sessions', [AttendanceRecordController::class, 'getAllSessions']);
+Route::get('/attendance-records/{attendanceId}', [AttendanceRecordController::class, 'getByAttendance']);
+Route::patch('/attendance-records/{id}/grade', [AttendanceRecordController::class, 'updateGrade']);
+Route::get('/pusat-adab/modules', [AttendanceRecordController::class, 'fetchPusatAdabModules']);
+Route::get('/pusat-adab/modules/{moduleId}/present', [AttendanceRecordController::class, 'getPresentStudents']);
+//--------------------------------------------------------------------------------------------------------------------//
+
 
 // STUDENT ROUTES
 //AININ 
@@ -30,9 +41,14 @@ Route::delete('/bookings/{id}', [ModuleController::class, 'destroy']);
 Route::put('/bookings/{id}/claim', [ModuleController::class, 'claimModule']);
 Route::delete('/bookings/{id}', [ModuleController::class, 'destroy']);
 
+<<<<<<< Updated upstream
 //YAYA 
 Route::post('/register-subject', [RegistrarSubjectController::class, 'registerSubject']);
 Route::get('/subjects', [RegistrarSubjectController::class, 'getSubjects']); 
+=======
+
+//YAYA
+>>>>>>> Stashed changes
 
 
 //WIDA

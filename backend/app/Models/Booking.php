@@ -22,4 +22,9 @@ class Booking extends Model
     {
         return $this->belongsTo(Module::class, 'module_id');
     }
+
+    public function student()
+    {
+        return $this->belongsTo(User::class, 'student_id', 'id');
+    }
 }

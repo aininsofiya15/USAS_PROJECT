@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api.dart'; 
 import '../domain/module.dart';
+import '../domain/attendance_record.dart'; 
 
 class ModuleProvider with ChangeNotifier {
   List<Module> _modules = [];
@@ -246,45 +247,87 @@ Future<bool> dropModule({required int bookingId, required String studentId}) asy
   List<dynamic> _registeredStudents = [];
   List<dynamic> get registeredStudents => _registeredStudents;
 
-  Future<void> fetchRegisteredStudents(int moduleId) async {
-      _isLoading = true;
-      notifyListeners();
+  // lib/provider/module_provider.dart
 
-      try {
-          final response = await http.get(Uri.parse("${Api.baseUrl}/modules/$moduleId/students"));
-          if (response.statusCode == 200) {
-              _registeredStudents = jsonDecode(response.body);
-          }
-      } catch (e) {
-          print("Error fetching students: $e");
-      }
-      _isLoading = false;
-      notifyListeners();
-  }
+Future<void> fetchRegisteredStudents(int moduleId) async {
+    _isLoading = true;
+    _registeredStudents = []; // Clear list for fresh start
+    notifyListeners();
 
-  Future<bool> removeStudentFromModule({required int bookingId, required int moduleId}) async {
-  _isLoading = true;
-  notifyListeners();
+    try {
+        final response = await http.get(Uri.parse("${Api.baseUrl}/modules/$moduleId/students"));
+        
+        if (response.statusCode == 200) {
+            final data = jsonDecode(response.body);
+            if (data is List) {
+                _registeredStudents = data;
+            }
+            print("Fetched ${_registeredStudents.length} students");
+        }
+    } catch (e) {
+        print("Error: $e");
+    } finally {
+        _isLoading = false;
+        notifyListeners();
+    }
+}
 
-  try {
-    final response = await http.delete(
-      Uri.parse("${Api.baseUrl}/bookings/$bookingId"),
-    );
-
-    if (response.statusCode == 200) {
-      // Refresh the specific student list for Pusat ADAB view
-      await fetchRegisteredStudents(moduleId); 
-      return true;
+Future<bool> removeStudentFromModule({required int bookingId, required int moduleId}) async {
+    try {
+        final response = await http.delete(Uri.parse("${Api.baseUrl}/bookings/$bookingId"));
+        if (response.statusCode == 200) {
+            await fetchRegisteredStudents(moduleId); // Refresh list
+            return true;
+        }
+    } catch (e) {
+        print("Delete error: $e");
     }
     return false;
-  } catch (e) {
-    print("Error removing student: $e");
-    return false;
-  } finally {
+}
+
+  List<AttendanceRecord> _attendanceRecords = [];
+  List<AttendanceRecord> get attendanceRecords => _attendanceRecords;
+
+  // 1. Fetch the list for the Attendance Records screen
+  Future<void> fetchAttendanceRecords(int attendanceId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await http.get(Uri.parse('$Api.baseUrl/attendance-records/$attendanceId'));
+      if (response.statusCode == 200) {
+        List data = json.decode(response.body);
+        _attendanceRecords = data.map((item) => AttendanceRecord.fromJson(item)).toList();
+      }
+    } catch (e) {
+      debugPrint("Fetch Error: $e");
+    }
+
     _isLoading = false;
     notifyListeners();
   }
-}
 
+  // 2. Submit marks to Laravel (Your Grading Task)
+  Future<bool> updateStudentGrade(int recordId, double marks) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$Api.baseUrl/attendance-records/$recordId/grade'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'marks': marks}),
+      );
 
+      if (response.statusCode == 200) {
+        // Refresh local data so the UI updates immediately
+        int index = _attendanceRecords.indexWhere((r) => r.id == recordId);
+        if (index != -1) {
+          _attendanceRecords[index].marks = marks;
+          notifyListeners();
+        }
+        return true;
+      }
+    } catch (e) {
+      debugPrint("Update Error: $e");
+    }
+    return false;
+  }
 }

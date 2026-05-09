@@ -15,13 +15,11 @@ class MyBookingsPage extends StatefulWidget {
 }
 
 class _MyBookingsPageState extends State<MyBookingsPage> {
-  // Track open/collapsed state for each list item row card
   final Map<int, bool> _isExpanded = {};
 
   @override
   void initState() {
     super.initState();
-    // Fetch live dashboard rows from MySQL using the authenticated session ID
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = Provider.of<UserProvider>(context, listen: false).userId;
       Provider.of<ModuleProvider>(context, listen: false).fetchStudentBookings(userId.toString());
@@ -31,7 +29,6 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   @override
   Widget build(BuildContext context) {
     final moduleProvider = Provider.of<ModuleProvider>(context);
-    
     final bookedActivities = moduleProvider.bookedModules;
 
     return Scaffold(
@@ -90,11 +87,9 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
     _isExpanded.putIfAbsent(booking.id ?? displayIndex, () => false);
     bool expanded = _isExpanded[booking.id ?? displayIndex]!;
 
-    // Extract dynamic string properties from database
     String currentAttendance = booking.attendance ?? "-";
     String currentMarks = booking.total_marks ?? "-";
     
-    // Evaluate logic boundaries for responsive layout switches
     bool isPresent = currentAttendance.toLowerCase() == "present";
     bool hasMarks = currentMarks != "-" && currentMarks.trim().isNotEmpty;
     bool isModuleClaimed = booking.isClaimed == 1; 
@@ -115,7 +110,6 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          // 🔥 COLLAPSED FIX: Set to false so the accordion panels load closed initially
           initiallyExpanded: false,
           onExpansionChanged: (bool value) {
             setState(() {
@@ -157,35 +151,11 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                           style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ] else if (isPresent && hasMarks) ...[
-                        _buildActionButton("Claim Module", const Color(0xFF00C853), () {
-                          // Action trigger for single module claim operation
-                        }),
+                        _buildActionButton("Claim Module", const Color(0xFF00C853), () {}),
                       ] else ...[
-                        _buildActionButton("Drop", Colors.red, () async {
-                          final provider = Provider.of<ModuleProvider>(context, listen: false);
-                          final user = Provider.of<UserProvider>(context, listen: false);
-
-                          if (booking.id != null) {
-                            bool success = await provider.dropModule(
-                              bookingId: booking.id!, 
-                              studentId: user.userId.toString(),
-                            );
-                            
-                            if (success) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Module dropped successfully!")),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Failed to drop module."), backgroundColor: Colors.red),
-                              );
-                            }
-                          }
-                        }),
+                        _buildActionButton("Drop", Colors.red, () => _confirmDrop(booking)),
                         const SizedBox(width: 10),
-                        _buildActionButton("Attendance", const Color(0xFF007AFF), () {
-                          // Trigger QR camera scan screen route execution
-                        }),
+                        _buildActionButton("Attendance", const Color(0xFF007AFF), () {}),
                       ],
                     ],
                   )
@@ -196,6 +166,80 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
         ),
       ),
     );
+  }
+
+  void _confirmDrop(Module booking) async {
+    bool? confirm = await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        contentPadding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 80),
+            const SizedBox(height: 20),
+            const Text(
+              "Are you sure to remove this activity?",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black),
+            ),
+            const SizedBox(height: 30),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Back Button
+                SizedBox(
+                  width: 115, // Increased width to prevent text wrap
+                  height: 45,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF007AFF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text("Back", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                // Confirm Button
+                SizedBox(
+                  width: 115, // Increased width to prevent text wrap
+                  height: 45,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text("Confirm", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirm == true && booking.id != null) {
+      final userId = Provider.of<UserProvider>(context, listen: false).userId;
+      final provider = Provider.of<ModuleProvider>(context, listen: false);
+
+      bool success = await provider.dropModule(
+        bookingId: booking.id!, 
+        studentId: userId.toString(),
+      );
+      
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Module dropped successfully!")),
+        );
+      }
+    }
   }
 
   Widget _buildDetailRow(String label, String value) {
@@ -256,9 +300,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           elevation: 0,
         ),
-        onPressed: () {
-          // Final 8-hour total requirement processing path block
-        },
+        onPressed: () {},
         child: const Text(
           "Claim Credit",
           style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),

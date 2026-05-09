@@ -2,29 +2,34 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-return new class extends Migration
+class AttendanceRecord extends Model
 {
-    public function up(): void
+    // These are the fields you will be managing for grading
+    protected $fillable = [
+        'attendance_id', 
+        'student_id', 
+        'submitted_time', 
+        'status', 
+        'marks', 
+        'grade_category'
+    ];
+
+    // This allows you to pull Student name and Matric ID easily
+    public function student(): BelongsTo
     {
-        Schema::create('attendance_records', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('attendance_id')->references('id')->on('attendances')->onDelete('cascade');
-            // FIX: students table PK is 'id' (auto-increment), so FK must reference 'id'
-            $table->foreignId('student_id')->references('id')->on('students')->onDelete('cascade');
-            $table->dateTime('submitted_time');
-            $table->string('status');
-            $table->decimal('marks', 5, 2)->nullable();
-            $table->string('grade_category')->nullable();
-            $table->timestamps();
-        });
+        return $this->belongsTo(Student::class);
     }
 
-    public function down(): void
+    public function attendance(): BelongsTo
     {
-        Schema::dropIfExists('attendance_records');
+        return $this->belongsTo(Attendance::class);
     }
-};
+
+     public function booking() 
+    {
+         return $this->belongsTo(Booking::class, 'booking_id');
+    }
+}
