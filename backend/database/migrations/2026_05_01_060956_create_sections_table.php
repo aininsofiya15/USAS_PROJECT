@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('sections', function (Blueprint $table) {
             $table->id('section_id');
-            $table->foreignId('lecturer_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('lecturer_id')->constrained('users', 'id')->onDelete('cascade');
             $table->foreignId('subject_id')->constrained('subjects', 'subject_id')->onDelete('cascade');
             $table->string('section_no');
             $table->string('lab_group')->nullable();

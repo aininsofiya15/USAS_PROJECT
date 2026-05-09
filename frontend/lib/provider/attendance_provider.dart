@@ -9,8 +9,8 @@ import '../../domain/module.dart';
 class AttendanceProvider with ChangeNotifier {
 
   // --- Academic Subjects (Friend's Part) ---
-  List<AttendanceSubject> _subjects = [];
-  List<AttendanceSubject> get subjects => _subjects;
+  List<Subject> _subjects = [];
+  List<Subject> get subjects => _subjects;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -25,21 +25,31 @@ class AttendanceProvider with ChangeNotifier {
 
   /// Fetches subjects for academic classes
   Future<void> fetchLecturerSubjects(int lecturerId) async {
+    // If ID is 0, don't even try the request
+    if (lecturerId == 0) {
+      debugPrint("Error: Lecturer ID is 0. Check Login/UserProvider.");
+      return;
+    }
+
     _isLoading = true;
     notifyListeners();
 
     try {
       final response = await http.get(
-        Uri.parse("${Api.lecturerSubjects}?user_id=$lecturerId")
+        Uri.parse("${Api.lecturerSubjects}?user_id=$lecturerId"),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
       );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         final List<dynamic> subjectList = data['data'];
-        _subjects = subjectList.map((json) => AttendanceSubject.fromJson(json)).toList();
+        _subjects = subjectList.map((json) => Subject.fromJson(json)).toList();
       }
     } catch (e) {
-      print("Error fetching attendance data: $e");
+      debugPrint("Network Error: ${e.toString()}");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -71,12 +81,12 @@ class AttendanceProvider with ChangeNotifier {
         }),
       );
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
+      if (response.statusCode == 201) {
         final resData = jsonDecode(response.body);
         return resData['code'];
       }
     } catch (e) {
-      print("Error generating attendance: $e");
+      debugPrint("Error generating attendance: $e");
     } finally {
       _isLoading = false;
       notifyListeners();

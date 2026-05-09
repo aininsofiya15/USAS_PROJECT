@@ -5,72 +5,77 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use App\Models\Subject;
-use App\Models\Section;
+use Illuminate\Support\Facades\DB;
 use App\Models\Attendance;
 use App\Models\AttendanceRecord;
 use App\Models\ModuleAttendance;
 
 class AttendanceController extends Controller
 {
+    /**
+     * Get subjects for a specific lecturer
+     */
     public function getLecturerSubjects(Request $request)
     {
-        // Use 'lecturer_id' instead of 'user_id' to match your migration
-        $lecturerId = $request->query('user_id'); 
+        $lecturerId = $request->query('user_id');
 
         if (!$lecturerId) {
             return response()->json(['success' => false, 'message' => 'Lecturer ID required'], 400);
         }
 
-        $subjects = Subject::whereHas('sections', function ($query) use ($lecturerId) {
-            $query->where('lecturer_id', $lecturerId); 
-        })
-        ->with(['sections' => function ($query) use ($lecturerId) {
-            $query->where('lecturer_id', $lecturerId)
-                ->select('section_id', 'subject_id', 'section_no');
-        }])
-        ->select('subject_id', 'subject_code', 'subject_name')
-        ->get();
+        // Using DB::table for a flatter, simpler structure like your Tuition controller
+        $subjects = DB::table('subjects')
+            ->join('sections', 'subjects.subject_id', '=', 'sections.subject_id')
+            ->where('sections.lecturer_id', $lecturerId)
+            ->select(
+                'subjects.subject_id',
+                'subjects.subject_code',
+                'subjects.subject_name',
+                'sections.section_id',
+                'sections.section_no'
+            )
+            ->get();
 
         return response()->json([
             'success' => true,
-            'data'    => $subjects
-        ], 200);
+            'data' => $subjects
+        ]);
     }
 
-    public function store(Request $request) {
-    // 1. Validation
-    $validated = $request->validate([
-        'section_id' => 'required|exists:sections,section_id',
-        'geo_lat'    => 'required',
-        'geo_long'   => 'required',
-        'date'       => 'required|date',
-        'time'       => 'required',
-    ]);
+    /**
+     * Create a new attendance session
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'section_id' => 'required',
+            'geo_lat'    => 'required',
+            'geo_long'   => 'required',
+            'date'       => 'required|date',
+            'time'       => 'required',
+        ]);
 
-    // 2. Generate a random unique code
-    $code = strtoupper(Str::random(6));
-    // Convert 12-hour format (12:00 PM) to 24-hour format (12:00:00)
-    $time24 = date('H:i:s', strtotime($request->time));
+        $code = strtoupper(Str::random(6));
+        $time24 = date('H:i:s', strtotime($request->time));
 
-    // 3. Save to DB
-    $attendance = Attendance::create([
-        'section_id'      => $request->section_id,
-        'attendance_code' => $code,
-        'geo_lat'         => $request->geo_lat,
-        'geo_long'        => $request->geo_long,
-        'geo_radius'      => 500, // Always fixed at 500m
-        'date'            => $request->date,
-        'time'            => $time24, // converted to 24-hour
-    ]);
+        $attendanceId = DB::table('attendances')->insertGetId([
+            'section_id'      => $request->section_id,
+            'attendance_code' => $code,
+            'geo_lat'         => $request->geo_lat,
+            'geo_long'        => $request->geo_long,
+            'geo_radius'      => 500,
+            'date'            => $request->date,
+            'time'            => $time24,
+            'created_at'      => now(),
+            'updated_at'      => now(),
+        ]);
 
-    // 4. Return response matching your Provider's resData['code']
-    return response()->json([
-        'success' => true,
-        'code'    => $code, 
-        'data'    => $attendance
-    ], 201);
-}
+        return response()->json([
+            'success' => true,
+            'code'    => $code,
+            'attendance_id' => $attendanceId
+        ], 201);
+    }
 
 
 
