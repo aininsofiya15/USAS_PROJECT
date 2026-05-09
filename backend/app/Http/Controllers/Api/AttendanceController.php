@@ -125,25 +125,4 @@ class AttendanceController extends Controller
             })
         ]);
     }
-    /**
-     * Update a student's grade/marks from the Flutter "Grade" button.
-     */
-    public function updateGrade(Request $request, $recordId)
-    {
-        $request->validate([
-            'marks' => 'required|numeric|min:0|max:100',
-        ]);
-
-        $record = AttendanceRecord::findOrFail($recordId);
-        $record->update([
-            'marks' => $request->marks,
-            // Logic to auto-assign category based on marks if needed
-            'grade_category' => $request->marks >= 50 ? 'Pass' : 'Fail', 
-        ]);
-
-        return response()->json([
-            'message' => 'Grade updated successfully',
-            'record' => $record
-        ]);
-    }
 }
