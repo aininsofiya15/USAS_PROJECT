@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 class UserProvider with ChangeNotifier {
   String _name = "";
   String _role = "";
-  int? _userId; 
+  late int _userId; 
 
   String get name => _name;
   String get role => _role;
-  int? get userId => _userId; // Return nullable int
+  int get userId => _userId; // Return nullable int
 
   void createSession(String newName, String newRole, int newUserId) {
     _name = newName;
@@ -20,7 +20,7 @@ class UserProvider with ChangeNotifier {
   void logout() {
     _name = "";
     _role = "";
-    _userId = null;
+    _userId = 0;
     notifyListeners();
   }
 }

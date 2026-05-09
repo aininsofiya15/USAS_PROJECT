@@ -107,7 +107,7 @@ class _BankAccountInfoPageState extends State<BankAccountInfoPage> {
                         const Text("DECLARATION", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, fontStyle: FontStyle.italic)),
                         const SizedBox(height: 5),
                         const Text("I confirm that the information provided is true.", style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic)),
-                        Text("Name: ${userProvider.userName}", style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic)),
+                        Text("Name: ${userProvider.name}", style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic)),
                         Text("IC Number: ${feeData?['ic_no'] ?? 'N/A'}", style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic)),
                       ],
                     ),
