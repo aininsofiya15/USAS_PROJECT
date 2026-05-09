@@ -1,44 +1,49 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api; // This MUST match the folder structure
 
-use App\Http\Controllers\Controller;
-use App\Models\AttendanceRecord;
-use App\Models\Attendance;
+use App\Http\Controllers\Controller; // Required because it's in a subfolder
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\Booking;
+use App\Models\Module;
 
 class AttendanceRecordController extends Controller
 {
-
     /**
-     * GET /api/attendance-sessions
-     * Fetches the list of modules for the Selection Page
+     * Fetch published modules for the selection list.
      */
     public function fetchPusatAdabModules()
     {
-        // Fetch only modules where status is 'published'
-        // Based on image_19f63e.png column names
-        $modules = \App\Models\Module::where('status', 'published')->get();
+        $modules = Module::where('status', 'published')
+            ->select('id', 'activity_name', 'date_time', 'venue', 'lecturer_name', 'status')
+            ->get();
         
         return response()->json($modules);
     }
 
-    public function getPresentStudents($moduleId) {
-    // 1. Query the records table
-    // 2. Join with students to get names and faculty info
-    return DB::table('attendance_records')
-        ->join('students', 'attendance_records.student_id', '=', 'students.student_id')
-        ->where('attendance_records.attendance_id', $moduleId)
-        ->where('attendance_records.status', 'present')
-        ->select(
-            'students.student_id', 
-            'students.faculty', 
-            'attendance_records.marks', 
-            'attendance_records.id as record_id'
-        )
-        ->get();
-}
+    /**
+     * Fetch students specifically for a Pusat ADAB module.
+     * Note: Changed $moduleId to $bookingId to match your Bridge Table.
+     */
+    public function getPresentStudents($bookingId) 
+    {
+        // We must first find the correct session ID from your module_attendances bridge
+        $records = DB::table('attendance_records')
+            ->join('students', 'attendance_records.student_id', '=', 'students.student_id')
+            ->join('module_attendances', 'attendance_records.attendance_id', '=', 'module_attendances.attendance_id')
+            ->where('module_attendances.booking_id', $bookingId)
+            ->select(
+                'students.student_id', 
+                'students.name as studentName', // Added for your Flutter UI
+                'students.faculty', 
+                'attendance_records.status',
+                'attendance_records.marks', 
+                'attendance_records.id'
+            )
+            ->get();
 
+        return response()->json([
+            'records' => $records
+        ]);
+    }
 }

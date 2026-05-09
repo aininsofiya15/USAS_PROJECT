@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../config/api.dart';
 import '../domain/attendance.dart';
 import '../domain/attendance_record.dart';
+import '../../domain/module.dart';
 
 class AttendanceProvider with ChangeNotifier {
 
@@ -15,8 +16,9 @@ class AttendanceProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
 
   // --- Pusat ADAB & Grading 
-  AttendanceSubject? _currentActivityHeader;
-  AttendanceSubject? get currentActivityHeader => _currentActivityHeader;
+  List<Module> _pusatAdabModules = [];
+  List<Module> get pusatAdabModules => _pusatAdabModules;
+
 
   List<AttendanceRecord> _studentRecords = []; 
   List<AttendanceRecord> get studentRecords => _studentRecords;
@@ -82,11 +84,33 @@ class AttendanceProvider with ChangeNotifier {
     return null;
   }
 
+
+
+
   // --- YOUR PART: PUSAT ADAB FETCHING ---
 
-  Future<void> fetchPusatAdabSessions(int bookingId) async {
+  Future<void> fetchPusatAdabModules() async {
     _isLoading = true;
-    _studentRecords = []; // Successfully clear list
+    notifyListeners();
+
+    try {
+      final response = await http.get(Uri.parse("${Api.baseUrl}/modules"));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        _pusatAdabModules = data.map((json) => Module.fromJson(json)).toList();
+      }
+    } catch (e) {
+      print("Error fetching modules: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Fetches student records for a specific module session
+  Future<void> fetchAttendanceDetails(int bookingId) async {
+    _isLoading = true;
+    _studentRecords = [];
     notifyListeners();
 
     try {
@@ -96,49 +120,52 @@ class AttendanceProvider with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        
-        // Fixes image_a10ff5.png: The variable name now exists at the top
-        _currentActivityHeader = AttendanceSubject.fromJson(data['header']);
-
         final List<dynamic> recordList = data['records'];
         _studentRecords = recordList
             .map((json) => AttendanceRecord.fromJson(json))
             .toList();
-      } else {
-        print("Error: ${response.statusCode}");
       }
     } catch (e) {
-      print("Fetch Error: $e");
+      print("Error fetching details: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  /// Updates student marks in the attendance_records table
-  Future<bool> updateStudentGrade(int recordId, double marks, String gradeCategory) async {
-    try {
-      final response = await http.put(
-        Uri.parse("${Api.baseUrl}/attendance-records/$recordId"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          'marks': marks,
-          'grade_category': gradeCategory,
-        }),
-      );
 
-      if (response.statusCode == 200) {
-        int index = _studentRecords.indexWhere((record) => record.id == recordId);
-        if (index != -1) {
-          _studentRecords[index].marks = marks;
-          _studentRecords[index].gradeCategory = gradeCategory;
-          notifyListeners();
-        }
-        return true;
+Future<void> updateStudentGrade(int recordId, double marks, String category) async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    final response = await http.post(
+      Uri.parse("${Api.baseUrl}/attendance/update-grade"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        'record_id': recordId,
+        'marks': marks,
+        'grade_category': category,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      // Refresh the local student list so the UI updates with the new grade
+      final index = _studentRecords.indexWhere((s) => s.id == recordId);
+      if (index != -1) {
+        // Assuming your AttendanceRecord has a 'copyWith' or you can update fields
+        _studentRecords[index].marks = marks; 
+       // _studentRecords[index].status = "Present"; // Ensure status stays correct
       }
-    } catch (e) {
-      print("Error updating grade: $e");
+      print("Grade updated successfully!");
+    } else {
+      print("Failed to update grade: ${response.body}");
     }
-    return false;
+  } catch (e) {
+    print("Error updating grade: $e");
+  } finally {
+    _isLoading = false;
+    notifyListeners();
   }
+}
 }

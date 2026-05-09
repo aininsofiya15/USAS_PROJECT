@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/attendance_provider.dart';
+import '../../domain/module.dart'; // Import your Module domain
 import '../../widgets/header.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
 
 class AttendanceRecordListPage extends StatefulWidget {
-  final int bookingId; // Changed to int to match your new table structure
-  final dynamic module; // Still passing the module object for header display
+  final Module module; 
+  final int bookingId; 
 
   const AttendanceRecordListPage({
     super.key, 
@@ -28,7 +29,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
     super.initState();
     // Fetch Pusat ADAB records immediately using the bookingId
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AttendanceProvider>().fetchPusatAdabSessions(widget.bookingId);
+      context.read<AttendanceProvider>().fetchAttendanceDetails(widget.bookingId);
     });
   }
 
@@ -37,7 +38,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
     return Consumer<AttendanceProvider>(
       builder: (context, provider, child) {
         final students = provider.studentRecords; 
-      final header = provider.currentActivityHeader ?? widget.module;
+        
         return Scaffold(
           backgroundColor: const Color(0xFFD1FFF3),
           appBar: const UsasHeader(),
@@ -45,6 +46,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
           bottomNavigationBar: const UsasBottomNav(),
           body: Column(
             children: [
+              // Uses widget.module directly for initial load
               _buildHeader(widget.module),
               const SizedBox(height: 10),
               _buildStatusToggle(),
@@ -61,7 +63,8 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
     );
   }
 
-  Widget _buildHeader(dynamic module) {
+  // Changed dynamic to Module to ensure type safety
+  Widget _buildHeader(Module module) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(20),
@@ -75,14 +78,14 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
       child: Column(
         children: [
           Text(
-            module.activityName?.toUpperCase() ?? "MODULE NAME",
+            module.activityName.toUpperCase(),
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 12),
-          Text("Class Date: ${module.dateTime ?? 'N/A'}"),
-          Text("Venue: ${module.venue ?? 'Tasik Pekan'}"),
-          Text("Lecturer Name: ${module.lecturerName ?? 'Sir Fahmi'}"),
+          Text("Class Date: ${module.dateTime}"),
+          Text("Venue: ${module.venue}"),
+          Text("Lecturer: ${module.lecturerName}"),
         ],
       ),
     );
@@ -129,7 +132,6 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   }
 
   Widget _buildStudentList(List<dynamic> students) {
-    // Basic filter logic (Present vs Not Present)
     final filtered = students.where((s) {
       bool statusMatch = showPresent 
           ? s.status.toLowerCase() == 'present' 
@@ -161,47 +163,46 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
             onChanged: (val) => setState(() {}),
           ),
           const SizedBox(height: 10),
-
-            Expanded(
-          child: filtered.isEmpty 
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.person_off_outlined, size: 50, color: Colors.grey[400]),
-                    const SizedBox(height: 10),
-                    Text(
-                      "No student has applied or checked in yet.",
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                    ),
-                  ],
-                ),
-              )
-            : ListView.separated(
-                itemCount: filtered.length,
-                separatorBuilder: (context, index) => const Divider(),
-                itemBuilder: (context, index) {
-                  final student = filtered[index];
-                  return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.grey[200],
-                        child: Text("${index + 1}", style: const TextStyle(fontSize: 12)),
+          Expanded(
+            child: filtered.isEmpty 
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.person_off_outlined, size: 50, color: Colors.grey[400]),
+                      const SizedBox(height: 10),
+                      Text(
+                        "No student data found for this module.",
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
-                      title: Text(
-                        student.studentId, // From AttendanceRecord domain
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                      subtitle: Text(student.studentName),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _actionBtn("Grade", Colors.greenAccent[400]!, () => _showGradeDialog(student)),
-                          const SizedBox(width: 4),
-                          _actionBtn("Edit", Colors.blueAccent, () {}),
-                        ],
-                      ),
-                    );
+                    ],
+                  ),
+                )
+              : ListView.separated(
+                  itemCount: filtered.length,
+                  separatorBuilder: (context, index) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final student = filtered[index];
+                    return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.grey[200],
+                          child: Text("${index + 1}", style: const TextStyle(fontSize: 12)),
+                        ),
+                        title: Text(
+                          student.studentId, 
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        subtitle: Text(student.studentName),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _actionBtn("Grade", Colors.greenAccent[400]!, () => _showGradeDialog(student)),
+                            const SizedBox(width: 4),
+                            _actionBtn("Edit", Colors.blueAccent, () {}),
+                          ],
+                        ),
+                      );
                   },
                 ),
           ),
@@ -245,16 +246,12 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
             onPressed: () async {
               final double? marks = double.tryParse(gradeController.text);
               if (marks != null) {
-                // 1. Logic to determine the category (e.g., 50 is the passing mark)
                 String category = marks >= 50 ? "Pass" : "Fail";
-
-                // 2. Pass all THREE arguments to the Provider
                 await context.read<AttendanceProvider>().updateStudentGrade(
                   student.id, 
                   marks, 
-                  category, // The missing 3rd argument
+                  category, 
                 );
-
                 if (mounted) Navigator.pop(context);
               }
             },
