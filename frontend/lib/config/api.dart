@@ -19,6 +19,7 @@ class Api {
   // Attendance 
   static const String lecturerSubjects = "$baseUrl/lecturer/subjects";
   static const String generateAttendance = "$baseUrl/attendance/store";
+  
   //static const String attendance = "$baseUrl/attendance";
   //static const String creditClaim = "$baseUrl/credit-claim";
 }
