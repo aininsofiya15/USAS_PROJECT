@@ -23,7 +23,7 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // 1. Get the current logged-in user from your Auth/User Provider
       final authProvider = Provider.of<UserProvider>(context, listen: false);
-      final int? currentLecturerId = authProvider.user?.id;
+      final int? currentLecturerId = authProvider.userId;
 
       // 2. Pass that dynamic ID to the fetch function
       if (currentLecturerId != null) {
