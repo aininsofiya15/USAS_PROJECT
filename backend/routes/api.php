@@ -41,14 +41,10 @@ Route::delete('/bookings/{id}', [ModuleController::class, 'destroy']);
 Route::put('/bookings/{id}/claim', [ModuleController::class, 'claimModule']);
 Route::delete('/bookings/{id}', [ModuleController::class, 'destroy']);
 
-<<<<<<< Updated upstream
 //YAYA 
 Route::post('/register-subject', [RegistrarSubjectController::class, 'registerSubject']);
 Route::get('/subjects', [RegistrarSubjectController::class, 'getSubjects']); 
-=======
 
-//YAYA
->>>>>>> Stashed changes
 
 
 //WIDA
