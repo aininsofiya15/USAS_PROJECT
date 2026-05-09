@@ -16,4 +16,8 @@ class Lab extends Model
         'enrolled',
 
     ];
+    public function labs()
+    {
+        return $this->hasMany(Lab::class, 'section_id', 'section_id');
+    }
 }
