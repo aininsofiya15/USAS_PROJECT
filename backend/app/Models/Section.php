@@ -12,11 +12,7 @@ class Section extends Model
         'lecturer_id',
         'subject_id',
         'section_no',
-        'lab_group',
         'capacity',
-        'enrolled',
-        'schedule_time',
-        'schedule_day',
     ];
 
     // Relationships

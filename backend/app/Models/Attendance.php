@@ -9,7 +9,6 @@ class Attendance extends Model
     protected $table = 'attendances';
 
     protected $fillable = [
-        'section_id',
         'attendance_code',
         'geo_lat',
         'geo_long',
@@ -18,10 +17,6 @@ class Attendance extends Model
         'time',
     ];
 
-    public function section()
-    {
-        return $this->belongsTo(Section::class, 'section_id', 'section_id');
-    }
 
     public function attendanceRecords()
     {

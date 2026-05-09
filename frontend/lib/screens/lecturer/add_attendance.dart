@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
+import '../../provider/user_provider.dart'; 
 import '../../provider/attendance_provider.dart';
 import '../../domain/attendance.dart';
 import 'generate_attendance_code.dart';
@@ -18,10 +19,19 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
   @override
   void initState() {
     super.initState();
-    // Fetch subjects for Lecturer ID 2 (as verified in your JSON test)
+    
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AttendanceProvider>(context, listen: false)
-          .fetchLecturerSubjects(2);
+      // 1. Get the current logged-in user from your Auth/User Provider
+      final authProvider = Provider.of<UserProvider>(context, listen: false);
+      final int? currentLecturerId = authProvider.user?.id;
+
+      // 2. Pass that dynamic ID to the fetch function
+      if (currentLecturerId != null) {
+        Provider.of<AttendanceProvider>(context, listen: false)
+            .fetchLecturerSubjects(currentLecturerId);
+      } else {
+        debugPrint("Error: No logged-in user found.");
+      }
     });
   }
 

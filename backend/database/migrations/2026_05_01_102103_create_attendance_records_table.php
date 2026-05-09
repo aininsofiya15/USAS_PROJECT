@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id(); 
             $table->foreignId('attendance_id')->references('id')->on('attendances');
             $table->foreignId('student_id')->references('id')->on('students');
-            
             $table->dateTime('submitted_time');
             $table->string('status'); // e.g., 'Present', 'Absent', 'Late'
             $table->decimal('marks', 5, 2)->nullable();

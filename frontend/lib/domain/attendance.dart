@@ -1,59 +1,34 @@
 class AttendanceSubject {
-  final int id;
-  final String activityName; // Maps to 'activity_name' in DB
-  final String name;
-  final String dateTime;
   final int subjectId;
-  final String venue;
-  final String lecturerName;
   final String subjectCode;
   final String subjectName;
   final List<AttendanceSection> sections;
 
   AttendanceSubject({
-    required this.id,
-    required this.activityName,
-    required this.name,
     required this.subjectId,
     required this.subjectCode,
     required this.subjectName,
-    required this.dateTime,
     required this.sections,
-    required this.venue,
-    required this.lecturerName,
   });
 
   factory AttendanceSubject.fromJson(Map<String, dynamic> json) {
-      return AttendanceSubject(
-        // Match 'id' from image_19f63e.png
-        id: json['id'] ?? 0,
-        
-        // Match 'activity_name' from image_19f63e.png
-        name: json['activity_name'] ?? 'Pusat ADAB Module',
-        venue: json['venue'] ?? 'Dewan Serbaguna',
-        lecturerName: json['lecturer_name'] ?? 'Staff',
-        // Match 'date_time' from image_19f63e.png
-        dateTime: json['date_time'] ?? 'No Date', 
-        activityName: json['activity_name'] ?? 'Pusat ADAB Module', // For consistency with your DB field
-        // Standard fields for your teammate's academic subject logic
-        subjectId: json['id'] ?? 0,
-        subjectCode: 'ADAB',
-        subjectName: json['activity_name'] ?? '',
-        sections: [], 
-      );
-    }
+    return AttendanceSubject(
+      subjectId: json['subject_id'] ?? 0,
+      subjectCode: json['subject_code'] ?? '',
+      subjectName: json['subject_name'] ?? '',
+      // Map the nested sections list
+      sections: (json['sections'] as List? ?? [])
+          .map((s) => AttendanceSection.fromJson(s))
+          .toList(),
+    );
+  }
 }
-
-// Keep AttendanceSection and Attendance classes exactly as they are below...
 
 class AttendanceSection {
   final int sectionId;
   final String sectionNo;
 
-  AttendanceSection({
-    required this.sectionId,
-    required this.sectionNo,
-  });
+  AttendanceSection({required this.sectionId, required this.sectionNo});
 
   factory AttendanceSection.fromJson(Map<String, dynamic> json) {
     return AttendanceSection(
@@ -62,7 +37,6 @@ class AttendanceSection {
     );
   }
 }
-
 class Attendance {
   final int? sectionId;
   final String? attendanceCode;
