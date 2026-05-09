@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'add_attendance.dart';
+import 'view_attendance_records.dart';
+
 
 class LecturerBody extends StatelessWidget {
   final String name;
@@ -42,7 +44,9 @@ class LecturerBody extends StatelessWidget {
                   Icons.history_edu, 
                   "Records", 
                   Colors.blue, 
-                  () {}
+                  () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => ViewAttendanceRecords()));
+                  }
                 ),
                 _buildMenuCard(
                   context, 

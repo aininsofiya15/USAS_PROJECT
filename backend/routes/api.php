@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\TuitionFeesController;
 use App\Http\Controllers\Api\ModuleController;
+use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AttendanceRecordController;
 use App\Models\Section;
@@ -17,12 +18,13 @@ use App\Http\Controllers\Api\RegistrarSubjectController;
 Route::post('/login', [AuthController::class, 'login']);
 
 //--------------------------------------------------------------------------------------------------------------------//
-// PUSAT ADAB ROUTES
+//AININ 
+// -------- Pusat Adab Routes ---------------------------------------
 
 Route::get('/modules', [ModuleController::class, 'index']);
 Route::post('/modules', [ModuleController::class, 'store']);
 Route::post('/modules/update-existing', [ModuleController::class, 'update']);
-Route::get('/modules/{id}/students', [ModuleController::class, 'getRegisteredStudents']);
+Route::get('/modules/{id}/students', [BookingController::class, 'getRegisteredStudents']);
 
 // 1. Route to get the list of published modules (Selection Page)
 // This matches: Provider.fetchPusatAdabModules()
@@ -40,23 +42,33 @@ Route::post('/attendance/update-grade', [AttendanceRecordController::class, 'upd
 
 // STUDENT ROUTES
 //AININ 
-Route::post('/modules/apply', [ModuleController::class, 'applyToModule']);
-Route::get('/students/{studentId}/bookings', [ModuleController::class, 'getStudentBookings']);
-Route::delete('/bookings/{id}', [ModuleController::class, 'destroy']);
-Route::put('/bookings/{id}/claim', [ModuleController::class, 'claimModule']);
-Route::delete('/bookings/{id}', [ModuleController::class, 'destroy']);
+Route::post('/modules/apply', [BookingController::class, 'applyToModule']);
+Route::get('/students/{studentId}/bookings', [BookingController::class, 'getStudentBookings']);
+Route::delete('/bookings/{id}', [BookingController::class, 'destroy']);
+Route::put('/bookings/{id}/claim', [BookingController::class, 'claimModule']);
+
+
+//-----------------------------------------------------------------------------
+
 
 //YAYA 
 Route::post('/register-subject', [RegistrarSubjectController::class, 'registerSubject']);
 Route::get('/subjects', [RegistrarSubjectController::class, 'getSubjects']); 
 
+//-----------------------------------------------------------------------------
 
 
 //WIDA
 //LECTURER ROUTES
 Route::get('/lecturer/subjects', [AttendanceController::class, 'getLecturerSubjects']);
+Route::get('/sections/{sectionId}/labs', [App\Http\Controllers\Api\AttendanceController::class, 'getSectionLabs']);
 Route::post('/attendance/store', [AttendanceController::class, 'store']);
+Route::get('/lecturer/{lecturerId}/attendance-history', [AttendanceController::class, 'getAttendanceHistory']);
+Route::get('/attendance/{id}', [AttendanceController::class, 'getDetails']);
+Route::post('/attendance/update/{id}', [AttendanceController::class, 'updateAttendanceDetails']);
+Route::get('/attendance/{id}/students', [AttendanceController::class, 'getStudentAttendance']);
 
+//-----------------------------------------------------------------------------
 
 
 //JIHA (TREASURER + STUDENT)
