@@ -17,28 +17,18 @@ class AddAttendancePage extends StatefulWidget {
 
 class _AddAttendancePageState extends State<AddAttendancePage> {
   @override
-  void initState() {
-    super.initState();
-    
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // 1. Get the current logged-in user from your Auth/User Provider
-      final authProvider = Provider.of<UserProvider>(context, listen: false);
-      final int? currentLecturerId = authProvider.user?.id;
-
-      // 2. Pass that dynamic ID to the fetch function
-      if (currentLecturerId != null) {
-        Provider.of<AttendanceProvider>(context, listen: false)
-            .fetchLecturerSubjects(currentLecturerId);
-      } else {
-        debugPrint("Error: No logged-in user found.");
-      }
-    });
-  }
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    // FORCE TEST ID 1
+    Provider.of<AttendanceProvider>(context, listen: false).fetchLecturerSubjects(1);
+  });
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3D8DA), // Matches the pastel pink in your image
+      backgroundColor: const Color(0xFFF3D8DA),
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
@@ -52,6 +42,12 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
             return const Center(child: Text("No assigned subjects found."));
           }
 
+          // FIX: Group the flat subjects into a Map so we can show 1 Card per Subject
+          final Map<int, List<Subject>> groupedSubjects = {};
+          for (var s in provider.subjects) {
+            groupedSubjects.putIfAbsent(s.subjectId, () => []).add(s);
+          }
+
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20.0),
             child: Column(
@@ -60,15 +56,13 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
                   "Attendance",
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 10),
-                const Text(
-                  "Semester:  252026 SEM II",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
                 const SizedBox(height: 25),
                 
-                // Generates a Card for every Subject in your DB
-                ...provider.subjects.map((subject) => _buildSubjectCard(subject)),
+                // Use the entries of the grouped Map to build cards
+                ...groupedSubjects.entries.map((entry) {
+                  final List<Subject> subjectSections = entry.value;
+                  return _buildSubjectCard(subjectSections);
+                }),
               ],
             ),
           );
@@ -77,7 +71,10 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
     );
   }
 
-  Widget _buildSubjectCard(AttendanceSubject subject) {
+  // FIX: This now accepts a List of Subject objects (all belonging to the same ID)
+  Widget _buildSubjectCard(List<Subject> sections) {
+    final first = sections.first;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
@@ -93,7 +90,6 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
       ),
       child: Column(
         children: [
-          // Header: Subject Code & Name
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
@@ -101,21 +97,21 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
               border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
             ),
             child: Text(
-              "${subject.subjectCode} ${subject.subjectName}",
+              "${first.subjectCode} ${first.subjectName}",
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: Color(0xFF3F51B5), // Indigo blue text
+                color: Color(0xFF3F51B5),
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
             ),
           ),
           
-          // Section Buttons
           Padding(
             padding: const EdgeInsets.all(15.0),
             child: Column(
-              children: subject.sections.map((section) {
+              // FIX: We map the 'sections' list we created in the build method
+              children: sections.map((sec) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
                   child: SizedBox(
@@ -126,15 +122,15 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => GenerateAttendanceCode(
-                              subjectName: subject.subjectName,
-                              sectionNo: section.sectionNo,
-                              sectionId: section.sectionId,
+                              subjectName: sec.subjectName,
+                              sectionNo: sec.sectionNo,
+                              sectionId: sec.sectionId,
                             ),
                           ),
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF007BFF), // Bright blue
+                        backgroundColor: const Color(0xFF007BFF),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -143,7 +139,7 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
                         elevation: 0,
                       ),
                       child: Text(
-                        "SECTION ${section.sectionNo.split('-').last}", // Displays "01", "02" etc
+                        "SECTION ${sec.sectionNo}",
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),

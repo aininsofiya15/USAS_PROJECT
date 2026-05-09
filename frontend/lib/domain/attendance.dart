@@ -1,28 +1,30 @@
-class AttendanceSubject {
+class Subject {
   final int subjectId;
   final String subjectCode;
   final String subjectName;
-  final List<AttendanceSection> sections;
+  final int sectionId;
+  final String sectionNo;
 
-  AttendanceSubject({
+  Subject({
     required this.subjectId,
     required this.subjectCode,
     required this.subjectName,
-    required this.sections,
+    required this.sectionId,
+    required this.sectionNo,
   });
 
-  factory AttendanceSubject.fromJson(Map<String, dynamic> json) {
-    return AttendanceSubject(
-      subjectId: json['subject_id'] ?? 0,
-      subjectCode: json['subject_code'] ?? '',
-      subjectName: json['subject_name'] ?? '',
-      // Map the nested sections list
-      sections: (json['sections'] as List? ?? [])
-          .map((s) => AttendanceSection.fromJson(s))
-          .toList(),
-    );
-  }
+  // Factory to convert JSON to Subject object
+  factory Subject.fromJson(Map<String, dynamic> json) {
+  return Subject(
+    subjectId: json['subject_id'] ?? 0,
+    subjectCode: json['subject_code'] ?? 'N/A',
+    subjectName: json['subject_name'] ?? 'Unknown Subject',
+    sectionId: json['section_id'] ?? 0,
+    sectionNo: json['section_no']?.toString() ?? '00', // Ensure string
+  );
 }
+}
+
 
 class AttendanceSection {
   final int sectionId;
@@ -68,4 +70,5 @@ class Attendance {
     'radius': radius ?? 500, // Default in domain
   };
 
+  
 }

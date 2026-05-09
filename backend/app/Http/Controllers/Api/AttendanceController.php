@@ -5,122 +5,117 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use App\Models\Subject;
-use App\Models\Section;
+use Illuminate\Support\Facades\DB;
 use App\Models\Attendance;
-use App\Models\AttendanceRecord;
 
 class AttendanceController extends Controller
 {
+    /**
+     * Get subjects for a specific lecturer
+     */
     public function getLecturerSubjects(Request $request)
     {
-        // Use 'lecturer_id' instead of 'user_id' to match your migration
-        $lecturerId = $request->query('user_id'); 
+        $lecturerId = $request->query('user_id');
 
         if (!$lecturerId) {
             return response()->json(['success' => false, 'message' => 'Lecturer ID required'], 400);
         }
 
-        $subjects = Subject::whereHas('sections', function ($query) use ($lecturerId) {
-            $query->where('lecturer_id', $lecturerId); 
-        })
-        ->with(['sections' => function ($query) use ($lecturerId) {
-            $query->where('lecturer_id', $lecturerId)
-                ->select('section_id', 'subject_id', 'section_no');
-        }])
-        ->select('subject_id', 'subject_code', 'subject_name')
-        ->get();
-
-        return response()->json([
-            'success' => true,
-            'data'    => $subjects
-        ], 200);
-    }
-
-    public function store(Request $request) {
-    // 1. Validation
-    $validated = $request->validate([
-        'section_id' => 'required|exists:sections,section_id',
-        'geo_lat'    => 'required',
-        'geo_long'   => 'required',
-        'date'       => 'required|date',
-        'time'       => 'required',
-    ]);
-
-    // 2. Generate a random unique code
-    $code = strtoupper(Str::random(6));
-    // Convert 12-hour format (12:00 PM) to 24-hour format (12:00:00)
-    $time24 = date('H:i:s', strtotime($request->time));
-
-    // 3. Save to DB
-    $attendance = Attendance::create([
-        'section_id'      => $request->section_id,
-        'attendance_code' => $code,
-        'geo_lat'         => $request->geo_lat,
-        'geo_long'        => $request->geo_long,
-        'geo_radius'      => 500, // Always fixed at 500m
-        'date'            => $request->date,
-        'time'            => $time24, // converted to 24-hour
-    ]);
-
-    // 4. Return response matching your Provider's resData['code']
-    return response()->json([
-        'success' => true,
-        'code'    => $code, 
-        'data'    => $attendance
-    ], 201);
-}
-
-    // app/Http/Controllers/Api/AttendanceController.php
-
-    public function showAttendance($booking_id)
-    {
-        // Fetch the specific attendance session linked to the booking
-        $attendance = Attendance::where('booking_id', $booking_id)
-            ->with(['booking.module', 'booking.student']) // Get activity and student info
-            ->first();
-
-        if (!$attendance) {
-            return response()->json(['message' => 'Attendance session not found'], 404);
-        }
-
-        // Get all students who have signed in for this session
-        $records = AttendanceRecord::where('attendance_id', $attendance->id)
-            ->with('student')
+        // Using DB::table for a flatter, simpler structure like your Tuition controller
+        $subjects = DB::table('subjects')
+            ->join('sections', 'subjects.subject_id', '=', 'sections.subject_id')
+            ->where('sections.lecturer_id', $lecturerId)
+            ->select(
+                'subjects.subject_id',
+                'subjects.subject_code',
+                'subjects.subject_name',
+                'sections.section_id',
+                'sections.section_no'
+            )
             ->get();
 
         return response()->json([
-            'module_name' => $attendance->booking->module->activity_name,
-            'venue' => $attendance->booking->module->venue,
-            'date' => $attendance->date,
-            'time' => $attendance->time,
-            'records' => $records
+            'success' => true,
+            'data' => $subjects
         ]);
     }
 
-    public function getAttendanceDetails($moduleId)
+    /**
+     * Create a new attendance session
+     */
+    public function store(Request $request)
     {
-        // Fetch module details and its related attendance session
-        $attendance = Attendance::whereHas('booking', function($query) use ($moduleId) {
-                $query->where('module_id', $moduleId);
-            })
-            ->with(['booking.module'])
+        $request->validate([
+            'section_id' => 'required',
+            'geo_lat'    => 'required',
+            'geo_long'   => 'required',
+            'date'       => 'required|date',
+            'time'       => 'required',
+        ]);
+
+        $code = strtoupper(Str::random(6));
+        $time24 = date('H:i:s', strtotime($request->time));
+
+        $attendanceId = DB::table('attendances')->insertGetId([
+            'section_id'      => $request->section_id,
+            'attendance_code' => $code,
+            'geo_lat'         => $request->geo_lat,
+            'geo_long'        => $request->geo_long,
+            'geo_radius'      => 500,
+            'date'            => $request->date,
+            'time'            => $time24,
+            'created_at'      => now(),
+            'updated_at'      => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'code'    => $code,
+            'attendance_id' => $attendanceId
+        ], 201);
+    }
+
+    /**
+     * Get list of students who signed in for a session
+     */
+    public function getAttendanceDetails($sectionId)
+    {
+        // 1. Get the session info
+        $session = DB::table('attendances')
+            ->join('sections', 'attendances.section_id', '=', 'sections.section_id')
+            ->join('subjects', 'sections.subject_id', '=', 'subjects.subject_id')
+            ->where('attendances.section_id', $sectionId)
+            ->select(
+                'subjects.subject_name as activity_name',
+                'sections.section_no',
+                'attendances.id',
+                'attendances.date',
+                'attendances.time'
+            )
             ->first();
 
-        if (!$attendance) {
+        if (!$session) {
             return response()->json(['message' => 'No session found'], 404);
         }
 
-        // Fetch students who successfully recorded attendance for this session
-        $records = AttendanceRecord::where('attendance_id', $attendance->id)
-            ->with(['student.user']) // Assuming Student belongsTo User for the name
+        // 2. Get the student records via JOIN
+        $records = DB::table('attendance_records')
+            ->join('students', 'attendance_records.student_id', '=', 'students.id')
+            ->join('users', 'students.id', '=', 'users.id')
+            ->where('attendance_records.attendance_id', $session->id)
+            ->select(
+                'users.name',
+                'students.student_id as matric_no',
+                'attendance_records.status',
+                'attendance_records.created_at as check_in_time'
+            )
             ->get();
 
         return response()->json([
             'header' => [
-                'activity_name' => $attendance->booking->module->activity_name,
-                'venue' => $attendance->booking->module->venue,
-                'date_time' => $attendance->date . ' ' . $attendance->time,
+                'activity_name' => $session->activity_name,
+                'section'       => $session->section_no,
+                'date_time'     => $session->date . ' ' . $session->time,
                 'student_count' => $records->count(),
             ],
             'records' => $records
