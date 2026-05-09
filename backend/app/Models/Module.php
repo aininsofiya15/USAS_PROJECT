@@ -21,4 +21,9 @@ class Module extends Model
         'status',
         'current_registration',
     ];
+
+    public function attendanceRecords() {
+        return $this->hasMany(AttendanceRecord::class);
+    }
+
 }

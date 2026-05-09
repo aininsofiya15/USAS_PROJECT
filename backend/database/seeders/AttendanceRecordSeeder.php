@@ -7,31 +7,47 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceRecordSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Link Student ID 1 to Kayaking (Module ID 1)
-        DB::table('attendance_records')->insert([
-            'attendance_id'  => 1, // Reference to modules.id
-            'student_id'     => 1, // Reference to students.id (bigint)
-            'submitted_time' => now(),
-            'status'         => 'present', // Filter used in image_0ff598.png
-            'marks'          => 85.50,
-            'created_at'     => now(),
-            'updated_at'     => now(),
+        // 1. Create the Module
+        $moduleId = DB::table('modules')->insertGetId([
+            'activity_name' => 'MOBILE PHONE PHOTOGRAPHY',
+            'venue' => 'Dewan Serbaguna (Pekan)',
+            'created_at' => now(),
         ]);
 
-        // Link Student ID 2 to Kayaking (Module ID 1)
+        // 2. Create a Test Student (Matches your image CB23024)
+        $studentId = DB::table('students')->insertGetId([
+            'student_id' => 'CA24000',
+            'course_name' => 'NUR WAHIDAH SYARINI',
+            'faculty' => 'Faculty of Computing',
+            'created_at' => now(),
+        ]);
+
+        // 3. Create the Booking
+        $bookingId = DB::table('bookings')->insertGetId([
+            'student_id' => $studentId,
+            'module_id' => $moduleId,
+            'is_claimed' => 0,
+            'created_at' => now(),
+        ]);
+
+        // 4. Create the Attendance Session
+        $attendanceId = DB::table('attendances')->insertGetId([
+            'booking_id' => $bookingId,
+            'attendance_code' => 'USA123',
+            'date' => '2026-04-24',
+            'time' => '08:00:00',
+        ]);
+
+        // 5. Create the Record (This is where your marks live!)
         DB::table('attendance_records')->insert([
-            'attendance_id'  => 1,
-            'student_id'     => 2,
-            'submitted_time' => now(),
-            'status'         => 'present',
-            'marks'          => 0.00,
-            'created_at'     => now(),
-            'updated_at'     => now(),
+            'student_id' => $studentId,
+            'attendance_id' => $attendanceId,
+            'module_id' => $moduleId, // As we discussed adding this earlier
+            'marks' => 85, 
+            'status' => 'present',
+            'created_at' => now(),
         ]);
     }
 }

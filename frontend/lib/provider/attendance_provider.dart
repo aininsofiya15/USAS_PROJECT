@@ -77,7 +77,11 @@ class AttendanceProvider with ChangeNotifier {
     return null;
   }
 
-  // --- YOUR PART: PUSAT ADAB & GRADING (Project Lead) ---
+  // --- Pusat ADAB Extensions ---
+  
+  // Inside AttendanceProvider.dart
+
+ // --- YOUR PART: PUSAT ADAB & GRADING (Project Lead) ---
 
   // 1. Define the student list (Fixes image_1bad16.png)
   List<AttendanceRecord> _attendanceRecords = []; 

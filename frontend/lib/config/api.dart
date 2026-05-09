@@ -8,6 +8,7 @@ class Api {
 
   // Pusat Adab Module
   static  String modules = "$baseUrl/modules";
+  static String pusatAdabAttendance = "$baseUrl/attendance/pusat-adab";
   
 
   // Student

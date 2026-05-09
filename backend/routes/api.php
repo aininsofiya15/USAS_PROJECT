@@ -24,7 +24,6 @@ Route::post('/modules', [ModuleController::class, 'store']);
 Route::post('/modules/update-existing', [ModuleController::class, 'update']);
 Route::get('/modules/{id}/students', [ModuleController::class, 'getRegisteredStudents']);
 
-//PUSAT ADAB Attendance Records
 Route::get('/attendance-sessions', [AttendanceRecordController::class, 'getAllSessions']);
 Route::get('/attendance-records/{attendanceId}', [AttendanceRecordController::class, 'getByAttendance']);
 Route::patch('/attendance-records/{id}/grade', [AttendanceRecordController::class, 'updateGrade']);

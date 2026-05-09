@@ -8,6 +8,7 @@ use Illuminate\Support\Str;
 use App\Models\Subject;
 use App\Models\Section;
 use App\Models\Attendance;
+use App\Models\AttendanceRecord;
 
 class AttendanceController extends Controller
 {
@@ -71,4 +72,60 @@ class AttendanceController extends Controller
         'data'    => $attendance
     ], 201);
 }
+
+    // app/Http/Controllers/Api/AttendanceController.php
+
+    public function showAttendance($booking_id)
+    {
+        // Fetch the specific attendance session linked to the booking
+        $attendance = Attendance::where('booking_id', $booking_id)
+            ->with(['booking.module', 'booking.student']) // Get activity and student info
+            ->first();
+
+        if (!$attendance) {
+            return response()->json(['message' => 'Attendance session not found'], 404);
+        }
+
+        // Get all students who have signed in for this session
+        $records = AttendanceRecord::where('attendance_id', $attendance->id)
+            ->with('student')
+            ->get();
+
+        return response()->json([
+            'module_name' => $attendance->booking->module->activity_name,
+            'venue' => $attendance->booking->module->venue,
+            'date' => $attendance->date,
+            'time' => $attendance->time,
+            'records' => $records
+        ]);
+    }
+
+    public function getAttendanceDetails($moduleId)
+    {
+        // Fetch module details and its related attendance session
+        $attendance = Attendance::whereHas('booking', function($query) use ($moduleId) {
+                $query->where('module_id', $moduleId);
+            })
+            ->with(['booking.module'])
+            ->first();
+
+        if (!$attendance) {
+            return response()->json(['message' => 'No session found'], 404);
+        }
+
+        // Fetch students who successfully recorded attendance for this session
+        $records = AttendanceRecord::where('attendance_id', $attendance->id)
+            ->with(['student.user']) // Assuming Student belongsTo User for the name
+            ->get();
+
+        return response()->json([
+            'header' => [
+                'activity_name' => $attendance->booking->module->activity_name,
+                'venue' => $attendance->booking->module->venue,
+                'date_time' => $attendance->date . ' ' . $attendance->time,
+                'student_count' => $records->count(),
+            ],
+            'records' => $records
+        ]);
+    }
 }
