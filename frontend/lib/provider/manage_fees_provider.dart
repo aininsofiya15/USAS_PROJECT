@@ -46,6 +46,7 @@ class FeesManagementProvider extends ChangeNotifier {
   String searchQuery = '';
   int unpaidCount = 0;
   DateTime selectedBlockDate = DateTime.now();
+  List<dynamic> paymentHistory = [];
 
   // Helper for headers to keep code clean
   Map<String, String> get _headers => {
@@ -182,8 +183,6 @@ class FeesManagementProvider extends ChangeNotifier {
     }
   }
 
-  // lib/provider/manage_fees_provider.dart
-
 Future<bool> updateBankAccount(String studentId, String accNo, String bankName) async {
   isLoading = true; // Use 'isLoading' to match your class variable
   notifyListeners();
@@ -200,7 +199,6 @@ Future<bool> updateBankAccount(String studentId, String accNo, String bankName) 
       }),
     );
 
-    // Inside updateBankAccount in manage_fees_provider.dart
     if (response.statusCode == 200) {
         if (selectedStudentDetail != null) {
             selectedStudentDetail!['acc_no'] = accNo;
@@ -225,6 +223,30 @@ Future<bool> updateBankAccount(String studentId, String accNo, String bankName) 
   void updateBlockDate(DateTime date) {
     selectedBlockDate = date;
     notifyListeners();
+  }
+
+  Future<void> fetchPaymentHistory(String studentId) async {
+    isLoading = true;
+    paymentHistory = []; // Clear old data
+    notifyListeners();
+
+    try {
+      final response = await http.get(
+        Uri.parse('${Api.baseUrl}/student/payment-history/$studentId'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        paymentHistory = json.decode(response.body);
+      } else {
+        errorMessage = 'Failed to load payment history';
+      }
+    } catch (e) {
+      errorMessage = 'Network error: ${e.toString()}';
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> loadMore() async {

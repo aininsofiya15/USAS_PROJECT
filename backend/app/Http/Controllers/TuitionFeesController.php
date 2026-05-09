@@ -182,7 +182,7 @@ class TuitionFeesController extends Controller
             ->leftJoin('bank_accounts', 'students.student_id', '=', 'bank_accounts.student_id')
             ->select(
                 'users.name',
-                'students.student_id', // CRITICAL: You must include this to use it in the next query
+                'students.student_id', 
                 'students.ic_no',
                 'students.course_name',
                 'students.program',
@@ -244,6 +244,29 @@ class TuitionFeesController extends Controller
 
             return response()->json(['message' => 'Record has been saved!'], 200);
 
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getPaymentHistory($userId)
+    {
+        try {
+            // 1. Get the matric ID (student_id string) for this user
+            $matricId = DB::table('students')->where('id', $userId)->value('student_id');
+
+            if (!$matricId) {
+                return response()->json([], 200);
+            }
+
+            // 2. Fetch payments
+            $history = DB::table('payments')
+                ->where('student_id', $matricId)
+                ->select('payment_id', 'payment_desc', 'amount', 'payment_date')
+                ->orderBy('payment_date', 'desc')
+                ->get();
+
+            return response()->json($history);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
