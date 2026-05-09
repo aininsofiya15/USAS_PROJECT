@@ -61,7 +61,12 @@ Route::get('/subjects', [RegistrarSubjectController::class, 'getSubjects']);
 //WIDA
 //LECTURER ROUTES
 Route::get('/lecturer/subjects', [AttendanceController::class, 'getLecturerSubjects']);
+Route::get('/sections/{sectionId}/labs', [App\Http\Controllers\Api\AttendanceController::class, 'getSectionLabs']);
 Route::post('/attendance/store', [AttendanceController::class, 'store']);
+Route::get('/lecturer/{lecturerId}/attendance-history', [AttendanceController::class, 'getAttendanceHistory']);
+Route::get('/attendance/{id}', [AttendanceController::class, 'getDetails']);
+Route::post('/attendance/update/{id}', [AttendanceController::class, 'updateAttendanceDetails']);
+Route::get('/attendance/{id}/students', [AttendanceController::class, 'getStudentAttendance']);
 
 //-----------------------------------------------------------------------------
 

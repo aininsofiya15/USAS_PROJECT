@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('class_attendances', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('attendance_id')->constrained('attendances')->onDelete('cascade'); 
             $table->foreignId('section_id')->references('section_id')->on('sections')->onDelete('cascade');
             $table->string('class_type');
             $table->date('date');

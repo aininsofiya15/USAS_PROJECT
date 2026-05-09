@@ -14,6 +14,9 @@ class AttendanceProvider with ChangeNotifier {
   List<Subject> _subjects = [];
   List<Subject> get subjects => _subjects;
 
+  List<Lab> _availableLabs = []; // Store fetched labs
+  List<Lab> get availableLabs => _availableLabs;
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -24,6 +27,15 @@ class AttendanceProvider with ChangeNotifier {
 
   List<AttendanceRecord> _studentRecords = []; 
   List<AttendanceRecord> get studentRecords => _studentRecords;
+
+  List<dynamic> _attendanceHistory = [];
+  List<dynamic> get attendanceHistory => _attendanceHistory;
+
+  List<AcademicAttendanceRecord> _currentClassStudents = [];
+  List<AcademicAttendanceRecord> get currentClassStudents => _currentClassStudents;
+
+  List<AttendanceRecord> _notPresentStudents = [];
+List<AttendanceRecord> get notPresentStudents => _notPresentStudents;
 
   /// Fetches subjects for academic classes
   Future<void> fetchLecturerSubjects(int lecturerId) async {
@@ -58,9 +70,32 @@ class AttendanceProvider with ChangeNotifier {
     }
   }
 
+  Future<void> fetchLabsForSection(int sectionId) async {
+    _isLoading = true;
+    _availableLabs = [];
+    notifyListeners();
+
+    try {
+      final response = await http.get(
+        Uri.parse("${Api.baseUrl}/sections/$sectionId/labs")
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = jsonDecode(response.body);
+        _availableLabs = data.map((json) => Lab.fromJson(json)).toList();
+      }
+    } catch (e) {
+      debugPrint("Error fetching labs: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   /// Generates the 6-digit code for a session
   Future<String?> generateAttendance({
     required int sectionId,
+    String? labName, 
     required double lat,
     required double lng,
     required String date,
@@ -75,6 +110,7 @@ class AttendanceProvider with ChangeNotifier {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           'section_id': sectionId,
+          'lab_name': labName, // <--- MAKE SURE THIS IS SENT
           'geo_lat': lat,
           'geo_long': lng,
           'radius': 500,
@@ -96,7 +132,65 @@ class AttendanceProvider with ChangeNotifier {
     return null;
   }
 
+  Future<void> fetchAttendanceHistory(int lecturerId) async {
+    _isLoading = true;
+    notifyListeners();
 
+    try {
+      final response = await http.get(
+        Uri.parse("${Api.baseUrl}/lecturer/$lecturerId/attendance-history")
+      );
+
+      if (response.statusCode == 200) {
+        _attendanceHistory = jsonDecode(response.body);
+      }
+    } catch (e) {
+      debugPrint("History Error: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchClassStudents(int attendanceId) async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    final response = await http.get(
+      Uri.parse("${Api.baseUrl}/attendance/$attendanceId/students")
+    );
+
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      _currentClassStudents = data.map((json) => AcademicAttendanceRecord.fromJson(json)).toList();
+    }
+  } catch (e) {
+    debugPrint("Error fetching students: $e");
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
+Future<void> fetchNotPresent(int attendanceId, int sectionId) async {
+  _isLoading = true;
+  notifyListeners();
+  try {
+    final response = await http.get(
+      Uri.parse("${Api.baseUrl}/attendance/$attendanceId/not-present/$sectionId")
+    );
+    if (response.statusCode == 200) {
+      List<dynamic> data = jsonDecode(response.body);
+      _notPresentStudents = data.map((json) => AttendanceRecord.fromJson(json)).toList();
+    }
+  } catch (e) {
+    debugPrint("Error: $e");
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
 
 
   // --- YOUR PART: PUSAT ADAB FETCHING ---
@@ -155,38 +249,47 @@ class AttendanceProvider with ChangeNotifier {
   }
 }
 
-  // Helper function for Demo Data
-  List<AttendanceRecord> _getMockStudents() {
-  return [
-    AttendanceRecord(
-      id: 999,
-      studentName: "Siti Aminah ", 
-      studentId: "CB21001",
-      name: "Siti Aminah", // Missing parameter added
-      matricId: "CB21001", // Missing parameter added
-      status: "present",
-      marks: 0.0,
-    ),
-    AttendanceRecord(
-      id: 998,
-      studentName: "Ahmad Razak",
-      studentId: "CB21002",
-      name: "Ahmad Razak", // Missing parameter added
-      matricId: "CB21002", // Missing parameter added
-      status: "present",
-      marks: 0.0,
-    ),
-  ];
+  Future<Map<String, dynamic>?> fetchSingleAttendance(int attendanceId) async {
+  try {
+    final response = await http.get(
+      Uri.parse("${Api.baseUrl}/attendance/$attendanceId"),
+      headers: {'Accept': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+  } catch (e) {
+    debugPrint("Fetch Detail Error: $e");
+  }
+  return null;
 }
 
-// ── Add these inside your AttendanceProvider class ───────────────────────────
-
-
-String? _errorMessage;
-String? get errorMessage => _errorMessage;
-
-
-// ── Your full updated method (replace the existing one) ───────────────────────
+Future<bool> updateAttendanceDetails({
+  required int attendanceId,
+  required String labName,
+  required String date,
+  required String time,
+  required double lat,
+  required double lng,
+}) async {
+  try {
+    final response = await http.post(
+      Uri.parse("${Api.baseUrl}/attendance/update/$attendanceId"),
+      headers: {"Content-Type": "application/json", "Accept": "application/json"},
+      body: jsonEncode({
+        'lab_name': labName, // <--- MUST MATCH LARAVEL VALIDATION
+        'date': date,
+        'time': time,
+        'geo_lat': lat,
+        'geo_long': lng,
+      }),
+    );
+    return response.statusCode == 200;
+  } catch (e) {
+    return false;
+  }
+}
 
 Future<void> updateStudentGrade(int recordId, double marks, String category) async {
   _isLoading = true;

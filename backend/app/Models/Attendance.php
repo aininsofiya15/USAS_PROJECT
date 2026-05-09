@@ -24,6 +24,11 @@ class Attendance extends Model
         return $this->hasMany(AttendanceRecord::class, 'attendance_id');
     }
 
+    public function classAttendance()
+    {
+        return $this->hasOne(ClassAttendance::class, 'attendance_id');
+    }
+
     public function moduleAttendance() 
     {
         return $this->hasOne(ModuleAttendance::class, 'attendance_id');

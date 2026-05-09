@@ -13,18 +13,32 @@ class Subject {
     required this.sectionNo,
   });
 
-  // Factory to convert JSON to Subject object
   factory Subject.fromJson(Map<String, dynamic> json) {
-  return Subject(
-    subjectId: json['subject_id'] ?? 0,
-    subjectCode: json['subject_code'] ?? 'N/A',
-    subjectName: json['subject_name'] ?? 'Unknown Subject',
-    sectionId: json['section_id'] ?? 0,
-    sectionNo: json['section_no']?.toString() ?? '00', // Ensure string
-  );
-}
+    return Subject(
+      // 1. Convert to string first, then parse to int, fallback to 0
+      subjectId: int.tryParse(json['subject_id']?.toString() ?? '0') ?? 0,
+      // 2. Use ?.toString() ?? '' to ensure it's never a Null type
+      subjectCode: json['subject_code']?.toString() ?? 'N/A',
+      subjectName: json['subject_name']?.toString() ?? 'Unknown Subject',
+      sectionId: int.tryParse(json['section_id']?.toString() ?? '0') ?? 0,
+      sectionNo: json['section_no']?.toString() ?? '00',
+    );
+  }
 }
 
+class Lab {
+  final int labId;
+  final String labName;
+
+  Lab({required this.labId, required this.labName});
+
+  factory Lab.fromJson(Map<String, dynamic> json) {
+    return Lab(
+      labId: int.tryParse(json['lab_id']?.toString() ?? '0') ?? 0,
+      labName: json['lab_name']?.toString() ?? 'Unknown Lab',
+    );
+  }
+}
 
 class AttendanceSection {
   final int sectionId;
@@ -34,42 +48,8 @@ class AttendanceSection {
 
   factory AttendanceSection.fromJson(Map<String, dynamic> json) {
     return AttendanceSection(
-      sectionId: json['section_id'] ?? 0,
-      sectionNo: json['section_no'] ?? '',
+      sectionId: int.tryParse(json['section_id']?.toString() ?? '0') ?? 0,
+      sectionNo: json['section_no']?.toString() ?? 'N/A',
     );
   }
-}
-class Attendance {
-  final int? sectionId;
-  final String? attendanceCode;
-  final String? type;
-  final String? date;
-  final String? time;
-  final double? lat;
-  final double? long;
-  final int? radius; // Added to Domain
-  
-
-  Attendance({
-    this.sectionId,
-    this.attendanceCode,
-    this.type,
-    this.date,
-    this.time,
-    this.lat,
-    this.long,
-    this.radius,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'section_id': sectionId,
-    'type': type,
-    'date': date,
-    'time': time,
-    'geo_lat': lat,
-    'geo_long': long,
-    'radius': radius ?? 500, // Default in domain
-  };
-
-  
 }
