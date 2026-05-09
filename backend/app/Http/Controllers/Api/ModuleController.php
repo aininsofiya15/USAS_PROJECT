@@ -169,22 +169,22 @@ class ModuleController extends Controller
 
 //VIEW ALL REGISTERED STUDENTS FOR A PARTICULAR MODULE (PUSAT ADAB)
 
-public function getRegisteredStudents($moduleId) {
-    $students = DB::table('bookings')
-        // 1. Link bookings to students (Primary Key match)
-        ->join('students', 'bookings.student_id', '=', 'students.id') 
-        
-        // 2. Link students to users via the shared ID column
-        ->join('users', 'students.id', '=', 'users.id') 
-        
-        ->where('bookings.module_id', $moduleId)
-        ->select(
-            'bookings.id as booking_id', 
-            'users.name as student_name',      // Found in the users table
-            'students.student_id as matric_id' // This is the varchar(255) like CA24000
-        )
-        ->get();
+    public function getRegisteredStudents($moduleId) {
+        $students = DB::table('bookings')
+            // 1. Link bookings to students (Primary Key match)
+            ->join('students', 'bookings.student_id', '=', 'students.id') 
+            
+            // 2. Link students to users via the shared ID column
+            ->join('users', 'students.id', '=', 'users.id') 
+            
+            ->where('bookings.module_id', $moduleId)
+            ->select(
+                'bookings.id as booking_id', 
+                'users.name as student_name',      // Found in the users table
+                'students.student_id as matric_id' // This is the varchar(255) like CA24000
+            )
+            ->get();
 
-    return response()->json($students);
-}
+        return response()->json($students);
+    }
 }
