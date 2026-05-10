@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../provider/manage_fees_provider.dart';
 import 'stud_tuition_overview.dart';
 import 'auto_block_config.dart';
-import '../../provider/user_provider.dart';
+import '../payment_history.dart'; // Correctly import the shared page
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
@@ -54,7 +54,6 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
   List<Widget> _buildPageNumbers(FeesManagementProvider provider) {
     List<Widget> numbers = [];
     for (int i = 1; i <= provider.totalPages; i++) {
-      // Logic to show current, first, last, and neighboring pages
       if (i == 1 ||
           i == provider.totalPages ||
           (i >= provider.currentPage - 1 && i <= provider.currentPage + 1)) {
@@ -91,7 +90,7 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
         children: [
           Expanded(
             flex: 3,
-            child: Text(student.matricId, style: const TextStyle(fontSize: 12)),
+            child: Text(student.matricId, style: const TextStyle(fontSize: 11)),
           ),
           Expanded(
             flex: 4,
@@ -108,7 +107,7 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
               child: Text(
                 student.name,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 11,
                   color: Colors.blue,
                   fontWeight: FontWeight.w500,
                   decoration: TextDecoration.underline,
@@ -119,8 +118,27 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
           ),
           Expanded(
             flex: 3,
-            child: Text("RM ${student.outstandingAmount.toStringAsFixed(2)}",
-                style: const TextStyle(fontSize: 12)),
+            child: InkWell(
+              onTap: () {
+                // NAVIGATION TO PAYMENT HISTORY
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PaymentHistoryPage(
+                      targetStudentId: student.userId.toString(),
+                    ),
+                  ),
+                );
+              },
+              child: Text(
+                "RM ${student.outstandingAmount.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  fontSize: 11, 
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.underline, // Visual cue that it's clickable
+                ),
+              ),
+            ),
           ),
           Expanded(
             flex: 3,
@@ -131,7 +149,7 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
             child: Icon(
               student.isBlocked ? Icons.block : Icons.do_not_disturb_on_outlined,
               color: student.isBlocked ? Colors.red : Colors.grey,
-              size: 20,
+              size: 18,
             ),
           ),
         ],
@@ -151,7 +169,7 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
         status.toUpperCase(),
         textAlign: TextAlign.center,
         style: const TextStyle(
-            color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+            color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -159,7 +177,7 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F5E9),
+      backgroundColor: const Color(0xFFE8F5E9), // Treasurer Light Green BG
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
@@ -225,36 +243,11 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
                             horizontal: 16, vertical: 12),
                         child: Row(
                           children: const [
-                            Expanded(
-                                flex: 3,
-                                child: Text("Matric ID",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12))),
-                            Expanded(
-                                flex: 4,
-                                child: Text("Name",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12))),
-                            Expanded(
-                                flex: 3,
-                                child: Text("Outstanding",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12))),
-                            Expanded(
-                                flex: 3,
-                                child: Text("Status",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12))),
-                            Expanded(
-                                flex: 2,
-                                child: Text("Actions",
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12))),
+                            Expanded(flex: 3, child: Text("Matric ID", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                            Expanded(flex: 4, child: Text("Name", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                            Expanded(flex: 3, child: Text("Outstanding", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                            Expanded(flex: 3, child: Text("Status", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                            Expanded(flex: 2, child: Text("Act", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                           ],
                         ),
                       ),
@@ -267,14 +260,12 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
                           : ListView.separated(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              // The provider.students list will now only contain 10 items because of the API change
                               itemCount: provider.students.length, 
                               separatorBuilder: (context, index) => const Divider(height: 1),
                               itemBuilder: (context, index) {
                                 return _buildStudentRow(provider.students[index]);
                               },
                             ),
-
                       // --- PAGINATION ROW ---
                       Padding(
                         padding: const EdgeInsets.all(16.0),
@@ -282,29 +273,22 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              "Showing ${provider.students.length} of ${provider.totalStudents} students",
-                              style: const TextStyle(
-                                  fontSize: 12, color: Colors.grey),
+                              "Showing ${provider.students.length} of ${provider.totalStudents}",
+                              style: const TextStyle(fontSize: 10, color: Colors.grey),
                             ),
                             Row(
                               children: [
-                                const Text("[ ",
-                                    style: TextStyle(color: Colors.grey)),
                                 _buildPageArrow(
                                     Icons.chevron_left,
                                     provider.currentPage > 1
-                                        ? () => provider.goToPage(
-                                            provider.currentPage - 1)
+                                        ? () => provider.goToPage(provider.currentPage - 1)
                                         : null),
                                 ..._buildPageNumbers(provider),
                                 _buildPageArrow(
                                     Icons.chevron_right,
                                     provider.currentPage < provider.totalPages
-                                        ? () => provider.goToPage(
-                                            provider.currentPage + 1)
+                                        ? () => provider.goToPage(provider.currentPage + 1)
                                         : null),
-                                const Text(" ]",
-                                    style: TextStyle(color: Colors.grey)),
                               ],
                             ),
                           ],
@@ -330,37 +314,33 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Current Status",
+            const Text("Current Status Summary",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem("Paid", provider.summary['paid'].toString(),
-                    Colors.green),
-                _buildStatItem("Unpaid", provider.summary['unpaid'].toString(),
-                    Colors.red),
-                _buildStatItem("Blocked", provider.summary['blocked'].toString(),
-                    Colors.black),
+                _buildStatItem("Paid", provider.summary['paid'].toString(), Colors.green),
+                _buildStatItem("Unpaid", provider.summary['unpaid'].toString(), Colors.red),
+                _buildStatItem("Blocked", provider.summary['blocked'].toString(), Colors.black),
               ],
             ),
             const SizedBox(height: 20),
             SizedBox(
-              width: 150,
-              child: ElevatedButton(
+              width: double.infinity,
+              child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                  backgroundColor: Colors.blue.shade700,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
+                icon: const Icon(Icons.settings, color: Colors.white),
                 onPressed: () {
                   Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (context) => const AutoBlockConfigPage()));
+                      MaterialPageRoute(builder: (context) => const AutoBlockConfigPage()));
                 },
-                child: const Text("Block Settings",
-                    style: TextStyle(color: Colors.white)),
+                label: const Text("Configuration Settings", style: TextStyle(color: Colors.white)),
               ),
             ),
           ],
@@ -372,13 +352,9 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
   Widget _buildStatItem(String label, String value, Color color) {
     return Column(
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, color: Colors.grey)),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey, fontSize: 12)),
         const SizedBox(height: 8),
-        Text(value,
-            style: TextStyle(
-                fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+        Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
       ],
     );
   }

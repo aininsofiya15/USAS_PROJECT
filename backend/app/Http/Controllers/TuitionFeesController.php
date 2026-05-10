@@ -169,34 +169,33 @@ class TuitionFeesController extends Controller
     // Save the block date
     public function saveBlockSettings(Request $request) {
         try {
-            // 1. Fetch the treasurer record to get the STRING treasurer_id (TR-001)
+            // Find the record where the Primary Key 'id' matches the Logged-in User ID
             $treasurer = \DB::table('treasurers')
-                ->where('id', $request->treasurer_id)
+                ->where('id', $request->treasurer_id) 
                 ->first();
 
             if (!$treasurer) {
-                return response()->json(['message' => 'Treasurer record not found'], 404);
+                return response()->json([
+                    'status' => 'error', 
+                    'message' => 'This user (ID: '.$request->treasurer_id.') is not registered as a Treasurer.'
+                ], 404);
             }
 
-            // 2. Perform the update or insert
-            // Note: Adding created_at because new rows require it
+            // Save using the string treasurer_id (e.g. TR-001)
             \DB::table('block_settings')->updateOrInsert(
-                ['block_id' => 1], // Match key
+                ['block_id' => 1], 
                 [
                     'treasurer_id' => $treasurer->treasurer_id, 
-                    'block_date' => $request->block_date,
-                    'created_at' => now(), 
-                    'updated_at' => now()
+                    'block_date'   => $request->block_date,
+                    'updated_at'   => now(),
+                    'created_at'   => now(),
                 ]
             );
 
-            return response()->json(['message' => 'Block start date has been set!'], 200);
+            return response()->json(['status' => 'success'], 200);
 
         } catch (\Exception $e) {
-            // This will return the actual SQL error message to Flutter
-            return response()->json([
-                'message' => 'Database error: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 

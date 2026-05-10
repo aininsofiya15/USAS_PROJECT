@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../provider/user_provider.dart';
 import '../../provider/manage_fees_provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';

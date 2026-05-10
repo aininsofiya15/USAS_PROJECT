@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../provider/manage_fees_provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
+import '../payment_history.dart'; // Ensure this import exists
 
 class StudentTuitionOverviewPage extends StatefulWidget {
   final int userId;
@@ -41,7 +42,7 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
                 const Text("Tuition Fees", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 20),
                 
-                // Card 1: Student Information (Live DB Data)
+                // Card 1: Student Information
                 _buildInfoCard("Student Information", [
                   _buildDetailRow("Name", data['name']),
                   _buildDetailRow("Course", data['course_name']),
@@ -53,12 +54,30 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
                 
                 const SizedBox(height: 20),
 
-                // Card 2: Fee Summary (Mixed Data)
+                // Card 2: Fee Summary
                 _buildInfoCard("Fee Summary", [
-                  _buildDetailRow("Total Invoice", "RM 7,500.00", isBlue: true), // Hardcoded
-                  _buildDetailRow("Total Payment", "RM 7,500.00", isBlue: true), // Hardcoded
-                  _buildDetailRow("Outstanding", "RM ${data['outstanding_amount']}"), // DB Data
-                  _buildDetailRow("Status", data['status'].toString().toUpperCase()), // DB Data
+                  // Modified: Font color changed to black (isBlue: false)
+                  _buildDetailRow("Total Invoice", "RM 7,500.00", isBlue: false), 
+                  
+                  // Modified: Added onTap navigation for Total Payment
+                  _buildDetailRow(
+                    "Total Payment", 
+                    "RM 7,500.00", 
+                    isBlue: true,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PaymentHistoryPage(
+                            targetStudentId: widget.userId.toString(),
+                          ),
+                        ),
+                      );
+                    },
+                  ), 
+                  
+                  _buildDetailRow("Outstanding", "RM ${data['outstanding_amount']}"),
+                  _buildDetailRow("Status", data['status'].toString().toUpperCase()),
                 ]),
               ],
             ),
@@ -75,7 +94,7 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5))],
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -88,24 +107,29 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
     );
   }
 
-  Widget _buildDetailRow(String label, dynamic value, {bool isBlue = false}) {
+  // Updated Helper: Added onTap parameter
+  Widget _buildDetailRow(String label, dynamic value, {bool isBlue = false, VoidCallback? onTap}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(width: 110, child: Text(label, style: const TextStyle(color: Colors.black87, fontSize: 13))),
-          Expanded(
-            child: Text(
-              value?.toString() ?? "N/A",
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isBlue ? FontWeight.bold : FontWeight.normal,
-                color: isBlue ? const Color(0xFF3F51B5) : Colors.black,
+      child: InkWell(
+        onTap: onTap, // Only triggers if onTap is provided
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 110, child: Text(label, style: const TextStyle(color: Colors.black87, fontSize: 13))),
+            Expanded(
+              child: Text(
+                value?.toString() ?? "N/A",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isBlue ? FontWeight.bold : FontWeight.normal,
+                  color: isBlue ? const Color(0xFF3F51B5) : Colors.black,
+                  decoration: onTap != null ? TextDecoration.underline : TextDecoration.none,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
