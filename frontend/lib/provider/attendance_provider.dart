@@ -20,6 +20,9 @@ class AttendanceProvider with ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
+
   // --- Pusat ADAB & Grading 
   List<Module> _pusatAdabModules = [];
   List<Module> get pusatAdabModules => _pusatAdabModules;
@@ -328,5 +331,31 @@ Future<void> updateStudentGrade(int recordId, double marks, String category) asy
     _isLoading = false;
     notifyListeners();
   }
+}
+
+//jiha tambah
+List<AttendanceRecord> _getMockStudents() {
+  return [
+    AttendanceRecord(
+      id: 1,
+      studentName: "Sample Student A", // Matches your class field
+      name: "Sample Student A",        // Matches your class field
+      studentId: "ID123",             // Matches your class field
+      matricId: "M123",               // Matches your class field
+      status: "Present",
+      marks: 0.0,
+      gradeCategory: "Biasa",
+    ),
+    AttendanceRecord(
+      id: 2,
+      studentName: "Sample Student B",
+      name: "Sample Student B",
+      studentId: "ID456",
+      matricId: "M456",
+      status: "Absent",
+      marks: 0.0,
+      gradeCategory: "Biasa",
+    ),
+  ];
 }
 }

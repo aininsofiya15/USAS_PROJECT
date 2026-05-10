@@ -43,42 +43,49 @@ class TuitionFeesController extends Controller
 
     public function getTuitionFeesSummary(Request $request) 
     {
-        // 1. Get Summary Counts
-        $paidCount = \App\Models\Fee::where('status', 'paid')->count();
-        $unpaidCount = \App\Models\Fee::where('status', 'unpaid')->count();
-        $blockedCount = \App\Models\Student::where('is_blocked', true)->count();
+        $perPage = $request->query('per_page', 10);
+        $statusFilter = $request->query('status', 'all');
+        $search = $request->query('search', '');
 
-        // 2. Fetch Students with JOINs
-        $students = \DB::table('users')
+        // 1. Correct Join Logic
+        // We join users -> students (to get the matric ID) -> fees (to get the money)
+        $query = \DB::table('users')
+            ->join('students', 'users.id', '=', 'students.id')
+            ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id')
             ->where('users.role', 'student')
-            ->join('students', 'users.id', '=', 'students.id') // Link users.id to students.id
-            ->leftJoin('fees', 'students.id', '=', 'fees.student_id') // Link students.id to fees.student_id
-            ->select(
+            ->select([
                 'users.id',
                 'users.name', 
-                'students.student_id', // This is the Matric ID string (e.g., CA24030)
+                'students.student_id', // This is the Matric ID (e.g., CD23001)
                 'fees.outstanding_amount', 
                 'fees.status',
                 'students.is_blocked'
-            );
+            ]);
 
-        // 3. Apply Search if user typed in the search bar
-        if ($request->has('search') && $request->search != '') {
-            $searchTerm = $request->search;
-            $students->where(function($q) use ($searchTerm) {
-                $q->where('users.name', 'like', "%$searchTerm%")
-                ->orWhere('students.student_id', 'like', "%$searchTerm%");
+        // 2. Apply Search
+        if (!empty($search)) {
+            $query->where(function($q) use ($search) {
+                $q->where('users.name', 'like', "%$search%")
+                ->orWhere('students.student_id', 'like', "%$search%");
             });
         }
 
+        // 3. Apply Filter
+        if ($statusFilter !== 'all') {
+            $query->where('fees.status', $statusFilter);
+        }
+
+        // 4. Correct Pagination
+        // Using paginate() automatically calculates total_pages and current_page for Flutter
+        $students = $query->paginate($perPage);
+
         return response()->json([
             'summary' => [
-                'paid' => $paidCount,
-                'unpaid' => $unpaidCount,
-                'blocked' => $blockedCount
+                'paid' => \DB::table('fees')->where('status', 'paid')->count(),
+                'unpaid' => \DB::table('fees')->where('status', 'unpaid')->count(),
+                'blocked' => \DB::table('students')->where('is_blocked', true)->count()
             ],
-            'students' => $students->get(), // Returns the full list
-            'total_pages' => 1 // For now, keep it simple
+            'students' => $students
         ]);
     }
     
@@ -161,15 +168,77 @@ class TuitionFeesController extends Controller
 
     // Save the block date
     public function saveBlockSettings(Request $request) {
-        $request->validate(['block_date' => 'required|date']);
-        
-        // Store in your settings table
-        \DB::table('block_settings')->updateOrInsert(
-            ['id' => 1], // Assuming a single global config row
-            ['block_start_date' => $request->block_date, 'updated_at' => now()]
-        );
+        try {
+            // 1. Fetch the treasurer record to get the STRING treasurer_id (TR-001)
+            $treasurer = \DB::table('treasurers')
+                ->where('id', $request->treasurer_id)
+                ->first();
 
-        return response()->json(['message' => 'Block start date has been set!']);
+            if (!$treasurer) {
+                return response()->json(['message' => 'Treasurer record not found'], 404);
+            }
+
+            // 2. Perform the update or insert
+            // Note: Adding created_at because new rows require it
+            \DB::table('block_settings')->updateOrInsert(
+                ['block_id' => 1], // Match key
+                [
+                    'treasurer_id' => $treasurer->treasurer_id, 
+                    'block_date' => $request->block_date,
+                    'created_at' => now(), 
+                    'updated_at' => now()
+                ]
+            );
+
+            return response()->json(['message' => 'Block start date has been set!'], 200);
+
+        } catch (\Exception $e) {
+            // This will return the actual SQL error message to Flutter
+            return response()->json([
+                'message' => 'Database error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getFeesSummary(Request $request) {
+        $perPage = $request->query('per_page', 10);
+        $statusFilter = $request->query('status', 'all');
+        $search = $request->query('search', '');
+
+        // 1. Start with the User model and JOIN the fees table
+        $query = User::query()
+            ->join('fees', 'users.student_id', '=', 'fees.student_id') // Link by student_id
+            ->select([
+                'users.id', 
+                'users.name', 
+                'users.student_id', 
+                'fees.outstanding_amount', // This MUST be selected to show in Flutter
+                'fees.status',             // This MUST be selected to show in Flutter
+                'users.is_blocked'
+            ]);
+
+        // 2. Apply Search logic
+        if (!empty($search)) {
+            $query->where('users.name', 'like', "%$search%")
+                ->orWhere('users.student_id', 'like', "%$search%");
+        }
+
+        // 3. Apply Status Filter
+        if ($statusFilter !== 'all') {
+            $query->where('fees.status', $statusFilter);
+        }
+
+        // 4. USE paginate() - This fixes the 1-10 per page and the [ < 1 2 > ] buttons
+        $students = $query->paginate($perPage);
+
+        return response()->json([
+            'summary' => [
+                'paid' => DB::table('fees')->where('status', 'paid')->count(),
+                'unpaid' => DB::table('fees')->where('status', 'unpaid')->count(),
+                'blocked' => DB::table('users')->where('is_blocked', 1)->count(),
+            ],
+            'students' => $students
+        ]);
     }
 
     //students

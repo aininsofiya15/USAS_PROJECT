@@ -46,6 +46,4 @@ class Module {
       isClaimed: json['is_claimed'],
     );
   }
-
-  
 }

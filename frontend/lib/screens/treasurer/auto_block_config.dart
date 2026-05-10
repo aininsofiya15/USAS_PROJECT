@@ -126,9 +126,18 @@ class _AutoBlockConfigPageState extends State<AutoBlockConfigPage> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: () async {
-                          bool success = await provider.saveBlockDate();
-                          if (success) _showSuccessDialog();
-                        },
+                            int currentTreasurerId = 1; 
+
+                            bool success = await provider.saveBlockDate(currentTreasurerId);
+                            
+                            if (success) {
+                              _showSuccessDialog();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Failed to save settings. Please try again.")),
+                              );
+                            }
+                          },
                         child: const Text("Save", style: TextStyle(color: Colors.white)),
                       ),
                     )

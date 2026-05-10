@@ -68,8 +68,6 @@ Route::get('/attendance/{id}', [AttendanceController::class, 'getDetails']);
 Route::post('/attendance/update/{id}', [AttendanceController::class, 'updateAttendanceDetails']);
 Route::get('/attendance/{id}/students', [AttendanceController::class, 'getStudentAttendance']);
 
-//-----------------------------------------------------------------------------
-
 
 //JIHA (TREASURER + STUDENT)
 Route::get('/treasurer/student-count', [TuitionFeesController::class, 'getStudentCount']);
