@@ -10,7 +10,7 @@ import 'dart:async'; // for TimeoutException
 
 class AttendanceProvider with ChangeNotifier {
 
-  // --- Academic Subjects (Friend's Part) ---
+  // --- Academic Subjects  ---
   List<Subject> _subjects = [];
   List<Subject> get subjects => _subjects;
 
@@ -38,7 +38,7 @@ class AttendanceProvider with ChangeNotifier {
   List<AcademicAttendanceRecord> get currentClassStudents => _currentClassStudents;
 
   List<AttendanceRecord> _notPresentStudents = [];
-List<AttendanceRecord> get notPresentStudents => _notPresentStudents;
+  List<AttendanceRecord> get notPresentStudents => _notPresentStudents;
 
   /// Fetches subjects for academic classes
   Future<void> fetchLecturerSubjects(int lecturerId) async {
@@ -196,8 +196,10 @@ Future<void> fetchNotPresent(int attendanceId, int sectionId) async {
 }
 
 
-  // --- YOUR PART: PUSAT ADAB FETCHING ---
 
+  /// Fetches student records for a specific module session
+  /// AININ
+  /// 
   Future<void> fetchPusatAdabModules() async {
     _isLoading = true;
     notifyListeners();
@@ -216,8 +218,9 @@ Future<void> fetchNotPresent(int attendanceId, int sectionId) async {
     }
   }
 
-  /// Fetches student records for a specific module session
-  /// AININ
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
+
   Future<void> fetchAttendanceDetails(int bookingId) async {
   _isLoading = true;
   _studentRecords = []; 
@@ -251,6 +254,31 @@ Future<void> fetchNotPresent(int attendanceId, int sectionId) async {
     notifyListeners();
   }
 }
+
+  // Helper function for Demo Data (demo only)
+    List<AttendanceRecord> _getMockStudents() {
+    return [
+      AttendanceRecord(
+        id: 999,
+        studentName: "Siti Aminah ", 
+        studentId: "CB21001",
+        name: "Siti Aminah", // Missing parameter added
+        matricId: "CB21001", // Missing parameter added
+        status: "present",
+        marks: 0.0,
+      ),
+      AttendanceRecord(
+        id: 998,
+        studentName: "Ahmad Razak",
+        studentId: "CB21002",
+        name: "Ahmad Razak", // Missing parameter added
+        matricId: "CB21002", // Missing parameter added
+        status: "present",
+        marks: 0.0,
+      ),
+    ];
+  }
+
 
   Future<Map<String, dynamic>?> fetchSingleAttendance(int attendanceId) async {
   try {
@@ -293,6 +321,7 @@ Future<bool> updateAttendanceDetails({
     return false;
   }
 }
+
 
 Future<void> updateStudentGrade(int recordId, double marks, String category) async {
   _isLoading = true;

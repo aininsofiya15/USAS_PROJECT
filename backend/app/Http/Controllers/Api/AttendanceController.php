@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use App\Models\Attendance;
+use App\Models\Module;
 use App\Models\AttendanceRecord;
 use App\Models\ModuleAttendance;
 
@@ -206,51 +207,14 @@ public function getNotPresentStudents($attendanceId, $sectionId)
     return response()->json($notPresent);
 }
 
-
-    /**
-     * Fetch attendance details for a specific Pusat ADAB module session.
-     * This follows the logic: Booking -> ModuleAttendance -> Attendance -> Records.
-     */
-    public function getPusatAdabAttendance($bookingId)
+    //FETCH ALL MODULE FOR ATTENDANCE (WIDA)
+    public function fetchPusatAdabModules()
     {
-        // 1. Find the bridge record linked to your specific booking
-        // We load 'attendance' for the session info and 'booking.module' for the name
-        $moduleSession = ModuleAttendance::where('booking_id', $bookingId)
-            ->with(['attendance', 'booking.module'])
-            ->first();
-
-        if (!$moduleSession) {
-            return response()->json([
-                'message' => 'No attendance session found for this module.'
-            ], 404);
-        }
-
-        // 2. Fetch the student list from the shared records table
-        // We include 'student.user' to get their Name and Matric ID for your Flutter list
-        $records = AttendanceRecord::where('attendance_id', $moduleSession->attendance_id)
-            ->with(['student.user'])
+        $modules = Module::where('status', 'published')
+            ->select('id', 'activity_name', 'date_time', 'venue', 'lecturer_name', 'status')
             ->get();
-
-        // 3. Format the response for your Flutter AttendanceSubject and AttendanceRecord domains
-        return response()->json([
-            'header' => [
-                'id' => $moduleSession->booking->module->id,
-                'activity_name' => $moduleSession->booking->module->activity_name,
-                'venue' => $moduleSession->booking->module->venue,
-                'date_time' => $moduleSession->attendance->created_at->format('d/m/Y h:i A'),
-                'lecturer_name' => $moduleSession->booking->module->lecturer->user->name,
-            ],
-
-            'records' => $records->map(function ($record) {
-                return [
-                    'id' => $record->id,
-                    'student_id' => $record->student->student_id,
-                    'student_name' => $record->student->user->name,
-                    'status' => $record->status,
-                    'marks' => $record->marks,
-                    'grade_category' => $record->grade_category,
-                ];
-            })
-        ]);
+        
+        return response()->json($modules);
     }
+
 }
