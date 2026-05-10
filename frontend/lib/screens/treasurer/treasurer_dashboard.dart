@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../provider/treasurer_provider.dart';
+import '../../provider/manage_fees_provider.dart'; // Correct provider
 import '../../widgets/menu_card.dart';
 import '../../widgets/summary_card.dart';
 import 'fees_management.dart';
@@ -18,17 +18,18 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
   @override
   void initState() {
     super.initState();
+    // Fetch data using the FeesManagementProvider
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<TreasuryProvider>(context, listen: false).fetchDashboardSummary();
+      Provider.of<FeesManagementProvider>(context, listen: false).fetchDashboardSummary();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<TreasuryProvider>(
-      builder: (context, treasuryProvider, child) {
+    return Consumer<FeesManagementProvider>(
+      builder: (context, feeProvider, child) {
         return RefreshIndicator(
-          onRefresh: () => treasuryProvider.fetchDashboardSummary(),
+          onRefresh: () => feeProvider.fetchDashboardSummary(),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Padding(
@@ -42,7 +43,7 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
                   ),
                   const SizedBox(height: 20),
 
-                  // --- SEARCH BAR (New) ---
+                  // --- SEARCH BAR ---
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -66,17 +67,17 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
                   ),
                   const SizedBox(height: 25),
 
+                  // --- CATEGORIES SECTION ---
                   const Text(
                     "Categories",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
 
-                  // --- CATEGORIES SECTION WITH PROTOTYPE BG ---
                   Container(
                     padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFC1F6AC), // Prototype Color
+                      color: const Color(0xFFC1F6AC),
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Row(
@@ -89,7 +90,7 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => const FeesManagementPage()),
-                            ).then((_) => treasuryProvider.refreshDashboard()),
+                            ).then((_) => feeProvider.refreshDashboard()),
                           ),
                         ),
                         const SizedBox(width: 15),
@@ -101,7 +102,7 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(builder: (context) => const FinancialReportPage()),
-                            ).then((_) => treasuryProvider.refreshDashboard()),
+                            ).then((_) => feeProvider.refreshDashboard()),
                           ),
                         ),
                       ],
@@ -115,7 +116,7 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
                   ),
                   const SizedBox(height: 10),
 
-                  // --- OVERVIEW SECTION WITH PROTOTYPE BG ---
+                  // --- OVERVIEW SECTION ---
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(15),
@@ -123,7 +124,7 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
                       color: const Color(0xFFC1F6AC), 
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: _buildOverviewGrid(treasuryProvider),
+                    child: _buildOverviewGrid(feeProvider),
                   ),
                 ],
               ),
@@ -134,12 +135,18 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
     );
   }
 
-  Widget _buildOverviewGrid(TreasuryProvider treasuryProvider) {
-    if (treasuryProvider.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+  // Updated parameter to use FeesManagementProvider
+  Widget _buildOverviewGrid(FeesManagementProvider provider) {
+    // Show spinner if loading and we have no data yet
+    if (provider.isLoading && provider.totalStudents == 0) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(20.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
     }
 
-    // Layout following Screenshot 2026-05-06 142351.png
     return Column(
       children: [
         Row(
@@ -147,16 +154,14 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
             Expanded(
               child: TreasurySummaryCard(
                 label: "Total Collected Today",
-                value: "RM ${treasuryProvider.totalCollectedToday.toStringAsFixed(2)}",
-                
+                value: "RM ${provider.totalCollectedToday.toStringAsFixed(2)}",
               ),
             ),
             const SizedBox(width: 15),
             Expanded(
               child: TreasurySummaryCard(
                 label: "Total Collected This Week",
-                value: "RM ${treasuryProvider.totalCollectedThisWeek.toStringAsFixed(2)}",
-                
+                value: "RM ${provider.totalCollectedThisWeek.toStringAsFixed(2)}",
               ),
             ),
           ],
@@ -167,19 +172,23 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
             Expanded(
               child: TreasurySummaryCard(
                 label: "Total Students",
-                value: treasuryProvider.totalStudents.toString(),
-                
+                value: provider.totalStudents.toString(),
               ),
             ),
-            const Spacer(), // Matches the prototype layout where the 4th spot is empty
+            const Spacer(), 
           ],
         ),
-        if (treasuryProvider.errorMessage.isNotEmpty)
+        // Error message handling
+        if (provider.errorMessage.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 10),
             child: Text(
-              "Note: Showing cached data. ${treasuryProvider.errorMessage}",
-              style: const TextStyle(color: Colors.red, fontSize: 12),
+              "Note: ${provider.errorMessage}",
+              style: const TextStyle(
+                color: Colors.red, 
+                fontSize: 12, 
+                fontWeight: FontWeight.bold
+              ),
             ),
           ),
       ],

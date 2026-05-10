@@ -340,7 +340,7 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
                       context,
                       MaterialPageRoute(builder: (context) => const AutoBlockConfigPage()));
                 },
-                label: const Text("Configuration Settings", style: TextStyle(color: Colors.white)),
+                label: const Text("Block Settings", style: TextStyle(color: Colors.white)),
               ),
             ),
           ],

@@ -133,9 +133,7 @@ class TuitionFeesController extends Controller
     {
         try {
             $student = \DB::table('users')
-                // Link directly on the id field since user_id doesn't exist
                 ->join('students', 'users.id', '=', 'students.id') 
-                // Link fees to students using the matric number (student_id)
                 ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id') 
                 ->where('users.id', $userId)
                 ->select(
@@ -145,8 +143,11 @@ class TuitionFeesController extends Controller
                     'students.student_id',
                     'students.course_name',
                     'students.program',
+                    'fees.total_invoice',      // Added this field
                     'fees.outstanding_amount',
-                    'fees.status'
+                    'fees.status',
+                    // Subquery to calculate total payment from payments table
+                    \DB::raw('(SELECT SUM(amount) FROM payments WHERE student_id = students.student_id) as total_payment')
                 )
                 ->first();
 
@@ -154,11 +155,12 @@ class TuitionFeesController extends Controller
                 return response()->json(null, 200); 
             }
 
+            // Convert to array to ensure we return clean JSON
             return response()->json($student);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
-    } 
+    }
 
     // Get the count of unpaid students for the preview
     public function getUnpaidCount() {
@@ -335,6 +337,27 @@ class TuitionFeesController extends Controller
                 ->get();
 
             return response()->json($history);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function getFinancialReportTotals()
+    {
+        try {
+            // Calculate total amount collected from students with 'paid' status
+            $totalPaid = \DB::table('fees')
+                ->where('status', 'paid')
+                ->sum('total_invoice'); 
+
+            // Calculate the total sum of all outstanding balances
+            $totalOutstanding = \DB::table('fees')
+                ->sum('outstanding_amount');
+
+            return response()->json([
+                'total_paid' => (float)$totalPaid,
+                'total_outstanding' => (float)$totalOutstanding,
+            ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

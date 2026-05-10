@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../config/api.dart'; // Make sure this path to your api.dart is correct
+import '../config/api.dart'; 
 
 class StudentFeeStatus {
   final int userId;
@@ -47,13 +47,67 @@ class FeesManagementProvider extends ChangeNotifier {
   int unpaidCount = 0;
   DateTime selectedBlockDate = DateTime.now();
   List<dynamic> paymentHistory = [];
+  double totalCollectedToday = 1250.50; 
+  double totalCollectedThisWeek = 8400.00; 
   int totalStudents = 0;
+  double totalPaidReport = 0.0;
+  double totalOutstandingReport = 0.0;
+
+    // Add these getters to FeesManagementProvider
+  double get totalPaidAmount => summary['paid']?.toDouble() ?? 0.0; 
+  double get totalOutstandingBalance {
+    return students.fold(0.0, (sum, item) => sum + item.outstandingAmount);
+  }
+
+// Data for the Pie Chart
+int get paidCount => summary['paid'] ?? 0;
+int get unpaidCountStatus => summary['unpaid'] ?? 0;
 
   // Helper for headers to keep code clean
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
+
+
+Future<void> fetchDashboardSummary() async {
+    isLoading = true;
+    errorMessage = '';
+    // Re-confirm hardcoded values immediately
+    totalCollectedToday = 1250.50;
+    totalCollectedThisWeek = 8400.00;
+    notifyListeners();
+
+    try {
+      final response = await http.get(
+        Uri.parse('${Api.baseUrl}/treasurer/fees-summary?page=1&per_page=1'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['students'] != null && data['students']['total'] != null) {
+          totalStudents = data['students']['total'];
+        } else if (data['total_students'] != null) {
+          totalStudents = data['total_students'];
+        }
+      } else {
+        errorMessage = 'Server Error: ${response.statusCode}';
+      }
+    } catch (e) {
+      errorMessage = 'Could not sync total students.';
+      debugPrint("Dashboard Fetch Error: $e");
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Helper to trigger refresh from UI
+  Future<void> refreshDashboard() async {
+    await fetchDashboardSummary();
+  }
 
   // Update your fetch method to handle 10 items per page
 Future<void> fetchStudentsFeeStatus({int page = 1}) async {
@@ -272,6 +326,25 @@ Future<bool> updateBankAccount(String studentId, String accNo, String bankName) 
       notifyListeners();
     }
   }
+
+  Future<void> fetchReportTotals() async {
+  try {
+    final response = await http.get(
+      Uri.parse('${Api.baseUrl}/treasurer/report-totals'),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      // Update the variables we just created
+      totalPaidReport = (data['total_paid'] ?? 0.0).toDouble();
+      totalOutstandingReport = (data['total_outstanding'] ?? 0.0).toDouble();
+      notifyListeners();
+    }
+  } catch (e) {
+    debugPrint("Fetch Report Error: $e");
+  }
+}
 
   void setFilter(String filter) {
     currentFilter = filter;

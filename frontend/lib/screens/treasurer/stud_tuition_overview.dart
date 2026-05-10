@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart'; // Import this for currency formatting
 import '../../provider/manage_fees_provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
-import '../payment_history.dart'; // Ensure this import exists
+import '../payment_history.dart';
 
 class StudentTuitionOverviewPage extends StatefulWidget {
   final int userId;
@@ -14,6 +15,12 @@ class StudentTuitionOverviewPage extends StatefulWidget {
 }
 
 class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage> {
+  // Helper to format numbers to RM format
+  String formatCurrency(dynamic amount) {
+    final double value = double.tryParse(amount?.toString() ?? '0') ?? 0.0;
+    return NumberFormat.currency(symbol: 'RM ', decimalDigits: 2).format(value);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -25,7 +32,7 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFDCF8C6), // Prototype Light Green
+      backgroundColor: const Color(0xFFDCF8C6),
       appBar: const UsasHeader(),
       bottomNavigationBar: const UsasBottomNav(),
       body: Consumer<FeesManagementProvider>(
@@ -54,15 +61,19 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
                 
                 const SizedBox(height: 20),
 
-                // Card 2: Fee Summary
+                // Card 2: Fee Summary (DYNAMIC VERSION)
                 _buildInfoCard("Fee Summary", [
-                  // Modified: Font color changed to black (isBlue: false)
-                  _buildDetailRow("Total Invoice", "RM 7,500.00", isBlue: false), 
+                  // 1. Total Invoice from 'total_invoice' field
+                  _buildDetailRow(
+                    "Total Invoice", 
+                    formatCurrency(data['total_invoice']), 
+                    isBlue: false
+                  ), 
                   
-                  // Modified: Added onTap navigation for Total Payment
+                  // 2. Total Payment from 'total_payment' field
                   _buildDetailRow(
                     "Total Payment", 
-                    "RM 7,500.00", 
+                    formatCurrency(data['total_payment']), 
                     isBlue: true,
                     onTap: () {
                       Navigator.push(
@@ -76,8 +87,17 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
                     },
                   ), 
                   
-                  _buildDetailRow("Outstanding", "RM ${data['outstanding_amount']}"),
-                  _buildDetailRow("Status", data['status'].toString().toUpperCase()),
+                  // 3. Outstanding from 'outstanding_amount' field
+                  _buildDetailRow(
+                    "Outstanding", 
+                    formatCurrency(data['outstanding_amount'])
+                  ),
+
+                  // 4. Status
+                  _buildDetailRow(
+                    "Status", 
+                    data['status']?.toString().toUpperCase() ?? "UNKNOWN"
+                  ),
                 ]),
               ],
             ),
@@ -87,6 +107,7 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
     );
   }
 
+  // ... rest of your _buildInfoCard and _buildDetailRow methods stay the same
   Widget _buildInfoCard(String title, List<Widget> children) {
     return Container(
       width: double.infinity,
@@ -107,12 +128,11 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
     );
   }
 
-  // Updated Helper: Added onTap parameter
   Widget _buildDetailRow(String label, dynamic value, {bool isBlue = false, VoidCallback? onTap}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: InkWell(
-        onTap: onTap, // Only triggers if onTap is provided
+        onTap: onTap,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

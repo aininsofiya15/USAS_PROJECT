@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/login_page.dart'; 
 import 'screens/student/bank_acc_info.dart';
-import 'screens/student/payment_history.dart';
+import 'screens/payment_history.dart';
 import 'provider/user_provider.dart';
 import 'provider/treasurer_provider.dart';
 import 'provider/module_provider.dart'; 
