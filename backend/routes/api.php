@@ -54,6 +54,7 @@ Route::put('/bookings/{id}/claim', [BookingController::class, 'claimModule']);
 //YAYA 
 Route::post('/register-subject', [RegistrarSubjectController::class, 'registerSubject']);
 Route::get('/subjects', [RegistrarSubjectController::class, 'getSubjects']); 
+Route::get('/lecturers', [RegistrarSubjectController::class, 'getLecturers']);
 
 //-----------------------------------------------------------------------------
 

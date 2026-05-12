@@ -1,11 +1,9 @@
 import '../../provider/registrar_subject_provider.dart';
-
 import 'package:flutter/material.dart';
-
-
 import 'faculty_layout.dart';
 
 class SubjectFormPage extends StatefulWidget {
+
   const SubjectFormPage({super.key});
 
   @override
@@ -28,7 +26,29 @@ class _SubjectFormPageState
   final TextEditingController sectionController =
       TextEditingController();
 
+  List lecturers = [];
+
   List<Map<String, dynamic>> sections = [];
+
+  @override
+  void initState() {
+
+    super.initState();
+
+    loadLecturers();
+  }
+
+  void loadLecturers() async {
+
+    var data =
+        await RegistrarSubjectProvider()
+            .getLecturers();
+
+    setState(() {
+
+      lecturers = data;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,8 +103,11 @@ class _SubjectFormPageState
 
                   decoration:
                       const InputDecoration(
+
                     labelText: "Subject Name",
-                    border: OutlineInputBorder(),
+
+                    border:
+                        OutlineInputBorder(),
                   ),
                 ),
 
@@ -96,8 +119,11 @@ class _SubjectFormPageState
 
                   decoration:
                       const InputDecoration(
+
                     labelText: "Subject Code",
-                    border: OutlineInputBorder(),
+
+                    border:
+                        OutlineInputBorder(),
                   ),
                 ),
 
@@ -112,8 +138,11 @@ class _SubjectFormPageState
 
                   decoration:
                       const InputDecoration(
+
                     labelText: "Credit Hours",
-                    border: OutlineInputBorder(),
+
+                    border:
+                        OutlineInputBorder(),
                   ),
                 ),
 
@@ -140,10 +169,7 @@ class _SubjectFormPageState
                           "section_name":
                               "Section ${index + 1}",
 
-                          "lecturer": "",
-
-                          "capacity_controller":
-                              TextEditingController(),
+                          "lecturer_id": null,
 
                           "lab_controller":
                               TextEditingController(),
@@ -158,8 +184,11 @@ class _SubjectFormPageState
 
                   decoration:
                       const InputDecoration(
+
                     labelText: "Total Section",
-                    border: OutlineInputBorder(),
+
+                    border:
+                        OutlineInputBorder(),
                   ),
                 ),
 
@@ -204,88 +233,59 @@ class _SubjectFormPageState
 
                           style:
                               const TextStyle(
+
                             fontWeight:
                                 FontWeight.bold,
+
                             fontSize: 18,
                           ),
                         ),
 
-                        const SizedBox(
-                            height: 15),
+                        const SizedBox(height: 15),
 
-                        DropdownButtonFormField<
-                            String>(
+                        DropdownButtonFormField(
 
-                          items: const [
+                          items:
+                              lecturers.map((lecturer) {
 
-                            DropdownMenuItem(
+                            return DropdownMenuItem(
+
                               value:
-                                  "Dr Kirahman",
+                                  lecturer['id'],
+
                               child: Text(
-                                  "Dr Kirahman"),
-                            ),
+                                lecturer['name'],
+                              ),
+                            );
 
-                            DropdownMenuItem(
-                              value: "Dr Amin",
-                              child:
-                                  Text("Dr Amin"),
-                            ),
-
-                            DropdownMenuItem(
-                              value:
-                                  "Dr Sarah",
-                              child:
-                                  Text("Dr Sarah"),
-                            ),
-                          ],
+                          }).toList(),
 
                           onChanged: (value) {
 
-                            section['lecturer'] =
+                            section['lecturer_id'] =
                                 value;
                           },
 
                           decoration:
                               const InputDecoration(
+
                             labelText:
                                 "Select Lecturer",
+
                             border:
                                 OutlineInputBorder(),
                           ),
                         ),
 
-                        const SizedBox(
-                            height: 15),
+                        const SizedBox(height: 15),
 
                         TextField(
 
-                          controller: section[
-                              'capacity_controller'],
+                          controller:
+                              section['lab_controller'],
 
                           keyboardType:
-                              TextInputType
-                                  .number,
-
-                          decoration:
-                              const InputDecoration(
-                            labelText:
-                                "Section Capacity",
-                            border:
-                                OutlineInputBorder(),
-                          ),
-                        ),
-
-                        const SizedBox(
-                            height: 15),
-
-                        TextField(
-
-                          controller: section[
-                              'lab_controller'],
-
-                          keyboardType:
-                              TextInputType
-                                  .number,
+                              TextInputType.number,
 
                           onChanged: (value) {
 
@@ -296,7 +296,9 @@ class _SubjectFormPageState
 
                             section['labs'] =
                                 List.generate(
+
                               totalLabs,
+
                               (labIndex) {
 
                                 return {
@@ -321,15 +323,16 @@ class _SubjectFormPageState
 
                           decoration:
                               const InputDecoration(
+
                             labelText:
                                 "Total Labs",
+
                             border:
                                 OutlineInputBorder(),
                           ),
                         ),
 
-                        const SizedBox(
-                            height: 20),
+                        const SizedBox(height: 20),
 
                         ...section['labs']
                             .map<Widget>((lab) {
@@ -375,9 +378,11 @@ class _SubjectFormPageState
 
                                   style:
                                       const TextStyle(
+
                                     fontWeight:
                                         FontWeight
                                             .bold,
+
                                     fontSize: 16,
                                   ),
                                 ),
@@ -396,8 +401,10 @@ class _SubjectFormPageState
 
                                   decoration:
                                       const InputDecoration(
+
                                     labelText:
                                         "Lab Capacity",
+
                                     border:
                                         OutlineInputBorder(),
                                   ),
@@ -413,8 +420,10 @@ class _SubjectFormPageState
 
                                   decoration:
                                       const InputDecoration(
+
                                     labelText:
                                         "Schedule Day",
+
                                     border:
                                         OutlineInputBorder(),
                                   ),
@@ -430,8 +439,10 @@ class _SubjectFormPageState
 
                                   decoration:
                                       const InputDecoration(
+
                                     labelText:
                                         "Schedule Time",
+
                                     border:
                                         OutlineInputBorder(),
                                   ),
@@ -462,44 +473,73 @@ class _SubjectFormPageState
                       FocusScope.of(context)
                           .unfocus();
 
-                    
-                       
-                       onPressed: () async {
+                      List formattedSections = [];
 
-  FocusScope.of(context)
-      .unfocus();
+                      for (var section in sections) {
 
-  var response =
-      await RegistrarSubjectProvider()
-          .registerSubject(
+                        List formattedLabs = [];
 
-    subjectName:
-        nameController.text,
+                        for (var lab
+                            in section['labs']) {
 
-    subjectCode:
-        codeController.text,
+                          formattedLabs.add({
 
-    creditHours:
-        creditController.text,
+                            "lab_name":
+                                lab['lab_name'],
 
-    totalSection:
-        sectionController.text,
-  );
+                            "capacity":
+                                lab[
+                                  'capacity_controller']
+                                    .text,
 
-  print(response);
+                            "schedule_day":
+                                lab[
+                                  'schedule_day_controller']
+                                    .text,
 
-  ScaffoldMessenger.of(context)
-      .showSnackBar(
+                            "schedule_time":
+                                lab[
+                                  'schedule_time_controller']
+                                    .text,
+                          });
+                        }
 
-    const SnackBar(
+                        formattedSections.add({
 
-      content: Text(
-        "Subject Registered Successfully",
-      ),
-    ),
-  );
-};
-                      
+                          "section_name":
+                              section[
+                                  'section_name'],
+
+                          "lecturer_id":
+                              section[
+                                  'lecturer_id'],
+
+                          "labs":
+                              formattedLabs,
+                        });
+                      }
+
+                      var response =
+                          await RegistrarSubjectProvider()
+                              .registerSubject(
+
+                        subjectName:
+                            nameController.text,
+
+                        subjectCode:
+                            codeController.text,
+
+                        creditHours:
+                            creditController.text,
+
+                        totalSection:
+                            sectionController.text,
+
+                        sections:
+                            formattedSections,
+                      );
+
+                      print(response);
 
                       ScaffoldMessenger.of(
                               context)
@@ -515,7 +555,8 @@ class _SubjectFormPageState
                     },
 
                     child: const Text(
-                        "Register Subject"),
+                      "Register Subject",
+                    ),
                   ),
                 ),
               ],

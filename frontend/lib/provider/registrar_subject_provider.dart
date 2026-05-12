@@ -12,8 +12,11 @@ class RegistrarSubjectProvider {
     required String subjectCode,
     required String creditHours,
     required String totalSection,
+    required List sections,
 
   }) async {
+
+    print("API CALLED");
 
     var response = await http.post(
 
@@ -38,9 +41,32 @@ class RegistrarSubjectProvider {
 
         "total_section":
             totalSection,
+
+        "sections":
+            sections,
       }),
     );
 
-    return jsonDecode(response.body);
+    print(response.statusCode);
+
+    print(response.body);
+
+    return jsonDecode(
+      response.body,
+    );
+  }
+
+  Future getLecturers() async {
+
+    var response = await http.get(
+
+      Uri.parse(
+        Api.lecturers,
+      ),
+    );
+
+    return jsonDecode(
+      response.body,
+    );
   }
 }

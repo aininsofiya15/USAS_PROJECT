@@ -14,10 +14,16 @@ class Lab extends Model
         'lab_name',
         'capacity',
         'enrolled',
-
+        'schedule_day',
+        'schedule_time',
     ];
-    public function labs()
+
+    public function section()
     {
-        return $this->hasMany(Lab::class, 'section_id', 'section_id');
+        return $this->belongsTo(
+            Section::class,
+            'section_id',
+            'section_id'
+        );
     }
 }

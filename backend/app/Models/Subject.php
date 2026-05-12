@@ -1,18 +1,29 @@
-$subject = Subject::create([
+<?php
 
-    'subject_name' =>
-        $request->subject_name,
+namespace App\Models;
 
-    'subject_code' =>
-        $request->subject_code,
+use Illuminate\Database\Eloquent\Model;
 
-    'credit_hours' =>
-        $request->credit_hours,
+class Subject extends Model
+{
+    protected $primaryKey = 'subject_id';
 
-    'total_section' =>
-        $request->total_section,
+    protected $fillable = [
 
-    'total_lab' => 0,
+        'subject_code',
+        'subject_name',
+        'credit_hours',
+        'total_section',
+        'total_lab',
+        'subject_status',
+    ];
 
-    'subject_status' => 'Active',
-]);
+    public function sections()
+    {
+        return $this->hasMany(
+            Section::class,
+            'subject_id',
+            'subject_id'
+        );
+    }
+}
