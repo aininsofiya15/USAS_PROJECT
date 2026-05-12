@@ -8,6 +8,8 @@ import 'pusatAdab/adab_dashboard.dart';
 import 'lecturer/lecturerDashboard.dart';
 import 'treasurer/treasurer_dashboard.dart';
 import 'student/student_dashboard.dart';
+import 'faculty/faculty_dashboard.dart';
+import 'faculty/subject_form_page.dart';
 
 class DashboardPage extends StatelessWidget {
   // Notice: No variables passed in constructor anymore!
@@ -47,6 +49,16 @@ class DashboardPage extends StatelessWidget {
         bottomNavigationBar: const UsasBottomNav(),
         body: PusatAdabBody(name: name),
       );
+    
+    case 'faculty':
+      return Scaffold(
+        backgroundColor: const Color(0xFFFDF9EC),
+        appBar: const UsasHeader(),
+        drawer: const AppSidebar(),
+        bottomNavigationBar: const UsasBottomNav(),
+        body: FacultyDashboard(name: name),
+      );
+    
     case 'lecturer':
       return Scaffold(
         backgroundColor: const Color(0xFFFBEBEB),

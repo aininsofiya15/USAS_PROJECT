@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'add_section_page.dart';
+import 'faculty_layout.dart';
 
 class SubjectDetailsPage extends StatelessWidget {
 
@@ -13,47 +15,7 @@ class SubjectDetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
 
-    return Scaffold(
-
-      backgroundColor: const Color(0xFFF6F0D8),
-
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          "Subject Details",
-          style: TextStyle(color: Colors.black),
-        ),
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-
-      bottomNavigationBar: Container(
-
-        margin: const EdgeInsets.all(20),
-
-        padding: const EdgeInsets.symmetric(vertical: 15),
-
-        decoration: BoxDecoration(
-
-          color: Colors.white,
-
-          borderRadius: BorderRadius.circular(30),
-
-        ),
-
-        child: const Row(
-
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-
-          children: [
-
-            Icon(Icons.home),
-            Icon(Icons.notifications),
-            Icon(Icons.person),
-
-          ],
-        ),
-      ),
+    return FacultyLayout(
 
       body: SingleChildScrollView(
 
@@ -209,14 +171,44 @@ class SubjectDetailsPage extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                const Text(
+                Row(
 
-                  "List Registered Student",
+                  mainAxisAlignment:
+                      MainAxisAlignment.spaceBetween,
 
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+                  children: [
+
+                    const Text(
+
+                      "List Registered Student",
+
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+
+                    ElevatedButton.icon(
+
+                      onPressed: () {
+
+                        Navigator.push(
+
+                          context,
+
+                          MaterialPageRoute(
+
+                            builder: (context) =>
+                                const AddSectionPage(),
+                          ),
+                        );
+                      },
+
+                      icon: const Icon(Icons.add),
+
+                      label: const Text("Add Section"),
+                    ),
+                  ],
                 ),
 
                 const SizedBox(height: 20),
@@ -279,14 +271,17 @@ class SubjectDetailsPage extends StatelessWidget {
 
             child: Column(
 
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
 
               children: [
 
                 Text(name),
 
                 Text(
+
                   matric,
+
                   style: const TextStyle(
                     color: Colors.grey,
                   ),
@@ -306,7 +301,8 @@ class SubjectDetailsPage extends StatelessWidget {
 
               color: Colors.green,
 
-              borderRadius: BorderRadius.circular(20),
+              borderRadius:
+                  BorderRadius.circular(20),
 
             ),
 

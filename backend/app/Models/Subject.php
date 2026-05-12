@@ -1,37 +1,18 @@
-<?php
+$subject = Subject::create([
 
-namespace App\Models;
+    'subject_name' =>
+        $request->subject_name,
 
-use Illuminate\Database\Eloquent\Model;
+    'subject_code' =>
+        $request->subject_code,
 
-class Subject extends Model
-{
-    protected $primaryKey = 'subject_id';
+    'credit_hours' =>
+        $request->credit_hours,
 
-    protected $fillable = [
-        //'faculty_registrar_id',
-        'subject_code',
-        'subject_name',
-        'credit_hours',
-        'total_section',
-        'total_lab',
-        'subject_status',
-        //'created_by',
-    ];
+    'total_section' =>
+        $request->total_section,
 
-    // Relationships
-    //public function facultyRegistrar()
-    //{
-    //    return $this->belongsTo(User::class, 'faculty_registrar_id');
-    //}
+    'total_lab' => 0,
 
-    //public function creator()
-    //{
-    //    return $this->belongsTo(User::class, 'created_by');
-    //}
-
-    public function sections()
-    {
-        return $this->hasMany(Section::class, 'subject_id', 'subject_id');
-    }
-}
+    'subject_status' => 'Active',
+]);

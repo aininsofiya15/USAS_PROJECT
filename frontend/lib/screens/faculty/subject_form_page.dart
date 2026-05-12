@@ -1,7 +1,9 @@
-import 'dart:convert';
+import '../../provider/registrar_subject_provider.dart';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+
+
+import 'faculty_layout.dart';
 
 class SubjectFormPage extends StatefulWidget {
   const SubjectFormPage({super.key});
@@ -31,17 +33,7 @@ class _SubjectFormPageState
   @override
   Widget build(BuildContext context) {
 
-    return Scaffold(
-
-      backgroundColor: const Color(0xFFF6F0D8),
-
-      appBar: AppBar(
-
-        title:
-            const Text("Subject Registration"),
-
-        backgroundColor: Colors.white,
-      ),
+    return FacultyLayout(
 
       body: Center(
 
@@ -470,38 +462,44 @@ class _SubjectFormPageState
                       FocusScope.of(context)
                           .unfocus();
 
-                      var url = Uri.parse(
-                        "http://10.0.2.2:8000/api/register-subject",
-                      );
+                    
+                       
+                       onPressed: () async {
 
-                      var response =
-                          await http.post(
+  FocusScope.of(context)
+      .unfocus();
 
-                        url,
+  var response =
+      await RegistrarSubjectProvider()
+          .registerSubject(
 
-                        headers: {
+    subjectName:
+        nameController.text,
 
-                          "Content-Type":
-                              "application/json",
-                        },
+    subjectCode:
+        codeController.text,
 
-                        body: jsonEncode({
+    creditHours:
+        creditController.text,
 
-                          "subject_name":
-                              nameController.text,
+    totalSection:
+        sectionController.text,
+  );
 
-                          "subject_code":
-                              codeController.text,
+  print(response);
 
-                          "credit_hours":
-                              creditController.text,
+  ScaffoldMessenger.of(context)
+      .showSnackBar(
 
-                          "total_section":
-                              sectionController.text,
-                        }),
-                      );
+    const SnackBar(
 
-                      print(response.body);
+      content: Text(
+        "Subject Registered Successfully",
+      ),
+    ),
+  );
+};
+                      
 
                       ScaffoldMessenger.of(
                               context)

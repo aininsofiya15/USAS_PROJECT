@@ -100,13 +100,13 @@ class AppSidebar extends StatelessWidget {
 
 
 
+                    else if (role == 'faculty') ...[
 
-                  else if (role == 'faculty') ...[
-                    _buildMenuItem(context, Icons.home_outlined, "Home", role),
-                    const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
-                    _buildMenuItem(context, Icons.grid_view, "Subject Registration", role, destination: const SubjectRegistrationPage(), ),
-                    _buildSubMenuItem(context, "Add Subject", role,destination: const SubjectRegistrationPage(),  ),
-                  ] 
+                  _buildMenuItem(context, Icons.home_outlined,"Home",role, destination: const DashboardPage(),),
+                  const Divider(color: Color.fromARGB(184, 255, 255, 255),height: 10,),
+                  _buildMenuItem(context,Icons.grid_view,"Subject Registration",role,destination: const SubjectRegistrationPage(),),
+                  _buildSubMenuItem(context,"Add Subject",role,destination: const SubjectRegistrationPage(),),
+                ]
 
 
 

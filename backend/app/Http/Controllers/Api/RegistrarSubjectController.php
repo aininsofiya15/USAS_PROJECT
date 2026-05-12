@@ -3,61 +3,45 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+
 use Illuminate\Http\Request;
+
 use App\Models\Subject;
-use App\Models\Section;
-use App\Models\Lab;
 
-class RegistrarSubjectController extends Controller
-{
-    public function registerSubject(Request $request)
+class RegistrarSubjectController
+    extends Controller
 {
 
-    $subject = Subject::create([
+    public function registerSubject(
+        Request $request)
+    {
 
-        'subject_name' => $request->subject_name,
-        'subject_code' => $request->subject_code,
-        'credit_hours' => $request->credit_hours,
-        'total_section' => $request->total_section,
+        $subject = Subject::create([
 
-    ]);
+            'subject_name' =>
+                $request->subject_name,
 
-    foreach ($request->sections as $sectionData) {
+            'subject_code' =>
+                $request->subject_code,
 
-        $section = Section::create([
+            'credit_hours' =>
+                $request->credit_hours,
 
-            'subject_id' => $subject->subject_id,
-
-            'section_no' =>
-                $sectionData['section_name'],
-
-            'capacity' =>
-                $sectionData['capacity'],
-
+            'total_section' =>
+                $request->total_section,
         ]);
 
-        for ($i = 1; $i <= $sectionData['total_labs']; $i++) {
+        return response()->json([
 
-            Lab::create([
+            'message' =>
+                'Subject Registered Successfully',
 
-                'section_id' => $section->section_id,
-
-                'lab_name' =>
-                    $sectionData['section_name'] .
-                    chr(64 + $i),
-
-                'capacity' =>
-                    $sectionData['capacity'],
-
-            ]);
-        }
+            'data' => $subject,
+        ]);
     }
 
-    return response()->json([
-
-        'message' =>
-            'Subject Registered Successfully',
-
-    ]);
-}
+    public function getSubjects()
+    {
+        return Subject::all();
+    }
 }
