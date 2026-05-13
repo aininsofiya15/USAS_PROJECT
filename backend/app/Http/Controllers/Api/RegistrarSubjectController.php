@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-
+use Illuminate\Support\Facades\DB; 
 use Illuminate\Http\Request;
-
 use App\Models\Subject;
 use App\Models\Section;
 use App\Models\Lab;
@@ -86,9 +85,29 @@ class RegistrarSubjectController
     }
 
     public function getSubjects()
-    {
-        return Subject::all();
+{
+    $subjects = Subject::all();
+
+    foreach ($subjects as $subject) {
+
+        $totalLab = DB::table('labs')
+            ->join(
+                'sections',
+                'labs.section_id',
+                '=',
+                'sections.section_id'
+            )
+            ->where(
+                'sections.subject_id',
+                $subject->subject_id
+            )
+            ->count();
+
+        $subject->total_lab = $totalLab;
     }
+
+    return response()->json($subjects);
+}
 
     public function getLecturers()
     {
@@ -97,5 +116,44 @@ class RegistrarSubjectController
             'role',
             'lecturer'
         )->get();
+    } 
+
+
+
+    public function getSubjectDetails($id)
+{
+    $subject = DB::table('subjects')
+        ->where('subject_id', $id)
+        ->first();
+
+    $sections = DB::table('sections')
+        ->where('subject_id', $id)
+        ->get();
+
+    foreach ($sections as $section) {
+
+        $labs = DB::table('labs')
+            ->where('section_id', $section->section_id)
+            ->get();
+
+        foreach ($labs as $lab) {
+
+            $lab->total_students = DB::table('registration')
+                ->where('lab_id', $lab->lab_id)
+                ->count();
+
+            $lab->available =
+                $lab->capacity - $lab->total_students;
+        }
+
+        $section->labs = $labs;
     }
+
+    return response()->json([
+        'subject' => $subject,
+        'sections' => $sections,
+    ]);
 }
+    
+} 
+

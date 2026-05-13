@@ -55,6 +55,7 @@ Route::put('/bookings/{id}/claim', [BookingController::class, 'claimModule']);
 Route::post('/register-subject', [RegistrarSubjectController::class, 'registerSubject']);
 Route::get('/subjects', [RegistrarSubjectController::class, 'getSubjects']); 
 Route::get('/lecturers', [RegistrarSubjectController::class, 'getLecturers']);
+Route::get('/subject-details/{id}', [RegistrarSubjectController::class, 'getSubjectDetails']);
 
 //-----------------------------------------------------------------------------
 

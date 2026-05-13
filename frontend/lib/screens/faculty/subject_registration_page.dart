@@ -19,7 +19,12 @@ class SubjectRegistrationPage extends StatefulWidget {
 class _SubjectRegistrationPageState
     extends State<SubjectRegistrationPage> {
 
+  TextEditingController searchController =
+      TextEditingController();
+
   List subjects = [];
+
+  List filteredSubjects = [];
 
   Future<void> fetchSubjects() async {
 
@@ -35,6 +40,7 @@ class _SubjectRegistrationPageState
 
         subjects = jsonDecode(response.body);
 
+        filteredSubjects = subjects;
       });
     }
   }
@@ -74,11 +80,39 @@ class _SubjectRegistrationPageState
 
               TextField(
 
+                controller: searchController,
+
+                onChanged: (value) {
+
+                  setState(() {
+
+                    filteredSubjects =
+                        subjects.where((subject) {
+
+                      return subject['subject_code']
+                          .toString()
+                          .toLowerCase()
+                          .contains(
+                            value.toLowerCase(),
+                          ) ||
+
+                          subject['subject_name']
+                              .toString()
+                              .toLowerCase()
+                              .contains(
+                                value.toLowerCase(),
+                              );
+
+                    }).toList();
+                  });
+                },
+
                 decoration: InputDecoration(
 
                   hintText: "Search Subject",
 
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon:
+                      const Icon(Icons.search),
 
                   filled: true,
 
@@ -132,7 +166,8 @@ class _SubjectRegistrationPageState
                     fetchSubjects();
                   },
 
-                  child: const Text("+ Add Subject"),
+                  child:
+                      const Text("+ Add Subject"),
                 ),
               ),
 
@@ -142,11 +177,13 @@ class _SubjectRegistrationPageState
 
                 child: ListView.builder(
 
-                  itemCount: subjects.length,
+                  itemCount:
+                      filteredSubjects.length,
 
                   itemBuilder: (context, index) {
 
-                    var subject = subjects[index];
+                    var subject =
+                        filteredSubjects[index];
 
                     return GestureDetector(
 
@@ -169,17 +206,21 @@ class _SubjectRegistrationPageState
 
                       child: Container(
 
-                        margin: const EdgeInsets.only(
-                            bottom: 15),
+                        margin:
+                            const EdgeInsets.only(
+                                bottom: 15),
 
-                        padding: const EdgeInsets.all(20),
+                        padding:
+                            const EdgeInsets.all(
+                                20),
 
                         decoration: BoxDecoration(
 
                           color: Colors.white,
 
                           borderRadius:
-                              BorderRadius.circular(20),
+                              BorderRadius.circular(
+                                  20),
 
                           boxShadow: const [
 
@@ -193,7 +234,8 @@ class _SubjectRegistrationPageState
                         child: Column(
 
                           crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                              CrossAxisAlignment
+                                  .start,
 
                           children: [
 
@@ -201,26 +243,30 @@ class _SubjectRegistrationPageState
 
                               "${subject['subject_code']} - ${subject['subject_name']}",
 
-                              style: const TextStyle(
+                              style:
+                                  const TextStyle(
                                 fontWeight:
                                     FontWeight.bold,
                                 fontSize: 18,
                               ),
                             ),
 
-                            const SizedBox(height: 10),
+                            const SizedBox(
+                                height: 10),
 
                             Text(
                               "Credit Hours : ${subject['credit_hours']}",
                             ),
 
-                            const SizedBox(height: 5),
+                            const SizedBox(
+                                height: 5),
 
                             Text(
                               "Total Section : ${subject['total_section']}",
                             ),
 
-                            const SizedBox(height: 5),
+                            const SizedBox(
+                                height: 5),
 
                             Text(
                               "Total Lab : ${subject['total_lab']}",
