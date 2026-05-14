@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use App\Models\Attendance;
 use App\Models\Subject; 
 use App\Http\Controllers\Api\RegistrarSubjectController;
-
+use App\Http\Controllers\Api\StudentSubjectController;
 
 // This is the "door" the Flutter app is knocking on
 Route::post('/login', [AuthController::class, 'login']);
@@ -56,7 +56,9 @@ Route::post('/register-subject', [RegistrarSubjectController::class, 'registerSu
 Route::get('/subjects', [RegistrarSubjectController::class, 'getSubjects']); 
 Route::get('/lecturers', [RegistrarSubjectController::class, 'getLecturers']);
 Route::get('/subject-details/{id}', [RegistrarSubjectController::class, 'getSubjectDetails']);
-
+Route::get('/student/subjects',[StudentSubjectController::class, 'getSubjects']);
+Route::get('/student/registered-subjects/{student_id}',[StudentSubjectController::class,'getRegisteredSubjects']);
+Route::post('/student/register-subject',[StudentSubjectController::class,'registerSubject']);
 //-----------------------------------------------------------------------------
 
 

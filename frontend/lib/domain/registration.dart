@@ -1,24 +1,44 @@
 class Registration {
 
   final int registrationId;
-  final int studentId;
-  final int sectionId;
-  final String status;
+  final String subjectCode;
+  final String subjectName;
+  final int creditHours;
+  final String sectionNo;
 
   Registration({
+
     required this.registrationId,
-    required this.studentId,
-    required this.sectionId,
-    required this.status,
+
+    required this.subjectCode,
+
+    required this.subjectName,
+
+    required this.creditHours,
+
+    required this.sectionNo,
   });
 
-  factory Registration.fromJson(Map<String, dynamic> json) {
+  factory Registration.fromJson(
+    Map<String, dynamic> json,
+  ) {
 
     return Registration(
-      registrationId: json['registration_id'],
-      studentId: json['student_id'],
-      sectionId: json['section_id'],
-      status: json['status'],
+
+      registrationId:
+          json['registration_id'],
+
+      subjectCode:
+          json['subject_code'],
+
+      subjectName:
+          json['subject_name'],
+
+      creditHours:
+          json['credit_hours'],
+
+      sectionNo:
+          json['section_no'],
     );
   }
 }
