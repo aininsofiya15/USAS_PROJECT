@@ -207,10 +207,19 @@ class AttendanceProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await http.get(Uri.parse("${Api.baseUrl}/modules"));
+      // FIX 1: Point to the correct dedicated endpoint we updated in routes/api.php
+      final response = await http.get(Uri.parse("${Api.baseUrl}/attendance/pusat-adab"));
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        _pusatAdabModules = data.map((json) => Module.fromJson(json)).toList();
+        // FIX 2: Decode as a Map object first to handle the key wrapper safely
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        
+        // FIX 3: Extract the actual list of modules out of the 'data' key wrapper
+        final List<dynamic> dataList = responseData['data'];
+        
+        _pusatAdabModules = dataList.map((json) => Module.fromJson(json)).toList();
+      } else {
+        print("Server returned status code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching modules: $e");
