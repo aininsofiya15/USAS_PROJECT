@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../provider/user_provider.dart';
 import '../../provider/manage_fees_provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
@@ -126,9 +127,18 @@ class _AutoBlockConfigPageState extends State<AutoBlockConfigPage> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: () async {
-                          bool success = await provider.saveBlockDate();
-                          if (success) _showSuccessDialog();
-                        },
+                            int currentTreasurerId = 1; 
+
+                            bool success = await provider.saveBlockDate(currentTreasurerId);
+                            
+                            if (success) {
+                              _showSuccessDialog();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Failed to save settings. Please try again.")),
+                              );
+                            }
+                          },
                         child: const Text("Save", style: TextStyle(color: Colors.white)),
                       ),
                     )

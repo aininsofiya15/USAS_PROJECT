@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 
 class UserSeeder extends Seeder
 {
@@ -27,7 +28,7 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($coreUsers as $u) {
-            User::updateOrCreate(
+            $user = User::updateOrCreate(
                 ['email' => $u['email']],
                 [
                     'name' => $u['name'],
@@ -36,6 +37,23 @@ class UserSeeder extends Seeder
                     'phone_num' => $generatePhone(),
                 ]
             );
+
+            if ($u['role'] === 'treasury') {
+                $departments = ['Finance', 'Accounts', 'Bursary', 'Administration'];
+                $randomDept = $departments[array_rand($departments)];
+
+                $customId = 'TR-' . str_pad($user->id, 3, '0', STR_PAD_LEFT);
+
+                DB::table('treasurers')->updateOrInsert(
+                    ['id' => $user->id], // PK linking to users.id
+                    [
+                        'treasurer_id' => $customId, 
+                        'department' => $randomDept, 
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]
+                );
+            }
         }
 
         // --- 2. 45 Prototype Students ---

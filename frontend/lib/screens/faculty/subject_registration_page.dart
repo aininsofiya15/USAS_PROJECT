@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+import 'faculty_layout.dart';
 import 'subject_form_page.dart';
 import 'subject_details_page.dart';
 
 class SubjectRegistrationPage extends StatefulWidget {
+
   const SubjectRegistrationPage({super.key});
 
   @override
@@ -17,7 +19,12 @@ class SubjectRegistrationPage extends StatefulWidget {
 class _SubjectRegistrationPageState
     extends State<SubjectRegistrationPage> {
 
+  TextEditingController searchController =
+      TextEditingController();
+
   List subjects = [];
+
+  List filteredSubjects = [];
 
   Future<void> fetchSubjects() async {
 
@@ -33,27 +40,23 @@ class _SubjectRegistrationPageState
 
         subjects = jsonDecode(response.body);
 
+        filteredSubjects = subjects;
       });
     }
   }
 
   @override
   void initState() {
+
     super.initState();
+
     fetchSubjects();
   }
 
   @override
   Widget build(BuildContext context) {
 
-    return Scaffold(
-
-      backgroundColor: const Color(0xFFF6F0D8),
-
-      appBar: AppBar(
-        title: const Text("Subject Registration"),
-        backgroundColor: Colors.white,
-      ),
+    return FacultyLayout(
 
       body: Padding(
 
@@ -77,11 +80,39 @@ class _SubjectRegistrationPageState
 
               TextField(
 
+                controller: searchController,
+
+                onChanged: (value) {
+
+                  setState(() {
+
+                    filteredSubjects =
+                        subjects.where((subject) {
+
+                      return subject['subject_code']
+                          .toString()
+                          .toLowerCase()
+                          .contains(
+                            value.toLowerCase(),
+                          ) ||
+
+                          subject['subject_name']
+                              .toString()
+                              .toLowerCase()
+                              .contains(
+                                value.toLowerCase(),
+                              );
+
+                    }).toList();
+                  });
+                },
+
                 decoration: InputDecoration(
 
                   hintText: "Search Subject",
 
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon:
+                      const Icon(Icons.search),
 
                   filled: true,
 
@@ -89,7 +120,8 @@ class _SubjectRegistrationPageState
 
                   border: OutlineInputBorder(
 
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius:
+                        BorderRadius.circular(30),
 
                     borderSide: BorderSide.none,
                   ),
@@ -106,13 +138,15 @@ class _SubjectRegistrationPageState
 
                   style: ElevatedButton.styleFrom(
 
-                    backgroundColor: const Color(0xFFD8C7A3),
+                    backgroundColor:
+                        const Color(0xFFD8C7A3),
 
                     foregroundColor: Colors.black,
 
                     shape: RoundedRectangleBorder(
 
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius:
+                          BorderRadius.circular(20),
                     ),
                   ),
 
@@ -123,14 +157,17 @@ class _SubjectRegistrationPageState
                       context,
 
                       MaterialPageRoute(
-                        builder: (_) => const SubjectFormPage(),
+
+                        builder: (_) =>
+                            const SubjectFormPage(),
                       ),
                     );
 
                     fetchSubjects();
                   },
 
-                  child: const Text("+ Add Subject"),
+                  child:
+                      const Text("+ Add Subject"),
                 ),
               ),
 
@@ -140,11 +177,13 @@ class _SubjectRegistrationPageState
 
                 child: ListView.builder(
 
-                  itemCount: subjects.length,
+                  itemCount:
+                      filteredSubjects.length,
 
                   itemBuilder: (context, index) {
 
-                    var subject = subjects[index];
+                    var subject =
+                        filteredSubjects[index];
 
                     return GestureDetector(
 
@@ -155,24 +194,33 @@ class _SubjectRegistrationPageState
                           context,
 
                           MaterialPageRoute(
-                           builder: (_) => SubjectDetailsPage(
-  subject: subject,
-),
+
+                            builder: (_) =>
+                                SubjectDetailsPage(
+
+                              subject: subject,
+                            ),
                           ),
                         );
                       },
 
                       child: Container(
 
-                        margin: const EdgeInsets.only(bottom: 15),
+                        margin:
+                            const EdgeInsets.only(
+                                bottom: 15),
 
-                        padding: const EdgeInsets.all(20),
+                        padding:
+                            const EdgeInsets.all(
+                                20),
 
                         decoration: BoxDecoration(
 
                           color: Colors.white,
 
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius:
+                              BorderRadius.circular(
+                                  20),
 
                           boxShadow: const [
 
@@ -185,7 +233,9 @@ class _SubjectRegistrationPageState
 
                         child: Column(
 
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment:
+                              CrossAxisAlignment
+                                  .start,
 
                           children: [
 
@@ -193,30 +243,34 @@ class _SubjectRegistrationPageState
 
                               "${subject['subject_code']} - ${subject['subject_name']}",
 
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                              style:
+                                  const TextStyle(
+                                fontWeight:
+                                    FontWeight.bold,
                                 fontSize: 18,
                               ),
                             ),
 
-                            const SizedBox(height: 10),
+                            const SizedBox(
+                                height: 10),
 
                             Text(
                               "Credit Hours : ${subject['credit_hours']}",
                             ),
 
-                            const SizedBox(height: 5),
+                            const SizedBox(
+                                height: 5),
 
                             Text(
                               "Total Section : ${subject['total_section']}",
                             ),
 
-                            const SizedBox(height: 5),
+                            const SizedBox(
+                                height: 5),
 
                             Text(
                               "Total Lab : ${subject['total_lab']}",
                             ),
-
                           ],
                         ),
                       ),
@@ -226,34 +280,6 @@ class _SubjectRegistrationPageState
               ),
             ],
           ),
-        ),
-      ),
-
-      bottomNavigationBar: Container(
-
-        margin: const EdgeInsets.all(20),
-
-        padding: const EdgeInsets.symmetric(vertical: 15),
-
-        decoration: BoxDecoration(
-
-          color: Colors.white,
-
-          borderRadius: BorderRadius.circular(30),
-
-        ),
-
-        child: const Row(
-
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-
-          children: [
-
-            Icon(Icons.home),
-            Icon(Icons.notifications),
-            Icon(Icons.person),
-
-          ],
         ),
       ),
     );

@@ -57,8 +57,16 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                   _buildRow("Program", data['program'] ?? "N/A"),
                   _buildRow("Bank", data['bank_name'] ?? "Not Linked"),
                   _buildRow("Bank Account No.", data['acc_no'] ?? "Not Linked"),
-                  _buildRow("Total Invoice", "RM ${data['total_invoice'] ?? '0.00'}", isBlue: true),
-                  _buildRow("Total Payment", "RM ${data['total_payment'] ?? '0.00'}", isBlue: true),
+                  _buildRow("Total Invoice", "RM ${data['total_invoice'] ?? '0.00'}", isBlue: false), // Set isBlue to false
+
+                  GestureDetector(
+                    onTap: () => Navigator.pushNamed(context, '/payment_history'),
+                    child: _buildRow(
+                      "Total Payment", 
+                      "RM ${data['total_payment'] ?? '0.00'}", 
+                      isBlue: true, 
+                    ),
+                  ),
                   _buildRow("Balance", "RM ${data['outstanding_amount'] ?? '0.00'}"),
                   _buildRow(
                     "Other Bank Account No.", 

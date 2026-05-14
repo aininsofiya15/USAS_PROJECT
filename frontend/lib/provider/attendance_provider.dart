@@ -10,7 +10,7 @@ import 'dart:async'; // for TimeoutException
 
 class AttendanceProvider with ChangeNotifier {
 
-  // --- Academic Subjects (Friend's Part) ---
+  // --- Academic Subjects  ---
   List<Subject> _subjects = [];
   List<Subject> get subjects => _subjects;
 
@@ -19,6 +19,9 @@ class AttendanceProvider with ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
 
   // --- Pusat ADAB & Grading 
   List<Module> _pusatAdabModules = [];
@@ -35,7 +38,7 @@ class AttendanceProvider with ChangeNotifier {
   List<AcademicAttendanceRecord> get currentClassStudents => _currentClassStudents;
 
   List<AttendanceRecord> _notPresentStudents = [];
-List<AttendanceRecord> get notPresentStudents => _notPresentStudents;
+  List<AttendanceRecord> get notPresentStudents => _notPresentStudents;
 
   /// Fetches subjects for academic classes
   Future<void> fetchLecturerSubjects(int lecturerId) async {
@@ -193,8 +196,10 @@ Future<void> fetchNotPresent(int attendanceId, int sectionId) async {
 }
 
 
-  // --- YOUR PART: PUSAT ADAB FETCHING ---
 
+  /// Fetches student records for a specific module session
+  /// AININ
+  /// 
   Future<void> fetchPusatAdabModules() async {
     _isLoading = true;
     notifyListeners();
@@ -213,8 +218,6 @@ Future<void> fetchNotPresent(int attendanceId, int sectionId) async {
     }
   }
 
-  /// Fetches student records for a specific module session
-  /// AININ
   Future<void> fetchAttendanceDetails(int bookingId) async {
   _isLoading = true;
   _studentRecords = []; 
@@ -291,6 +294,7 @@ Future<bool> updateAttendanceDetails({
   }
 }
 
+
 Future<void> updateStudentGrade(int recordId, double marks, String category) async {
   _isLoading = true;
   _errorMessage = null;
@@ -328,5 +332,30 @@ Future<void> updateStudentGrade(int recordId, double marks, String category) asy
     _isLoading = false;
     notifyListeners();
   }
+}
+
+List<AttendanceRecord> _getMockStudents() {
+  return [
+    AttendanceRecord(
+      id: 1,
+      studentName: "Sample Student A", // Matches your class field
+      name: "Sample Student A",        // Matches your class field
+      studentId: "ID123",             // Matches your class field
+      matricId: "M123",               // Matches your class field
+      status: "Present",
+      marks: 0.0,
+      gradeCategory: "Biasa",
+    ),
+    AttendanceRecord(
+      id: 2,
+      studentName: "Sample Student B",
+      name: "Sample Student B",
+      studentId: "ID456",
+      matricId: "M456",
+      status: "Absent",
+      marks: 0.0,
+      gradeCategory: "Biasa",
+    ),
+  ];
 }
 }

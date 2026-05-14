@@ -10,6 +10,10 @@ class Api {
   static  String modules = "$baseUrl/modules";
   static String pusatAdabAttendance = "$baseUrl/attendance/pusat-adab";
   
+  // Faculty Registrar
+  static String registerSubject ="$baseUrl/register-subject";
+  static String subjects ="$baseUrl/subjects";
+  static String lecturers ="$baseUrl/lecturers";
 
   // Student
   static String applyModule = "$baseUrl/modules/apply";
