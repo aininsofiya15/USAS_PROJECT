@@ -220,13 +220,10 @@ class AttendanceProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-  
       // FIX 1: Point to the correct dedicated endpoint we updated in routes/api.php
       final response = await http.get(Uri.parse("${Api.baseUrl}/attendance/pusat-adab"));
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        _pusatAdabModules = data.map((json) => Module.fromJson(json)).toList();
         // FIX 2: Decode as a Map object first to handle the key wrapper safely
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         
@@ -244,6 +241,30 @@ class AttendanceProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+  try {
+    // If selectedDate is provided, append it as a query parameter
+    String url = "${Api.baseUrl}/modules";
+    if (selectedDate != null) {
+      url += "?date=$selectedDate";
+    }
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      // Since we changed the backend to return a flat list, we parse 'data' directly
+      _pusatAdabModules = data.map((json) => Module.fromJson(json)).toList();
+    } else {
+      _pusatAdabModules = [];
+    }
+  } catch (e) {
+    debugPrint("Module Fetch Error: $e");
+    _pusatAdabModules = [];
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
 
   Future<void> fetchAttendanceDetails(int bookingId) async {
   _isLoading = true;

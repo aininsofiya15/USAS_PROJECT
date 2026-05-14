@@ -1,30 +1,67 @@
-class Subject {
+class SubjectModel {
 
   final int subjectId;
   final String subjectCode;
   final String subjectName;
   final int creditHours;
-  final int totalSection;
-  final int totalLab;
 
-  Subject({
+  final List<Section> sections;
+
+  SubjectModel({
     required this.subjectId,
     required this.subjectCode,
     required this.subjectName,
     required this.creditHours,
-    required this.totalSection,
-    required this.totalLab,
+    required this.sections,
   });
 
-  factory Subject.fromJson(Map<String, dynamic> json) {
+  factory SubjectModel.fromJson(
+    Map<String, dynamic> json,
+  ) {
 
-    return Subject(
+    return SubjectModel(
+
       subjectId: json['subject_id'],
+
       subjectCode: json['subject_code'],
+
       subjectName: json['subject_name'],
+
       creditHours: json['credit_hours'],
-      totalSection: json['total_section'],
-      totalLab: json['total_lab'],
+
+      sections: (json['sections'] as List)
+          .map(
+            (section) =>
+                Section.fromJson(section),
+          )
+          .toList(),
+    );
+  }
+}
+
+class Section {
+
+  final int sectionId;
+  final String sectionNo;
+  final int capacity;
+
+  Section({
+    required this.sectionId,
+    required this.sectionNo,
+    required this.capacity,
+  });
+
+  factory Section.fromJson(
+    Map<String, dynamic> json,
+  ) {
+
+    return Section(
+
+      sectionId: json['section_id'],
+
+      sectionNo: json['section_no'],
+
+      capacity: json['capacity'],
     );
   }
 }

@@ -234,33 +234,18 @@ public function getClassNotPresentStudents($attendanceId)
 //UpdateStudentAttendanceDetails
 //
 
-/**
+
+    /**
      * Fetch attendance details for a specific Pusat ADAB module session.
+     * This follows the logic: Booking -> ModuleAttendance -> Attendance -> Records.
      */
-public function fetchPusatAdabModules()
-{
-    try {
-        // Fetch published modules directly from the modules table
-        $modules = DB::table('modules')
-            ->where('status', 'published') // Matches your database string setup
-            ->select(
-                'id', 
-                'activity_name', 
-                'date_time', 
-                'capacity', 
-                'venue', 
-                'lecturer_name', 
-                'status'
-                // If you track current registrations, you can add that column here too:
-                // 'current_registration' 
-            )
+    public function getPusatAdabAttendance($bookingId)
+    {
+        $modules = Module::where('status', 'published')
+            ->select('id', 'activity_name', 'date_time', 'venue', 'lecturer_name', 'status')
             ->get();
         
-        // CRITICAL: Always wrap the result inside the 'data' key for your Flutter app!
-        return response()->json(['data' => $modules], 200);
-
-    } catch (\Exception $e) {
-        return response()->json(['error' => 'Failed to load dashboard modules: ' . $e->getMessage()], 500);
+        return response()->json($modules);
     }
-}
+
 }

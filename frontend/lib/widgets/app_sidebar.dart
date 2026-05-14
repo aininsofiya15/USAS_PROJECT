@@ -12,7 +12,8 @@ import '../screens/pusatAdab/module_attendance.dart';
 import '../screens/pusatAdab/attendance_for_module.dart';
 
 import 'package:USAS/screens/faculty/subject_form_page.dart';
-
+import 'package:USAS/screens/student/subject_registration.dart';
+import '../screens/student/list_registered_subjects.dart';
 
 class AppSidebar extends StatelessWidget {
 
@@ -152,8 +153,10 @@ class AppSidebar extends StatelessWidget {
                   else ...[ //student
                     _buildMenuItem(context, Icons.home_outlined, "Home", role),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
-                    _buildMenuItem(context, Icons.grid_view, "Subject Registration", role),
-                    _buildSubMenuItem(context, "List of Registered Subjects", role),
+                    _buildMenuItem(context, Icons.grid_view, "Subject Registration", role,
+  destination: const StudentSubjectRegistrationPage(),),
+                    _buildSubMenuItem(context, "List of Registered Subjects", role,  destination:
+      const ListRegisteredSubjectsPage(),),
                     const Divider(color: Colors.white24, height: 10),
                     _buildMenuItem(context, Icons.menu_book, "Curriculum Activity", role),
                     _buildSubMenuItem(context, "View My Module", role, destination: MyBookingsPage()),

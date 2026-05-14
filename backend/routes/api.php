@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use App\Models\Attendance;
 use App\Models\Subject; 
 use App\Http\Controllers\Api\RegistrarSubjectController;
-
+use App\Http\Controllers\Api\StudentSubjectController;
 
 // This is the "door" the Flutter app is knocking on
 Route::post('/login', [AuthController::class, 'login']);
@@ -28,8 +28,7 @@ Route::get('/modules/{id}/students', [BookingController::class, 'getRegisteredSt
 
 // 1. Route to get the list of published modules (Selection Page)
 // This matches: Provider.fetchPusatAdabModules()
-// Clean route definition
-Route::get('/attendance/pusat-adab', [AttendanceController::class, 'fetchPusatAdabModules']);
+Route::get('/modules', [AttendanceController::class, 'fetchPusatAdabModules']);
 
 // 2. Route to get students for a specific booking (Attendance List Page)
 // This matches: Provider.fetchAttendanceDetails(bookingId)
@@ -57,7 +56,9 @@ Route::post('/register-subject', [RegistrarSubjectController::class, 'registerSu
 Route::get('/subjects', [RegistrarSubjectController::class, 'getSubjects']); 
 Route::get('/lecturers', [RegistrarSubjectController::class, 'getLecturers']);
 Route::get('/subject-details/{id}', [RegistrarSubjectController::class, 'getSubjectDetails']);
-
+Route::get('/student/subjects',[StudentSubjectController::class, 'getSubjects']);
+Route::get('/student/registered-subjects/{student_id}',[StudentSubjectController::class,'getRegisteredSubjects']);
+Route::post('/student/register-subject',[StudentSubjectController::class,'registerSubject']);
 //-----------------------------------------------------------------------------
 
 
