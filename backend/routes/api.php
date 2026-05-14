@@ -28,8 +28,7 @@ Route::get('/modules/{id}/students', [BookingController::class, 'getRegisteredSt
 
 // 1. Route to get the list of published modules (Selection Page)
 // This matches: Provider.fetchPusatAdabModules()
-// Clean route definition
-Route::get('/attendance/pusat-adab', [AttendanceController::class, 'fetchPusatAdabModules']);
+Route::get('/modules', [AttendanceController::class, 'fetchPusatAdabModules']);
 
 // 2. Route to get students for a specific booking (Attendance List Page)
 // This matches: Provider.fetchAttendanceDetails(bookingId)
