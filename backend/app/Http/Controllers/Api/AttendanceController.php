@@ -206,6 +206,9 @@ public function getNotPresentStudents($attendanceId, $sectionId)
     return response()->json($notPresent);
 }
 
+//UpdateStudentAttendanceDetails
+//
+
 
     /**
      * Fetch attendance details for a specific Pusat ADAB module session.

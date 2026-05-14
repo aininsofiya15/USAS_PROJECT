@@ -19,11 +19,12 @@ class DatabaseSeeder extends Seeder
         $this->call(LecturerSeeder::class);
         $this->call(SubjectSeeder::class);
         $this->call(SectionSeeder::class);
-        $this->call(BookingSeeder::class);
-        $this->call(ModuleSeeder::class);
-        $this->call(StudentSeeder::class );
-        $this->call(AttendanceRecordSeeder::class);
-        $this->call(StudentFeeSeeder::class );
-        $this->call(BankAccSeeder::class );
+        $this->call(LabSeeder::class);
+        //$this->call(BookingSeeder::class);
+        //$this->call(ModuleSeeder::class);
+        //$this->call(StudentSeeder::class );
+        //$this->call(AttendanceRecordSeeder::class);
+        //$this->call(StudentFeeSeeder::class );
+        //$this->call(BankAccSeeder::class );
     }
 }

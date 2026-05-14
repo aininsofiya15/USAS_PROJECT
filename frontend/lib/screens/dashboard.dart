@@ -5,7 +5,7 @@ import '../widgets/app_sidebar.dart';
 import '../widgets/header.dart';
 import '../widgets/navigation_bar.dart';
 import 'pusatAdab/adab_dashboard.dart';
-import 'lecturer/lecturerDashboard.dart';
+import 'lecturer/lecturer_dashboard.dart';
 import 'treasurer/treasurer_dashboard.dart';
 import 'student/student_dashboard.dart';
 

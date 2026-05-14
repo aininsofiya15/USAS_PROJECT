@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'add_attendance.dart';
+import 'class_attendance.dart';
 import 'view_attendance_records.dart';
 
 
