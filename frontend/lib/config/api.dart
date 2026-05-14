@@ -9,6 +9,7 @@ class Api {
   // Pusat Adab Module
   static  String modules = "$baseUrl/modules";
   static String pusatAdabAttendance = "$baseUrl/attendance/pusat-adab";
+  static final String pusatAdabModules = "$baseUrl/pusat-adab/modules";
   
   // Faculty Registrar
   static String registerSubject ="$baseUrl/register-subject";
@@ -23,6 +24,7 @@ class Api {
   // Attendance 
   static const String lecturerSubjects = "$baseUrl/lecturer/subjects";
   static const String generateAttendance = "$baseUrl/attendance/store";
+  
   
   //static const String attendance = "$baseUrl/attendance";
   //static const String creditClaim = "$baseUrl/credit-claim";

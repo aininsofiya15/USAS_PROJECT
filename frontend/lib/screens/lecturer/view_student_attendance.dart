@@ -26,15 +26,17 @@ class ViewStudentAttendance extends StatefulWidget {
 }
 
 class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
-
+  // Boolean to toggle between Present and Not Present lists
   bool _showPresent = true;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Logic: Fetch students for this specific academic session
-      Provider.of<AttendanceProvider>(context, listen: false)
-          .fetchClassStudents(widget.attendanceId);
+      final provider = Provider.of<AttendanceProvider>(context, listen: false);
+      // Fetch both lists from your backend
+      provider.fetchClassPresentStudent(widget.attendanceId);
+      provider.fetchClassNotPresentStudent(widget.attendanceId);
     });
   }
 
@@ -51,8 +53,10 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
             padding: const EdgeInsets.all(15.0),
             child: Column(
               children: [
-                const Text("Attendance Records", 
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Attendance Records",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 15),
 
                 // Info Card
@@ -62,9 +66,9 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
                 // Toggle Buttons
                 Row(
                   children: [
-                    Expanded(child: _toggleTab("Present", true)),
+                    Expanded(child: _toggleTab("Present", _showPresent)),
                     const SizedBox(width: 10),
-                    Expanded(child: _toggleTab("Not Present", false)),
+                    Expanded(child: _toggleTab("Not Present", !_showPresent)),
                   ],
                 ),
                 const SizedBox(height: 15),
@@ -73,17 +77,21 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
                 Container(
                   padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
-                    color: Colors.white, 
-                    borderRadius: BorderRadius.circular(15)
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15),
                   ),
                   child: Column(
                     children: [
                       _buildSearchField(),
                       const SizedBox(height: 10),
-                      
-                      provider.isLoading 
-                        ? const CircularProgressIndicator()
-                        : _buildStudentTable(provider),
+                      provider.isLoading
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            )
+                          : _buildStudentTable(provider),
                     ],
                   ),
                 ),
@@ -99,23 +107,42 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+      ),
       child: Column(
         children: [
-          Text(widget.subjectName, 
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          Text(
+            widget.subjectName,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
           const SizedBox(height: 8),
           Text("Date: ${widget.date}", style: const TextStyle(fontSize: 12)),
           Text("Time: ${widget.time}", style: const TextStyle(fontSize: 12)),
-          Text("Attendance Code: ${widget.code}", 
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          Text(
+            "Attendance Code: ${widget.code}",
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildStudentTable(AttendanceProvider provider) {
+    // Switch data source based on toggle state
+    final students = _showPresent 
+        ? provider.presentStudents 
+        : provider.notPresentStudents;
+
+    if (students.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(20.0),
+        child: Text("No student records found."),
+      );
+    }
+
     return SizedBox(
       width: double.infinity,
       child: DataTable(
@@ -127,34 +154,50 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
           DataColumn(label: Text('Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
           DataColumn(label: Text('Action', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
         ],
-        rows: provider.currentClassStudents.asMap().entries.map((entry) {
-          int idx = entry.key + 1;
-          var student = entry.value;
-          return DataRow(cells: [
-            DataCell(Text(idx.toString(), style: const TextStyle(fontSize: 11))),
-            DataCell(Text(student.studentId, style: const TextStyle(fontSize: 11))),
-            DataCell(SizedBox(
-              width: 110, 
-              child: Text(student.studentName, 
-                  overflow: TextOverflow.ellipsis, 
-                  style: const TextStyle(fontSize: 11))
-            )),
-            DataCell(_editButton(student.recordId)),
-          ]);
-        }).toList(),
+        rows: students.asMap().entries.map((entry) {
+  int idx = entry.key + 1;
+  var student = entry.value; // This is now an AttendanceRecord object
+  
+  return DataRow(cells: [
+    DataCell(Text(idx.toString(), style: const TextStyle(fontSize: 11))),
+    // Access using dot notation instead of brackets
+    DataCell(Text(student.matricId ?? student.studentId ?? 'N/A', style: const TextStyle(fontSize: 11))),
+    DataCell(SizedBox(
+      width: 110,
+      child: Text(
+        student.studentName ?? 'Unknown',
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 11),
+      ),
+    )),
+    DataCell(_editButton(student.id ?? 0)),
+  ]);
+}).toList(),
       ),
     );
   }
 
   Widget _toggleTab(String label, bool active) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      decoration: BoxDecoration(
-        color: active ? const Color(0xFFC6D9F1) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _showPresent = (label == "Present");
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFFC6D9F1) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+        ),
       ),
-      child: Center(child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
     );
   }
 
@@ -165,8 +208,11 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue,
           padding: const EdgeInsets.symmetric(horizontal: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
         ),
-        onPressed: () {}, 
+        onPressed: () {
+          // Implement edit or manual check-in logic here
+        },
         child: const Text("Edit", style: TextStyle(color: Colors.white, fontSize: 10)),
       ),
     );
@@ -176,9 +222,9 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
     return Container(
       height: 35,
       decoration: BoxDecoration(
-        color: Colors.grey[100], 
+        color: Colors.grey[100],
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade300)
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: const TextField(
         decoration: InputDecoration(

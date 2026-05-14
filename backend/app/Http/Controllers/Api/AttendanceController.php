@@ -169,52 +169,98 @@ public function updateAttendanceDetails(Request $request, $id) {
         return response()->json(['success' => true]);
     });
 }
-public function getStudentAttendance($id)
+
+/**
+ * Function 1: Fetch students who ARE present (have an attendance record)
+ */
+public function getClassStudentAttendance($attendanceId)
 {
-    // Fetch students linked to this attendance session
-    $records = DB::table('attendance_records')
+    $present = DB::table('attendance_records')
         ->join('students', 'attendance_records.student_id', '=', 'students.student_id')
         ->join('users', 'students.user_id', '=', 'users.id')
-        ->where('attendance_records.attendance_id', $id)
+        ->where('attendance_records.attendance_id', $attendanceId)
         ->select(
             'attendance_records.id as record_id',
-            'students.matric_no', // Or student_id depending on your column name
+            'students.student_id as matric_no',
             'users.name as student_name',
             'attendance_records.status',
             'attendance_records.updated_at as check_in_time'
         )
         ->get();
 
-    return response()->json($records);
+    return response()->json([
+        'success' => true,
+        'data' => $present
+    ]);
 }
 
-public function getNotPresentStudents($attendanceId, $sectionId)
+/**
+ * Function 2: Fetch students who are NOT present (enrolled but no record)
+ */
+public function getClassNotPresentStudents($attendanceId)
 {
-    // 1. Get IDs of students who ARE present
-    $presentStudentIds = DB::table('attendance_records')
+    // 1. Get the section ID associated with this attendance session
+    $session = DB::table('class_attendances')
+        ->where('attendance_id', $attendanceId)
+        ->first();
+
+    if (!$session) {
+        return response()->json(['success' => false, 'message' => 'Session not found'], 404);
+    }
+
+    // 2. Identify students who already have a record for this session
+    $presentIds = DB::table('attendance_records')
         ->where('attendance_id', $attendanceId)
         ->pluck('student_id');
 
-    // 2. Get students in this section who are NOT in that list
-    $notPresent = DB::table('section_student') // Assuming this is your pivot table name
+    // 3. Find students in the section who are NOT in the present list
+    $notPresent = DB::table('section_student')
         ->join('students', 'section_student.student_id', '=', 'students.student_id')
         ->join('users', 'students.user_id', '=', 'users.id')
-        ->where('section_student.section_id', $sectionId)
-        ->whereNotIn('students.student_id', $presentStudentIds)
-        ->select('students.student_id as matric_no', 'users.name as student_name')
+        ->where('section_student.section_id', $session->section_id)
+        ->whereNotIn('students.student_id', $presentIds)
+        ->select(
+            'students.student_id as matric_no',
+            'users.name as student_name'
+        )
         ->get();
 
-    return response()->json($notPresent);
+    return response()->json([
+        'success' => true,
+        'data' => $notPresent
+    ]);
 }
 
-    //FETCH ALL MODULE FOR ATTENDANCE (WIDA)
-    public function fetchPusatAdabModules()
-    {
-        $modules = Module::where('status', 'published')
-            ->select('id', 'activity_name', 'date_time', 'venue', 'lecturer_name', 'status')
+//UpdateStudentAttendanceDetails
+//
+
+/**
+     * Fetch attendance details for a specific Pusat ADAB module session.
+     */
+public function fetchPusatAdabModules()
+{
+    try {
+        // Fetch published modules directly from the modules table
+        $modules = DB::table('modules')
+            ->where('status', 'published') // Matches your database string setup
+            ->select(
+                'id', 
+                'activity_name', 
+                'date_time', 
+                'capacity', 
+                'venue', 
+                'lecturer_name', 
+                'status'
+                // If you track current registrations, you can add that column here too:
+                // 'current_registration' 
+            )
             ->get();
         
-        return response()->json($modules);
-    }
+        // CRITICAL: Always wrap the result inside the 'data' key for your Flutter app!
+        return response()->json(['data' => $modules], 200);
 
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Failed to load dashboard modules: ' . $e->getMessage()], 500);
+    }
+}
 }

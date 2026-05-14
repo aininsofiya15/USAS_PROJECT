@@ -28,7 +28,8 @@ Route::get('/modules/{id}/students', [BookingController::class, 'getRegisteredSt
 
 // 1. Route to get the list of published modules (Selection Page)
 // This matches: Provider.fetchPusatAdabModules()
-Route::get('/modules', [AttendanceController::class, 'fetchPusatAdabModules']);
+// Clean route definition
+Route::get('/attendance/pusat-adab', [AttendanceController::class, 'fetchPusatAdabModules']);
 
 // 2. Route to get students for a specific booking (Attendance List Page)
 // This matches: Provider.fetchAttendanceDetails(bookingId)
@@ -70,8 +71,8 @@ Route::post('/attendance/store', [AttendanceController::class, 'store']);
 Route::get('/lecturer/{lecturerId}/attendance-history', [AttendanceController::class, 'getAttendanceHistory']);
 Route::get('/attendance/{id}', [AttendanceController::class, 'getDetails']);
 Route::post('/attendance/update/{id}', [AttendanceController::class, 'updateAttendanceDetails']);
-Route::get('/attendance/{id}/students', [AttendanceController::class, 'getStudentAttendance']);
-
+Route::get('/attendance/present/{id}', [AttendanceController::class, 'getClassStudentAttendance']);
+Route::get('/attendance/not-present/{id}', [AttendanceController::class, 'getClassNotPresentStudents']);
 
 //JIHA (TREASURER + STUDENT)
 Route::get('/treasurer/student-count', [TuitionFeesController::class, 'getStudentCount']);

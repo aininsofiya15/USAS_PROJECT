@@ -37,6 +37,9 @@ class AttendanceProvider with ChangeNotifier {
   List<AcademicAttendanceRecord> _currentClassStudents = [];
   List<AcademicAttendanceRecord> get currentClassStudents => _currentClassStudents;
 
+  List<AttendanceRecord> _presentStudents = [];
+  List<AttendanceRecord> get presentStudents => _presentStudents;
+
   List<AttendanceRecord> _notPresentStudents = [];
   List<AttendanceRecord> get notPresentStudents => _notPresentStudents;
 
@@ -155,60 +158,68 @@ class AttendanceProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchClassStudents(int attendanceId) async {
-  _isLoading = true;
-  notifyListeners();
 
-  try {
-    final response = await http.get(
-      Uri.parse("${Api.baseUrl}/attendance/$attendanceId/students")
-    );
 
-    if (response.statusCode == 200) {
-      List<dynamic> data = jsonDecode(response.body);
-      _currentClassStudents = data.map((json) => AcademicAttendanceRecord.fromJson(json)).toList();
-    }
-  } catch (e) {
-    debugPrint("Error fetching students: $e");
-  } finally {
-    _isLoading = false;
+  // Function 1: Fetch Present Students
+  Future<void> fetchClassPresentStudent(int attendanceId) async {
+    _isLoading = true;
     notifyListeners();
-  }
-}
-
-Future<void> fetchNotPresent(int attendanceId, int sectionId) async {
-  _isLoading = true;
-  notifyListeners();
-  try {
-    final response = await http.get(
-      Uri.parse("${Api.baseUrl}/attendance/$attendanceId/not-present/$sectionId")
-    );
-    if (response.statusCode == 200) {
-      List<dynamic> data = jsonDecode(response.body);
-      _notPresentStudents = data.map((json) => AttendanceRecord.fromJson(json)).toList();
+    try {
+      final response = await http.get(Uri.parse('${Api.baseUrl}/attendance/present/$attendanceId'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body)['data'];
+        // Map JSON to AttendanceRecord objects
+        _presentStudents = data.map((json) => AttendanceRecord.fromJson(json)).toList();
+      }
+    } catch (e) {
+      debugPrint("Error fetching present students: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-  } catch (e) {
-    debugPrint("Error: $e");
-  } finally {
-    _isLoading = false;
-    notifyListeners();
   }
-}
 
+  // Function 2: Fetch Not Present Students
+  Future<void> fetchClassNotPresentStudent(int attendanceId) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await http.get(Uri.parse('${Api.baseUrl}/attendance/not-present/$attendanceId'));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body)['data'];
+        // Map JSON to AttendanceRecord objects
+        _notPresentStudents = data.map((json) => AttendanceRecord.fromJson(json)).toList();
+      }
+    } catch (e) {
+      debugPrint("Error fetching not present students: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
 
   /// Fetches student records for a specific module session
   /// AININ
   /// 
-  Future<void> fetchPusatAdabModules() async {
-    _isLoading = true;
-    notifyListeners();
+  Future<void> fetchPusatAdabModules({String? selectedDate}) async {
+  _isLoading = true;
+  notifyListeners();
 
     try {
-      final response = await http.get(Uri.parse("${Api.baseUrl}/modules"));
+      // FIX 1: Point to the correct dedicated endpoint we updated in routes/api.php
+      final response = await http.get(Uri.parse("${Api.baseUrl}/attendance/pusat-adab"));
+
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        _pusatAdabModules = data.map((json) => Module.fromJson(json)).toList();
+        // FIX 2: Decode as a Map object first to handle the key wrapper safely
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        
+        // FIX 3: Extract the actual list of modules out of the 'data' key wrapper
+        final List<dynamic> dataList = responseData['data'];
+        
+        _pusatAdabModules = dataList.map((json) => Module.fromJson(json)).toList();
+      } else {
+        print("Server returned status code: ${response.statusCode}");
       }
     } catch (e) {
       print("Error fetching modules: $e");
@@ -217,6 +228,30 @@ Future<void> fetchNotPresent(int attendanceId, int sectionId) async {
       notifyListeners();
     }
   }
+  try {
+    // If selectedDate is provided, append it as a query parameter
+    String url = "${Api.baseUrl}/modules";
+    if (selectedDate != null) {
+      url += "?date=$selectedDate";
+    }
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      // Since we changed the backend to return a flat list, we parse 'data' directly
+      _pusatAdabModules = data.map((json) => Module.fromJson(json)).toList();
+    } else {
+      _pusatAdabModules = [];
+    }
+  } catch (e) {
+    debugPrint("Module Fetch Error: $e");
+    _pusatAdabModules = [];
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
 
   Future<void> fetchAttendanceDetails(int bookingId) async {
   _isLoading = true;
