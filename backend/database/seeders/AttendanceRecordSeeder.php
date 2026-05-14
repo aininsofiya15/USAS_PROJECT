@@ -4,50 +4,127 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class AttendanceRecordSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        // 1. Create the Module
-        $moduleId = DB::table('modules')->insertGetId([
-            'activity_name' => 'MOBILE PHONE PHOTOGRAPHY',
-            'venue' => 'Dewan Serbaguna (Pekan)',
-            'created_at' => now(),
-        ]);
-
-        // 2. Create a Test Student (Matches your image CB23024)
-        $studentId = DB::table('students')->insertGetId([
-            'student_id' => 'CA24000',
-            'course_name' => 'NUR WAHIDAH SYARINI',
-            'faculty' => 'Faculty of Computing',
-            'created_at' => now(),
-        ]);
-
-        // 3. Create the Booking
-        $bookingId = DB::table('bookings')->insertGetId([
-            'student_id' => $studentId,
-            'module_id' => $moduleId,
-            'is_claimed' => 0,
-            'created_at' => now(),
-        ]);
-
-        // 4. Create the Attendance Session
-        $attendanceId = DB::table('attendances')->insertGetId([
-            'booking_id' => $bookingId,
-            'attendance_code' => 'USA123',
-            'date' => '2026-04-24',
-            'time' => '08:00:00',
-        ]);
-
-        // 5. Create the Record (This is where your marks live!)
         DB::table('attendance_records')->insert([
-            'student_id' => $studentId,
-            'attendance_id' => $attendanceId,
-            'module_id' => $moduleId, // As we discussed adding this earlier
-            'marks' => 85, 
-            'status' => 'present',
-            'created_at' => now(),
+
+            [
+                'attendance_id' => 1,
+                'student_id' => 1,
+                'submitted_time' => Carbon::now(),
+                'status' => 'Present',
+                'marks' => 10.00,
+                'grade_category' => 'A',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            [
+                'attendance_id' => 1,
+                'student_id' => 8,
+                'submitted_time' => Carbon::now(),
+                'status' => 'Late',
+                'marks' => 8.50,
+                'grade_category' => 'B',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            [
+                'attendance_id' => 1,
+                'student_id' => 9,
+                'submitted_time' => Carbon::now(),
+                'status' => 'Absent',
+                'marks' => 0.00,
+                'grade_category' => 'F',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            [
+                'attendance_id' => 3,
+                'student_id' => 10,
+                'submitted_time' => Carbon::now(),
+                'status' => 'Present',
+                'marks' => 9.00,
+                'grade_category' => 'A',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            [
+                'attendance_id' => 3,
+                'student_id' => 11,
+                'submitted_time' => Carbon::now(),
+                'status' => 'Present',
+                'marks' => 7.50,
+                'grade_category' => 'B',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            [
+                'attendance_id' => 4,
+                'student_id' => 12,
+                'submitted_time' => Carbon::now(),
+                'status' => 'Late',
+                'marks' => 6.00,
+                'grade_category' => 'C',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            [
+                'attendance_id' => 4,
+                'student_id' => 13,
+                'submitted_time' => Carbon::now(),
+                'status' => 'Present',
+                'marks' => 10.00,
+                'grade_category' => 'A',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            [
+                'attendance_id' => 5,
+                'student_id' => 14,
+                'submitted_time' => Carbon::now(),
+                'status' => 'Absent',
+                'marks' => 0.00,
+                'grade_category' => 'F',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            [
+                'attendance_id' => 5,
+                'student_id' => 15,
+                'submitted_time' => Carbon::now(),
+                'status' => 'Present',
+                'marks' => 8.00,
+                'grade_category' => 'B',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
+            [
+                'attendance_id' => 5,
+                'student_id' => 16,
+                'submitted_time' => Carbon::now(),
+                'status' => 'Late',
+                'marks' => 5.50,
+                'grade_category' => 'C',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+
         ]);
     }
 }
