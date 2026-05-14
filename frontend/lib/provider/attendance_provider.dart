@@ -202,23 +202,34 @@ class AttendanceProvider with ChangeNotifier {
   /// Fetches student records for a specific module session
   /// AININ
   /// 
-  Future<void> fetchPusatAdabModules() async {
-    _isLoading = true;
-    notifyListeners();
+  Future<void> fetchPusatAdabModules({String? selectedDate}) async {
+  _isLoading = true;
+  notifyListeners();
 
-    try {
-      final response = await http.get(Uri.parse("${Api.baseUrl}/modules"));
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        _pusatAdabModules = data.map((json) => Module.fromJson(json)).toList();
-      }
-    } catch (e) {
-      print("Error fetching modules: $e");
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+  try {
+    // If selectedDate is provided, append it as a query parameter
+    String url = "${Api.baseUrl}/modules";
+    if (selectedDate != null) {
+      url += "?date=$selectedDate";
     }
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      // Since we changed the backend to return a flat list, we parse 'data' directly
+      _pusatAdabModules = data.map((json) => Module.fromJson(json)).toList();
+    } else {
+      _pusatAdabModules = [];
+    }
+  } catch (e) {
+    debugPrint("Module Fetch Error: $e");
+    _pusatAdabModules = [];
+  } finally {
+    _isLoading = false;
+    notifyListeners();
   }
+}
 
   Future<void> fetchAttendanceDetails(int bookingId) async {
   _isLoading = true;
