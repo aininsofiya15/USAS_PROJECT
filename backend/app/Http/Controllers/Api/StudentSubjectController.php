@@ -16,10 +16,20 @@ class StudentSubjectController extends Controller
 
             'sections' => function ($query) {
 
-                $query->withCount([
+                $query
 
-                    'registrations as registered_count'
-                ]);
+                    ->withCount([
+
+                        'registrations as registered_count' => function ($q) {
+
+                            $q->where(
+                                'status',
+                                'active'
+                            );
+                        }
+                    ])
+
+                    ->with('labs');
             }
 
         ])
@@ -141,7 +151,8 @@ class StudentSubjectController extends Controller
                 'section_id' =>
                     $request->section_id,
 
-                'lab_id' => 1,
+                'lab_id' =>
+                    $request->lab_id,
 
                 'status' => 'active',
 
@@ -158,27 +169,27 @@ class StudentSubjectController extends Controller
     }
 
     /// DROP SUBJECT
-public function dropSubject($registration_id)
-{
-    DB::table('registration')
+    public function dropSubject($registration_id)
+    {
+        DB::table('registration')
 
-        ->where(
-            'registration_id',
-            $registration_id
-        )
+            ->where(
+                'registration_id',
+                $registration_id
+            )
 
-        ->update([
+            ->update([
 
-            'status' => 'dropped'
+                'status' => 'dropped'
+            ]);
+
+        return response()->json([
+
+            'success' => true,
+
+            'message' =>
+                'Subject dropped successfully'
         ]);
-
-    return response()->json([
-
-        'success' => true,
-
-        'message' =>
-            'Subject dropped successfully'
-    ]);
-}
+    }
 }
 
