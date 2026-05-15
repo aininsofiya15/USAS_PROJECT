@@ -44,11 +44,17 @@ class Section {
   final int sectionId;
   final String sectionNo;
   final int capacity;
+  final int registeredCount;
 
   Section({
+
     required this.sectionId,
+
     required this.sectionNo,
+
     required this.capacity,
+
+    required this.registeredCount,
   });
 
   factory Section.fromJson(
@@ -57,11 +63,17 @@ class Section {
 
     return Section(
 
-      sectionId: json['section_id'],
+      sectionId:
+          json['section_id'],
 
-      sectionNo: json['section_no'],
+      sectionNo:
+          json['section_no'],
 
-      capacity: json['capacity'],
+      capacity:
+          json['capacity'],
+
+      registeredCount:
+          json['registered_count'] ?? 0,
     );
   }
 }
