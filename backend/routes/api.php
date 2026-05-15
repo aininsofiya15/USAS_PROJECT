@@ -74,6 +74,9 @@ Route::post('/attendance/update/{id}', [AttendanceController::class, 'updateAtte
 Route::get('/attendance/present/{id}', [AttendanceController::class, 'getClassStudentAttendance']);
 Route::get('/attendance/not-present/{id}', [AttendanceController::class, 'getClassNotPresentStudents']);
 
+//STUDENT ROUTES
+Route::get('/student/dashboard/{studentId}', [AttendanceController::class, 'fetchStudentClassModule']);
+
 //JIHA (TREASURER + STUDENT)
 Route::get('/treasurer/student-count', [TuitionFeesController::class, 'getStudentCount']);
 Route::get('/treasurer/dashboard-summary', [TuitionFeesController::class, 'dashboardSummary']);
