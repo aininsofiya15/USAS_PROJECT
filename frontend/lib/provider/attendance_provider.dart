@@ -232,6 +232,37 @@ Future<void> fetchStudentClassModule(String studentId) async {
   }
 }
 
+List<dynamic> _attendanceSubmissions = [];
+List<dynamic> get attendanceSubmissions => _attendanceSubmissions;
+
+Future<void> getAttendanceSubmission(int sectionId, String studentId) async {
+  _isLoading = true;
+  _attendanceSubmissions = []; // Clear list before fetching new ones
+  notifyListeners();
+
+  try {
+    final response = await http.get(
+      Uri.parse("${Api.baseUrl}/attendance/submissions/$sectionId/$studentId")
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      if (jsonResponse['success'] == true) {
+    final actualData = jsonResponse['data']; // The wrapper in your JSON
+    
+    // Ensure these lists are populated from actualData
+    _studentCurriculum = actualData['curriculum'] ?? [];
+    _studentCoCurriculum = actualData['co_curriculum'] ?? [];
+}
+    }
+  } catch (e) {
+    debugPrint("Error fetching submissions: $e");
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
 
   /// Fetches student records for a specific module session
   /// AININ

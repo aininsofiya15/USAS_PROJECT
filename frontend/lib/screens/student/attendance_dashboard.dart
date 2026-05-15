@@ -5,9 +5,7 @@ import '../../provider/user_provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
-import 'student_dashboard.dart';
-
-
+import 'attendance_list.dart'; // Import the new list page
 
 class AttendanceDashboard extends StatefulWidget {
   const AttendanceDashboard({super.key});
@@ -20,7 +18,6 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
   @override
   void initState() {
     super.initState();
-    // Fetch student data on load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = Provider.of<UserProvider>(context, listen: false).userId;
       Provider.of<AttendanceProvider>(context, listen: false)
@@ -31,7 +28,7 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE3F2FD), // Light blue background
+      backgroundColor: const Color(0xFFE3F2FD),
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
@@ -49,12 +46,8 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // Search Bar
                 _buildSearchBar(),
                 const SizedBox(height: 25),
-
-                // Curriculum Section
                 const Text(
                   "Curriculum",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -63,10 +56,7 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
                 provider.isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : _buildCurriculumGrid(provider.studentCurriculum),
-
                 const SizedBox(height: 30),
-
-                // Co-Curriculum Section
                 const Text(
                   "Co-Curriculum",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -88,9 +78,7 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
       ),
       child: const TextField(
         decoration: InputDecoration(
@@ -104,9 +92,7 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
   }
 
   Widget _buildCurriculumGrid(List<dynamic> subjects) {
-    if (subjects.isEmpty) {
-      return const Text("No registered subjects found.");
-    }
+    if (subjects.isEmpty) return const Text("No registered subjects found.");
 
     return GridView.builder(
       shrinkWrap: true,
@@ -115,37 +101,55 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
         crossAxisCount: 2,
         crossAxisSpacing: 15,
         mainAxisSpacing: 15,
-        childAspectRatio: 0.9, // Adjust card height
+        childAspectRatio: 0.9,
       ),
       itemCount: subjects.length,
       itemBuilder: (context, index) {
         final subject = subjects[index];
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.code_rounded, size: 40, color: Colors.blue),
-              const SizedBox(height: 10),
-              Text(
-                subject['subject_code'] ?? "",
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+        return InkWell(
+          // --- NAVIGATOR PUSH IS HERE ---
+          onTap: () {
+            // Ensure the ID is cast to int and handle potential nulls
+            int sectionId = int.tryParse(subject['section_id'].toString()) ?? 0;
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AttendanceListPage(
+                  sectionId: sectionId,
+                  subjectCode: subject['subject_code'] ?? 'N/A',
+                  subjectName: subject['subject_name'] ?? 'N/A',
+                ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                subject['subject_name'] ?? "",
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 10, color: Colors.black87),
-              ),
-            ],
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.computer, size: 40, color: Colors.blue),
+                const SizedBox(height: 10),
+                Text(
+                  subject['subject_code'] ?? "",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subject['subject_name'] ?? "",
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 10, color: Colors.black87),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -153,9 +157,7 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
   }
 
   Widget _buildCoCurriculumList(List<dynamic> modules) {
-    if (modules.isEmpty) {
-      return const Text("No registered co-curriculum modules found.");
-    }
+    if (modules.isEmpty) return const Text("No registered co-curriculum modules found.");
 
     return ListView.builder(
       shrinkWrap: true,
@@ -189,17 +191,13 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF007AFF),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () {
-                    // Navigate to Attendance Submission logic
+                    // Logic for Module attendance submission
                   },
-                  child: const Text(
-                    "Submit Attendance",
-                    style: TextStyle(color: Colors.white, fontSize: 11),
-                  ),
+                  child: const Text("Submit Attendance",
+                      style: TextStyle(color: Colors.white, fontSize: 11)),
                 ),
               )
             ],

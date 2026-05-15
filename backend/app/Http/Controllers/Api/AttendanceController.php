@@ -245,6 +245,7 @@ public function fetchStudentClassModule($studentId)
                 'subjects.subject_id', 
                 'subjects.subject_code', 
                 'subjects.subject_name',
+                'sections.section_id',
                 'sections.section_no'
             )
             ->get();
@@ -274,6 +275,52 @@ public function fetchStudentClassModule($studentId)
             'success' => false, 
             'message' => 'Query Error: ' . $e->getMessage()
         ], 500);
+    }
+}
+
+public function getAttendanceSubmission($sectionId, $studentId)
+{
+    try {
+        // 1. Get all attendance sessions created for this section
+        $sessions = DB::table('class_attendances')
+            ->join('attendances', 'class_attendances.attendance_id', '=', 'attendances.id')
+            ->where('class_attendances.section_id', $sectionId)
+            ->select(
+                'class_attendances.attendance_id',
+                'class_attendances.class_type',
+                'class_attendances.date',
+                'class_attendances.time',
+                'attendances.attendance_code'
+            )
+            ->orderBy('class_attendances.date', 'desc')
+            ->get();
+
+        $today = date('Y-m-d');
+
+        // 2. Loop through to determine the status for the student
+        foreach ($sessions as $session) {
+            // Check if student has already submitted for this specific session
+            $submission = DB::table('attendance_records')
+                ->where('attendance_id', $session->attendance_id)
+                ->where('student_id', $studentId)
+                ->first();
+
+            if ($submission) {
+                $session->status = 'Submitted';
+            } elseif ($session->date == $today) {
+                $session->status = 'Active';
+            } else {
+                $session->status = 'Expired';
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $sessions
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
 }
 

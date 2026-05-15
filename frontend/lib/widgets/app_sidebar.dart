@@ -1,4 +1,5 @@
 import 'package:USAS/screens/dashboard.dart';
+import 'package:USAS/screens/student/attendance_dashboard.dart';
 import 'package:flutter/material.dart';
 import '../screens/pusatAdab/module_form.dart';
 import '../screens/pusatAdab/view_module.dart'; 
@@ -144,7 +145,7 @@ class AppSidebar extends StatelessWidget {
                     _buildMenuItem(context, Icons.description_outlined, "Attendance", role),
                     _buildSubMenuItem(context, "Module Attendance", role, destination:const ModuleAttendanceSelectionPage()),
                     _buildSubMenuItem(context, "Attendance Records", role ),
-                    _buildSubMenuItem(context, "Wahidah Cuba", role, destination: const AddModuleAttendancePage()),
+                    _buildSubMenuItem(context, "Wahidah Cuba", role, destination: const AttendanceDashboard()),
 
 
                   ] 
