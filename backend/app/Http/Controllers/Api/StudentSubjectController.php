@@ -194,6 +194,77 @@ if (($currentCredit + $newSubject->credit_hours) > 20) {
     ], 400);
 }
 
+/// GET NEW LAB
+$newLab = DB::table('labs')
+
+    ->where(
+        'lab_id',
+        $request->lab_id
+    )
+
+    ->first();
+
+
+/// GET EXISTING REGISTERED LABS
+$existingLabs = DB::table('registration')
+
+    ->join(
+        'labs',
+        'registration.lab_id',
+        '=',
+        'labs.lab_id'
+    )
+
+    ->where(
+        'registration.student_id',
+        $request->student_id
+    )
+
+    ->where(
+        'registration.status',
+        'active'
+    )
+
+    ->select(
+
+        'labs.schedule_day',
+
+        'labs.schedule_time'
+    )
+
+    ->get();
+
+
+/// CHECK CONFLICT
+foreach ($existingLabs as $lab) {
+
+    /// SAME DAY
+    if (
+
+        strtolower($lab->schedule_day) ==
+        strtolower($newLab->schedule_day)
+
+    ) {
+
+        /// SAME TIME
+        if (
+
+            strtolower($lab->schedule_time) ==
+            strtolower($newLab->schedule_time)
+
+        ) {
+
+            return response()->json([
+
+                'success' => false,
+
+                'message' =>
+
+                    'Schedule conflict detected'
+            ], 400);
+        }
+    }
+}
         /// INSERT REGISTRATION
         DB::table('registration')
 

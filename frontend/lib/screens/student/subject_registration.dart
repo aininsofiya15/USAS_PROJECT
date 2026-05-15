@@ -560,14 +560,12 @@ class _SubjectRegistrationPageState
                                                         provider.fetchSubjects();
                                                   });
 
-                                                } catch (e) {
+                                                }catch (e) {
 
-  String errorMessage =
-      e.toString();
+  String errorMessage = e.toString();
 
-  /// DUPLICATE SUBJECT
-  if (errorMessage.contains(
-      "already registered")) {
+  /// SCHEDULE CONFLICT
+  if (errorMessage.contains("Schedule conflict")) {
 
     showDialog(
 
@@ -581,26 +579,106 @@ class _SubjectRegistrationPageState
 
           child: Container(
 
-            padding:
-                const EdgeInsets.all(
-              25,
-            ),
+            padding: const EdgeInsets.all(25),
 
-            decoration:
-                BoxDecoration(
+            decoration: BoxDecoration(
 
               color: Colors.white,
 
-              borderRadius:
-                  BorderRadius.circular(
-                20,
-              ),
+              borderRadius: BorderRadius.circular(20),
             ),
 
             child: Column(
 
-              mainAxisSize:
-                  MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
+
+              children: [
+
+                const Icon(
+
+                  Icons.close,
+
+                  color: Colors.red,
+
+                  size: 70,
+                ),
+
+                const SizedBox(height: 20),
+
+                const Text(
+
+                  "Selected subject has a schedule conflict with your existing timetable",
+
+                  textAlign: TextAlign.center,
+
+                  style: TextStyle(
+
+                    fontSize: 18,
+
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 25),
+
+                ElevatedButton(
+
+                  style: ElevatedButton.styleFrom(
+
+                    backgroundColor: Colors.red,
+                  ),
+
+                  onPressed: () {
+
+                    Navigator.pop(context);
+                  },
+
+                  child: const Text(
+
+                    "OK",
+
+                    style: TextStyle(
+
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+  }
+
+  /// DUPLICATE SUBJECT
+  else if (errorMessage.contains("already registered")) {
+
+    showDialog(
+
+      context: context,
+
+      barrierDismissible: false,
+
+      builder: (context) {
+
+        return Dialog(
+
+          child: Container(
+
+            padding: const EdgeInsets.all(25),
+
+            decoration: BoxDecoration(
+
+              color: Colors.white,
+
+              borderRadius: BorderRadius.circular(20),
+            ),
+
+            child: Column(
+
+              mainAxisSize: MainAxisSize.min,
 
               children: [
 
@@ -613,55 +691,43 @@ class _SubjectRegistrationPageState
                   size: 70,
                 ),
 
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
 
                 const Text(
 
                   "You have already registered this subject",
 
-                  textAlign:
-                      TextAlign.center,
+                  textAlign: TextAlign.center,
 
                   style: TextStyle(
 
                     fontSize: 18,
 
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
 
-                const SizedBox(
-                  height: 25,
-                ),
+                const SizedBox(height: 25),
 
                 ElevatedButton(
 
-                  style:
-                      ElevatedButton.styleFrom(
+                  style: ElevatedButton.styleFrom(
 
-                    backgroundColor:
-                        Colors.orange,
+                    backgroundColor: Colors.orange,
                   ),
 
                   onPressed: () {
 
-                    Navigator.pop(
-                      context,
-                    );
+                    Navigator.pop(context);
                   },
 
-                  child:
-                      const Text(
+                  child: const Text(
 
                     "OK",
 
                     style: TextStyle(
 
-                      color:
-                          Colors.white,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -689,26 +755,18 @@ class _SubjectRegistrationPageState
 
           child: Container(
 
-            padding:
-                const EdgeInsets.all(
-              25,
-            ),
+            padding: const EdgeInsets.all(25),
 
-            decoration:
-                BoxDecoration(
+            decoration: BoxDecoration(
 
               color: Colors.white,
 
-              borderRadius:
-                  BorderRadius.circular(
-                20,
-              ),
+              borderRadius: BorderRadius.circular(20),
             ),
 
             child: Column(
 
-              mainAxisSize:
-                  MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
 
               children: [
 
@@ -721,55 +779,43 @@ class _SubjectRegistrationPageState
                   size: 70,
                 ),
 
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
 
                 const Text(
 
                   "You have reached the maximum subject registration limit",
 
-                  textAlign:
-                      TextAlign.center,
+                  textAlign: TextAlign.center,
 
                   style: TextStyle(
 
                     fontSize: 18,
 
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
 
-                const SizedBox(
-                  height: 25,
-                ),
+                const SizedBox(height: 25),
 
                 ElevatedButton(
 
-                  style:
-                      ElevatedButton.styleFrom(
+                  style: ElevatedButton.styleFrom(
 
-                    backgroundColor:
-                        Colors.red,
+                    backgroundColor: Colors.red,
                   ),
 
                   onPressed: () {
 
-                    Navigator.pop(
-                      context,
-                    );
+                    Navigator.pop(context);
                   },
 
-                  child:
-                      const Text(
+                  child: const Text(
 
                     "OK",
 
                     style: TextStyle(
 
-                      color:
-                          Colors.white,
+                      color: Colors.white,
                     ),
                   ),
                 ),

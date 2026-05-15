@@ -341,25 +341,12 @@ class _SubjectFormPageState extends State<SubjectFormPage> {
                         List formattedLabs = [];
 
                         for (var lab in section['labs']) {
+                          // ✅ declared only once here
                           final startTime = lab['start_time'] as TimeOfDay?;
                           final endTime = lab['end_time'] as TimeOfDay?;
-
-                          final startTime =
-    lab['start_time']
-        as TimeOfDay?;
-
-final endTime =
-    lab['end_time']
-        as TimeOfDay?;
-
-final scheduleTime =
-
-    (startTime != null &&
-            endTime != null)
-
-        ? "${startTime.format(context)} - ${endTime.format(context)}"
-
-        : "";
+                          final scheduleTime = (startTime != null && endTime != null)
+                              ? "${startTime.format(context)} - ${endTime.format(context)}"
+                              : "";
 
                           formattedLabs.add({
                             "lab_name": lab['lab_name'],
