@@ -85,6 +85,8 @@ Future<void> registerSubject({
 
   required int sectionId,
 
+  required int labId,
+
 }) async {
 
   final response = await http.post(
@@ -93,23 +95,35 @@ Future<void> registerSubject({
       "${Api.baseUrl}/student/register-subject",
     ),
 
-    body: {
+    headers: {
 
-      'student_id':
-          studentId.toString(),
-
-      'subject_id':
-          subjectId.toString(),
-
-      'section_id':
-          sectionId.toString(),
+      "Content-Type":
+          "application/json",
     },
+
+    body: jsonEncode({
+
+      "student_id":
+          studentId,
+
+      "subject_id":
+          subjectId,
+
+      "section_id":
+          sectionId,
+
+      "lab_id":
+          labId,
+    }),
   );
 
-  if (response.statusCode != 200) {
+  final data =
+      jsonDecode(response.body);
+
+  if (data['success'] != true) {
 
     throw Exception(
-      "Failed to register subject",
+      data['message'],
     );
   }
 }

@@ -1,27 +1,51 @@
-class Lab {
+class LabModel {
 
   final int labId;
-  final int sectionId;
+
   final String labName;
+
   final int capacity;
+
   final int enrolled;
 
-  Lab({
+  final String scheduleDay;
+
+  final String scheduleTime;
+
+  LabModel({
+
     required this.labId,
-    required this.sectionId,
+
     required this.labName,
+
     required this.capacity,
+
     required this.enrolled,
+
+    required this.scheduleDay,
+
+    required this.scheduleTime,
   });
 
-  factory Lab.fromJson(Map<String, dynamic> json) {
+  factory LabModel.fromJson(
+      Map<String, dynamic> json) {
 
-    return Lab(
+    return LabModel(
+
       labId: json['lab_id'],
-      sectionId: json['section_id'],
+
       labName: json['lab_name'],
+
       capacity: json['capacity'],
-      enrolled: json['enrolled'],
+
+      enrolled:
+          json['enrolled'] ?? 0,
+
+      scheduleDay:
+          json['schedule_day'] ?? '',
+
+      scheduleTime:
+          json['schedule_time'] ?? '',
     );
   }
 }

@@ -2,8 +2,12 @@
 
 namespace App\Models;
 
+
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Registration;
+use App\Models\Lab;
+
+
 
 class Section extends Model
 {
@@ -55,4 +59,13 @@ class Section extends Model
             'section_id'
         );
     }
+
+    public function labs()
+{
+    return $this->hasMany(
+        Lab::class,
+        'section_id',
+        'section_id'
+    );
+}
 }
