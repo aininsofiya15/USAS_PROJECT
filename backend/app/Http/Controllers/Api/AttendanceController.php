@@ -231,14 +231,9 @@ public function getClassNotPresentStudents($attendanceId)
     ]);
 }
 
-//UpdateStudentAttendanceDetails
-//
-
-
-    /**
-     * Fetch attendance details for a specific Pusat ADAB module session.
-     * This follows the logic: Booking -> ModuleAttendance -> Attendance -> Records.
-     */
+//------------------------------------------------
+//AININ
+//-----------------------------------------------
     public function getPusatAdabAttendance($bookingId)
     {
         $modules = Module::where('status', 'published')

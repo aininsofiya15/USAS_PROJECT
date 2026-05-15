@@ -1,8 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:intl/intl.dart';
 import '../config/api.dart';
 import '../domain/attendance.dart';
 import '../domain/attendance_record.dart';
@@ -200,47 +198,14 @@ class AttendanceProvider with ChangeNotifier {
     }
   }
 
-  List<Module> getAdabModules(DateTime? filterDate) {
-  if (filterDate == null) return _pusatAdabModules;
-
-  // Format filterDate to YYYY-MM-DD to match the DB string structure
-  String formattedFilter = DateFormat('yyyy-MM-dd').format(filterDate);
-
-  return _pusatAdabModules.where((module) {
-    return module.dateTime.contains(formattedFilter);
-  }).toList();
-}
-
 
   /// Fetches student records for a specific module session
   /// AININ
   /// 
-  Future<void> fetchPusatAdabModules() async {
-    _isLoading = true;
-    notifyListeners();
+  Future<void> fetchPusatAdabModules({String? selectedDate}) async {
+  _isLoading = true;
+  notifyListeners();
 
-    try {
-      // FIX 1: Point to the correct dedicated endpoint we updated in routes/api.php
-      final response = await http.get(Uri.parse("${Api.baseUrl}/attendance/pusat-adab"));
-
-      if (response.statusCode == 200) {
-        // FIX 2: Decode as a Map object first to handle the key wrapper safely
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-        
-        // FIX 3: Extract the actual list of modules out of the 'data' key wrapper
-        final List<dynamic> dataList = responseData['data'];
-        
-        _pusatAdabModules = dataList.map((json) => Module.fromJson(json)).toList();
-      } else {
-        print("Server returned status code: ${response.statusCode}");
-      }
-    } catch (e) {
-      print("Error fetching modules: $e");
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
   try {
     // If selectedDate is provided, append it as a query parameter
     String url = "${Api.baseUrl}/modules";
