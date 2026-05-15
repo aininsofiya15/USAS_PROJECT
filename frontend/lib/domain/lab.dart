@@ -32,11 +32,13 @@ class LabModel {
 
     return LabModel(
 
-      labId: json['lab_id'],
+      labId: json['lab_id'] ?? 0,
 
-      labName: json['lab_name'],
+      labName:
+          json['lab_name'] ?? '',
 
-      capacity: json['capacity'],
+      capacity:
+          json['capacity'] ?? 0,
 
       enrolled:
           json['enrolled'] ?? 0,

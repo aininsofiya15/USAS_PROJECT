@@ -68,6 +68,13 @@ class StudentSubjectController extends Controller
                 'sections.section_id'
             )
 
+            ->join(
+                'labs',
+                'registration.lab_id',
+                '=',
+                'labs.lab_id'
+            )
+
             ->select(
 
                 'registration.registration_id',
@@ -78,7 +85,11 @@ class StudentSubjectController extends Controller
 
                 'subjects.credit_hours',
 
-                'sections.section_no'
+                'labs.lab_name',
+
+                'labs.schedule_day',
+
+                'labs.schedule_time'
             )
 
             ->where(
@@ -135,9 +146,55 @@ class StudentSubjectController extends Controller
                 'message' =>
                     'Subject already registered'
             ]);
-        }
+        } 
 
-        /// INSERT
+        /// CHECK TOTAL CREDIT HOUR
+$currentCredit = DB::table('registration')
+
+    ->join(
+        'subjects',
+        'registration.subject_id',
+        '=',
+        'subjects.subject_id'
+    )
+
+    ->where(
+        'registration.student_id',
+        $request->student_id
+    )
+
+    ->where(
+        'registration.status',
+        'active'
+    )
+
+    ->sum('subjects.credit_hours');
+
+
+/// GET NEW SUBJECT CREDIT
+$newSubject = DB::table('subjects')
+
+    ->where(
+        'subject_id',
+        $request->subject_id
+    )
+
+    ->first();
+
+
+/// LIMIT 20 CREDIT
+if (($currentCredit + $newSubject->credit_hours) > 20) {
+
+    return response()->json([
+
+        'success' => false,
+
+        'message' =>
+            'Maximum 20 credit hours exceeded'
+    ], 400);
+}
+
+        /// INSERT REGISTRATION
         DB::table('registration')
 
             ->insert([
@@ -159,6 +216,16 @@ class StudentSubjectController extends Controller
                 'registered_at' => now(),
             ]);
 
+        /// INCREASE LAB ENROLLED
+        DB::table('labs')
+
+            ->where(
+                'lab_id',
+                $request->lab_id
+            )
+
+            ->increment('enrolled');
+
         return response()->json([
 
             'success' => true,
@@ -171,6 +238,26 @@ class StudentSubjectController extends Controller
     /// DROP SUBJECT
     public function dropSubject($registration_id)
     {
+        $registration = DB::table('registration')
+
+            ->where(
+                'registration_id',
+                $registration_id
+            )
+
+            ->first();
+
+        /// DECREASE LAB ENROLLED
+        DB::table('labs')
+
+            ->where(
+                'lab_id',
+                $registration->lab_id
+            )
+
+            ->decrement('enrolled');
+
+        /// UPDATE STATUS
         DB::table('registration')
 
             ->where(
@@ -192,4 +279,3 @@ class StudentSubjectController extends Controller
         ]);
     }
 }
-

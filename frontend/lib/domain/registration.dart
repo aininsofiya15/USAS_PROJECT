@@ -1,10 +1,18 @@
 class Registration {
 
   final int registrationId;
+
   final String subjectCode;
+
   final String subjectName;
+
   final int creditHours;
-  final String sectionNo;
+
+  final String? labName;
+
+  final String? scheduleDay;
+
+  final String? scheduleTime;
 
   Registration({
 
@@ -16,29 +24,38 @@ class Registration {
 
     required this.creditHours,
 
-    required this.sectionNo,
+    required this.labName,
+
+    required this.scheduleDay,
+
+    required this.scheduleTime,
   });
 
   factory Registration.fromJson(
-    Map<String, dynamic> json,
-  ) {
+      Map<String, dynamic> json) {
 
     return Registration(
 
       registrationId:
-          json['registration_id'],
+          json['registration_id'] ?? 0,
 
       subjectCode:
-          json['subject_code'],
+          json['subject_code'] ?? '',
 
       subjectName:
-          json['subject_name'],
+          json['subject_name'] ?? '',
 
       creditHours:
-          json['credit_hours'],
+          json['credit_hours'] ?? 0,
 
-      sectionNo:
-          json['section_no'],
+      labName:
+          json['lab_name'],
+
+      scheduleDay:
+          json['schedule_day'],
+
+      scheduleTime:
+          json['schedule_time'],
     );
   }
 }

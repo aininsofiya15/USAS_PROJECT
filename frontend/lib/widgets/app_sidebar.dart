@@ -10,10 +10,11 @@ import 'package:USAS/screens/faculty/subject_registration_page.dart';
 import '../screens/student/my_module_booking.dart';
 import '../screens/pusatAdab/attendance_record_list.dart';
 import '../screens/pusatAdab/module_attendance.dart';
+import '../screens/student/student_dashboard.dart';
+import '../screens/student/subject_registration.dart';
 
 
 import 'package:USAS/screens/faculty/subject_form_page.dart';
-import 'package:USAS/screens/student/subject_registration.dart';
 import '../screens/student/list_registered_subjects.dart';
 
 class AppSidebar extends StatelessWidget {
@@ -152,11 +153,19 @@ class AppSidebar extends StatelessWidget {
 
 
                   else ...[ //student
-                    _buildMenuItem(context, Icons.home_outlined, "Home", role),
+                    _buildMenuItem(context, Icons.home_outlined, "Home", role,
+
+  destination:
+      const StudentDashboard(
+    name: "Sharmila",
+  ),
+
+),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
                     _buildMenuItem(context, Icons.grid_view, "Subject Registration", role,
   destination: const StudentSubjectRegistrationPage(),),
-                    _buildSubMenuItem(context, "List of Registered Subjects", role,  destination:
+                    _buildSubMenuItem(context, "List of Registered Subjects", role, 
+      destination:
       const ListRegisteredSubjectsPage(),),
                     const Divider(color: Colors.white24, height: 10),
                     _buildMenuItem(context, Icons.menu_book, "Curriculum Activity", role),
