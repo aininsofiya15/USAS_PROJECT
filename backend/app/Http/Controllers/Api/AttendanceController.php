@@ -231,6 +231,52 @@ public function getClassNotPresentStudents($attendanceId)
     ]);
 }
 
+public function fetchStudentClassModule($studentId)
+{
+    try {
+        // 1. Fetch Academic Curriculum
+        // Path: registration -> sections -> subjects
+        $curriculum = DB::table('registration')
+            ->join('sections', 'registration.section_id', '=', 'sections.section_id')
+            ->join('subjects', 'sections.subject_id', '=', 'subjects.subject_id')
+            ->where('registration.student_id', $studentId)
+            ->where('registration.status', 'active')
+            ->select(
+                'subjects.subject_id', 
+                'subjects.subject_code', 
+                'subjects.subject_name',
+                'sections.section_no'
+            )
+            ->get();
+
+        // 2. Fetch Co-Curriculum (Bookings -> Modules)
+        $coCurriculum = DB::table('bookings')
+            ->join('modules', 'bookings.module_id', '=', 'modules.id')
+            ->where('bookings.student_id', $studentId)
+            ->select(
+                'modules.id as module_id', 
+                'modules.activity_name', 
+                'modules.date_time', 
+                'modules.venue'
+            )
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'curriculum' => $curriculum,
+                'co_curriculum' => $coCurriculum
+            ]
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false, 
+            'message' => 'Query Error: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
 //------------------------------------------------
 //AININ
 //-----------------------------------------------

@@ -198,6 +198,40 @@ class AttendanceProvider with ChangeNotifier {
     }
   }
 
+  List<dynamic> _studentCurriculum = [];
+List<dynamic> _studentCoCurriculum = [];
+
+List<dynamic> get studentCurriculum => _studentCurriculum;
+List<dynamic> get studentCoCurriculum => _studentCoCurriculum;
+
+Future<void> fetchStudentClassModule(String studentId) async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    final response = await http.get(
+      Uri.parse("${Api.baseUrl}/student/dashboard/$studentId")
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      
+      if (jsonResponse['success'] == true) {
+        // FIX: Access the 'data' key first
+        final actualData = jsonResponse['data']; 
+        
+        _studentCurriculum = actualData['curriculum'] ?? [];
+        _studentCoCurriculum = actualData['co_curriculum'] ?? [];
+      }
+    }
+  } catch (e) {
+    debugPrint("Dashboard Fetch Error: $e");
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
 
   /// Fetches student records for a specific module session
   /// AININ

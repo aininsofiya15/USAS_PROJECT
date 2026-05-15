@@ -144,6 +144,7 @@ class AppSidebar extends StatelessWidget {
                     _buildMenuItem(context, Icons.description_outlined, "Attendance", role),
                     _buildSubMenuItem(context, "Module Attendance", role, destination:const ModuleAttendanceSelectionPage()),
                     _buildSubMenuItem(context, "Attendance Records", role ),
+                    _buildSubMenuItem(context, "Wahidah Cuba", role, destination: const AddModuleAttendancePage()),
 
 
                   ] 
