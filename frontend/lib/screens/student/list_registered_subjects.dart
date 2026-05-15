@@ -326,7 +326,313 @@ class _ListRegisteredSubjectsPageState
 
                                 onPressed: () {
 
-                                },
+  /// CONFIRMATION POPUP
+  showDialog(
+
+    context: context,
+
+    builder: (context) {
+
+      return Dialog(
+
+        backgroundColor:
+            Colors.transparent,
+
+        child: Container(
+
+          padding:
+              const EdgeInsets.all(
+            20,
+          ),
+
+          decoration: BoxDecoration(
+
+            color: Colors.white,
+
+            borderRadius:
+                BorderRadius.circular(
+              20,
+            ),
+          ),
+
+          child: Column(
+
+            mainAxisSize:
+                MainAxisSize.min,
+
+            children: [
+
+              const Text(
+
+                "Are you sure you want to drop this subject?",
+
+                textAlign:
+                    TextAlign.center,
+
+                style: TextStyle(
+
+                  fontSize: 18,
+
+                  fontWeight:
+                      FontWeight.bold,
+                ),
+              ),
+
+              const SizedBox(
+                height: 25,
+              ),
+
+              Row(
+
+                mainAxisAlignment:
+                    MainAxisAlignment.center,
+
+                children: [
+
+                  /// CANCEL
+                  ElevatedButton(
+
+                    style:
+                        ElevatedButton.styleFrom(
+
+                      backgroundColor:
+                          Colors.grey,
+                    ),
+
+                    onPressed: () {
+
+                      Navigator.pop(
+                        context,
+                      );
+                    },
+
+                    child: const Text(
+
+                      "Cancel",
+
+                      style: TextStyle(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(
+                    width: 15,
+                  ),
+
+                  /// CONFIRM
+                  ElevatedButton(
+
+                    style:
+                        ElevatedButton.styleFrom(
+
+                      backgroundColor:
+                          Colors.red,
+                    ),
+
+                    onPressed: () async {
+
+                      Navigator.pop(
+                        context,
+                      );
+
+                      try {
+
+                        await provider
+                            .dropSubject(
+
+                          subject
+                              .registrationId,
+                        );
+
+                        /// SUCCESS POPUP
+                        showDialog(
+
+                          context: context,
+
+                          barrierDismissible:
+                              false,
+
+                          builder: (context) {
+
+                            return Dialog(
+
+                              backgroundColor:
+                                  Colors.transparent,
+
+                              child: Container(
+
+                                padding:
+                                    const EdgeInsets.symmetric(
+
+                                  horizontal:
+                                      25,
+
+                                  vertical:
+                                      30,
+                                ),
+
+                                decoration:
+                                    BoxDecoration(
+
+                                  color:
+                                      Colors.white,
+
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                    20,
+                                  ),
+                                ),
+
+                                child: Column(
+
+                                  mainAxisSize:
+                                      MainAxisSize.min,
+
+                                  children: [
+
+                                    Container(
+
+                                      width: 70,
+                                      height: 70,
+
+                                      decoration:
+                                          BoxDecoration(
+
+                                        shape:
+                                            BoxShape.circle,
+
+                                        border: Border.all(
+                                          color:
+                                              Colors.black,
+                                          width: 2,
+                                        ),
+                                      ),
+
+                                      child:
+                                          const Icon(
+
+                                        Icons.check,
+
+                                        size: 45,
+
+                                        color:
+                                            Colors.black,
+                                      ),
+                                    ),
+
+                                    const SizedBox(
+                                      height: 20,
+                                    ),
+
+                                    const Text(
+
+                                      "Subject dropped successfully",
+
+                                      textAlign:
+                                          TextAlign.center,
+
+                                      style:
+                                          TextStyle(
+
+                                        fontSize:
+                                            18,
+
+                                        fontWeight:
+                                            FontWeight.bold,
+                                      ),
+                                    ),
+
+                                    const SizedBox(
+                                      height: 25,
+                                    ),
+
+                                    SizedBox(
+
+                                      width: 120,
+
+                                      height: 40,
+
+                                      child:
+                                          ElevatedButton(
+
+                                        style:
+                                            ElevatedButton.styleFrom(
+
+                                          backgroundColor:
+                                              Colors.green,
+                                        ),
+
+                                        onPressed:
+                                            () {
+
+                                          Navigator.pop(
+                                            context,
+                                          );
+                                        },
+
+                                        child:
+                                            const Text(
+
+                                          "OK",
+
+                                          style:
+                                              TextStyle(
+                                            color:
+                                                Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+
+                        /// REFRESH
+                        setState(() {
+
+                          registeredSubjectsFuture =
+                              provider
+                                  .fetchRegisteredSubjects(
+                            1,
+                          );
+                        });
+
+                      } catch (e) {
+
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(
+
+                          SnackBar(
+                            content:
+                                Text("$e"),
+                          ),
+                        );
+                      }
+                    },
+
+                    child: const Text(
+
+                      "Confirm",
+
+                      style: TextStyle(
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+},
 
                                 icon: const Icon(
 

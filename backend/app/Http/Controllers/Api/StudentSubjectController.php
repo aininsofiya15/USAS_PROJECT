@@ -12,12 +12,29 @@ class StudentSubjectController extends Controller
     /// GET ALL SUBJECTS
     public function getSubjects()
     {
-        $subjects = Subject::with('sections')
-            ->where('subject_status', 'active')
-            ->get();
+        $subjects = Subject::with([
+
+            'sections' => function ($query) {
+
+                $query->withCount([
+
+                    'registrations as registered_count'
+                ]);
+            }
+
+        ])
+
+        ->where(
+            'subject_status',
+            'active'
+        )
+
+        ->get();
 
         return response()->json([
+
             'success' => true,
+
             'data' => $subjects
         ]);
     }
@@ -42,10 +59,15 @@ class StudentSubjectController extends Controller
             )
 
             ->select(
+
                 'registration.registration_id',
+
                 'subjects.subject_code',
+
                 'subjects.subject_name',
+
                 'subjects.credit_hours',
+
                 'sections.section_no'
             )
 
@@ -62,69 +84,101 @@ class StudentSubjectController extends Controller
             ->get();
 
         return response()->json([
+
             'success' => true,
+
             'data' => $registrations
-        ]);
-    } 
-
-    public function registerSubject(Request $request)
-{
-    $exists = \DB::table('registration')
-
-        ->where(
-            'student_id',
-            $request->student_id
-        )
-
-        ->where(
-            'subject_id',
-            $request->subject_id
-        )
-
-        ->where(
-            'status',
-            'active'
-        )
-
-        ->exists();
-
-    /// PREVENT DUPLICATE
-    if ($exists) {
-
-        return response()->json([
-
-            'success' => false,
-
-            'message' =>
-                'Subject already registered'
         ]);
     }
 
-    /// INSERT
-    \DB::table('registration')->insert([
+    /// REGISTER SUBJECT
+    public function registerSubject(
+        Request $request
+    )
+    {
+        $exists = DB::table('registration')
 
-        'student_id' =>
-            $request->student_id,
+            ->where(
+                'student_id',
+                $request->student_id
+            )
 
-        'subject_id' =>
-            $request->subject_id,
+            ->where(
+                'subject_id',
+                $request->subject_id
+            )
 
-        'section_id' =>
-            $request->section_id,
+            ->where(
+                'status',
+                'active'
+            )
 
-        'lab_id' => 1,
+            ->exists();
 
-        'status' => 'active',
+        /// PREVENT DUPLICATE
+        if ($exists) {
 
-        'registered_at' => now(),
-    ]);
+            return response()->json([
+
+                'success' => false,
+
+                'message' =>
+                    'Subject already registered'
+            ]);
+        }
+
+        /// INSERT
+        DB::table('registration')
+
+            ->insert([
+
+                'student_id' =>
+                    $request->student_id,
+
+                'subject_id' =>
+                    $request->subject_id,
+
+                'section_id' =>
+                    $request->section_id,
+
+                'lab_id' => 1,
+
+                'status' => 'active',
+
+                'registered_at' => now(),
+            ]);
+
+        return response()->json([
+
+            'success' => true,
+
+            'message' =>
+                'Subject registered successfully'
+        ]);
+    }
+
+    /// DROP SUBJECT
+public function dropSubject($registration_id)
+{
+    DB::table('registration')
+
+        ->where(
+            'registration_id',
+            $registration_id
+        )
+
+        ->update([
+
+            'status' => 'dropped'
+        ]);
 
     return response()->json([
 
         'success' => true,
 
         'message' =>
-            'Subject registered successfully'
+            'Subject dropped successfully'
     ]);
 }
 }
+

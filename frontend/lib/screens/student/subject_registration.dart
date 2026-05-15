@@ -339,7 +339,7 @@ class _SubjectRegistrationPageState
                                           child:
                                               Text(
 
-                                            "${section.capacity} Left",
+                                            "${section.capacity - section.registeredCount} Left",
 
                                             textAlign:
                                                 TextAlign.center,
@@ -378,22 +378,180 @@ class _SubjectRegistrationPageState
                                           ),
                                         ),
 
-                                        onPressed:
-                                            () {
+                                        onPressed: () async {
 
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
+                                          try {
 
-                                            SnackBar(
+                                            await provider.registerSubject(
 
-                                              content:
-                                                  Text(
+                                              studentId: 1,
 
-                                                "Registered ${subject.subjectCode} ${section.sectionNo}",
+                                              subjectId:
+                                                  subject.subjectId,
+
+                                              sectionId:
+                                                  section.sectionId,
+                                            );
+
+                                            /// SUCCESS POPUP
+                                            showDialog(
+
+  context: context,
+
+  barrierDismissible: false,
+
+  builder: (context) {
+
+    return Dialog(
+
+      backgroundColor:
+          Colors.transparent,
+
+      child: Container(
+
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 25,
+          vertical: 30,
+        ),
+
+        decoration: BoxDecoration(
+
+          color: Colors.white,
+
+          borderRadius:
+              BorderRadius.circular(20),
+        ),
+
+        child: Column(
+
+          mainAxisSize:
+              MainAxisSize.min,
+
+          children: [
+
+            /// ICON
+            Container(
+
+              width: 70,
+              height: 70,
+
+              decoration: BoxDecoration(
+
+                shape: BoxShape.circle,
+
+                border: Border.all(
+                  color: Colors.black,
+                  width: 2,
+                ),
+              ),
+
+              child: const Icon(
+
+                Icons.check,
+
+                size: 45,
+
+                color: Colors.black,
+              ),
+            ),
+
+            const SizedBox(
+              height: 20,
+            ),
+
+            /// TEXT
+            const Text(
+
+              "Subject added successfully",
+
+              textAlign:
+                  TextAlign.center,
+
+              style: TextStyle(
+
+                fontSize: 18,
+
+                fontWeight:
+                    FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(
+              height: 25,
+            ),
+
+            /// BUTTON
+            SizedBox(
+
+              width: 120,
+
+              height: 40,
+
+              child: ElevatedButton(
+
+                style:
+                    ElevatedButton.styleFrom(
+
+                  backgroundColor:
+                      Colors.green,
+
+                  shape:
+                      RoundedRectangleBorder(
+
+                    borderRadius:
+                        BorderRadius.circular(
+                      10,
+                    ),
+                  ),
+                ),
+
+                onPressed: () {
+
+                  Navigator.pop(
+                    context,
+                  );
+                },
+
+                child: const Text(
+
+                  "OK",
+
+                  style: TextStyle(
+
+                    color: Colors.white,
+
+                    fontWeight:
+                        FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  },
+);
+
+                                            /// REFRESH
+                                            setState(() {
+
+                                              subjectsFuture =
+                                                  provider.fetchSubjects();
+                                            });
+
+                                          } catch (e) {
+
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+
+                                              SnackBar(
+                                                content: Text("$e"),
                                               ),
-                                            ),
-                                          );
+                                            );
+                                          }
                                         },
 
                                         child:
