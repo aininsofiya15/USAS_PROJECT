@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'faculty_layout.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
 
@@ -71,30 +70,42 @@ class _SubjectDetailsPageState
   @override
   Widget build(BuildContext context) {
 
-    return FacultyLayout(
+    return Scaffold(
+
+      appBar: const UsasHeader(),
+
+      drawer: const AppSidebar(),
+
+      backgroundColor:
+          const Color(0xFFFDF9EC),
 
       body: subjectDetails == null
 
           ? const Center(
-              child: CircularProgressIndicator(),
+              child:
+                  CircularProgressIndicator(),
             )
 
           : SingleChildScrollView(
 
               child: Padding(
 
-                padding: const EdgeInsets.all(20),
+                padding:
+                    const EdgeInsets.all(20),
 
                 child: Container(
 
-                  padding: const EdgeInsets.all(20),
+                  padding:
+                      const EdgeInsets.all(20),
 
                   decoration: BoxDecoration(
 
-                    color: const Color(0xFFF3EDC8),
+                    color:
+                        const Color(0xFFF3EDC8),
 
                     borderRadius:
-                        BorderRadius.circular(20),
+                        BorderRadius.circular(
+                            20),
                   ),
 
                   child: Column(
@@ -105,15 +116,18 @@ class _SubjectDetailsPageState
 
                         "${subjectDetails!['subject_code']} - ${subjectDetails!['subject_name']}",
 
-                        textAlign: TextAlign.center,
+                        textAlign:
+                            TextAlign.center,
 
                         style: const TextStyle(
                           fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                          fontWeight:
+                              FontWeight.bold,
                         ),
                       ),
 
-                      const SizedBox(height: 5),
+                      const SizedBox(
+                          height: 5),
 
                       Text(
 
@@ -121,24 +135,29 @@ class _SubjectDetailsPageState
 
                         style: const TextStyle(
                           color: Colors.orange,
-                          fontWeight: FontWeight.bold,
+                          fontWeight:
+                              FontWeight.bold,
                         ),
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(
+                          height: 20),
 
                       SizedBox(
 
                         height: 45,
 
-                        child: ListView.builder(
+                        child:
+                            ListView.builder(
 
                           scrollDirection:
                               Axis.horizontal,
 
-                          itemCount: sections.length,
+                          itemCount:
+                              sections.length,
 
-                          itemBuilder: (context, index) {
+                          itemBuilder:
+                              (context, index) {
 
                             var section =
                                 sections[index];
@@ -149,7 +168,8 @@ class _SubjectDetailsPageState
                                   const EdgeInsets.only(
                                       right: 10),
 
-                              child: ElevatedButton(
+                              child:
+                                  ElevatedButton(
 
                                 style:
                                     ElevatedButton.styleFrom(
@@ -165,6 +185,14 @@ class _SubjectDetailsPageState
 
                                   foregroundColor:
                                       Colors.black,
+
+                                  shape:
+                                      RoundedRectangleBorder(
+
+                                    borderRadius:
+                                        BorderRadius.circular(
+                                            20),
+                                  ),
                                 ),
 
                                 onPressed: () {
@@ -181,7 +209,8 @@ class _SubjectDetailsPageState
                                 },
 
                                 child: Text(
-                                  section['section_no'],
+                                  section[
+                                      'section_no'],
                                 ),
                               ),
                             );
@@ -189,7 +218,8 @@ class _SubjectDetailsPageState
                         ),
                       ),
 
-                      const SizedBox(height: 25),
+                      const SizedBox(
+                          height: 25),
 
                       if (labs.isEmpty)
 
@@ -205,12 +235,13 @@ class _SubjectDetailsPageState
                               labs.map((lab) {
 
                             int available =
-                                lab['capacity'] -
-                                    lab['enrolled'];
+                                lab['available'] ??
+                                    0;
 
                             return Container(
 
-                              width: double.infinity,
+                              width:
+                                  double.infinity,
 
                               margin:
                                   const EdgeInsets.only(
@@ -242,90 +273,248 @@ class _SubjectDetailsPageState
 
                               child: Column(
 
+                                crossAxisAlignment:
+                                    CrossAxisAlignment
+                                        .start,
+
                                 children: [
 
-                                  Text(
+                                  Center(
 
-                                    lab['lab_name'],
+                                    child: Text(
+
+                                      lab['lab_name'],
+
+                                      style:
+                                          const TextStyle(
+                                        fontWeight:
+                                            FontWeight
+                                                .bold,
+                                        fontSize: 20,
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(
+                                      height: 20),
+
+                                  Text(
+                                    "Capacity : ${lab['capacity']}",
+                                  ),
+
+                                  const SizedBox(
+                                      height: 5),
+
+                                  Text(
+                                    "Total Student : ${lab['total_students']}",
+                                  ),
+
+                                  const SizedBox(
+                                      height: 5),
+
+                                  Text(
+                                    "Cap Available : $available",
+                                  ),
+
+                                  const SizedBox(
+                                      height: 25),
+
+                                  const Text(
+
+                                    "List Registered Student",
 
                                     style:
-                                        const TextStyle(
+                                        TextStyle(
                                       fontWeight:
                                           FontWeight
                                               .bold,
-                                      fontSize: 20,
+                                      fontSize: 16,
                                     ),
                                   ),
 
                                   const SizedBox(
-                                      height: 15),
+                                      height: 12),
 
-                                  Align(
+                                  if (lab['registrations'] ==
+                                          null ||
+                                      (lab['registrations']
+                                              as List)
+                                          .isEmpty)
 
-                                    alignment:
-                                        Alignment
-                                            .centerLeft,
+                                    const Text(
+                                      "No student registered yet",
+                                    )
 
-                                    child: Text(
-                                      "Capacity : ${lab['capacity']}",
+                                  else
+
+                                    Column(
+
+                                      children:
+                                          (lab['registrations'] ??
+                                                  [])
+                                              .map<Widget>(
+                                                  (student) {
+
+                                        return Container(
+
+                                          width:
+                                              double.infinity,
+
+                                          margin:
+                                              const EdgeInsets.only(
+                                                  bottom:
+                                                      12),
+
+                                          padding:
+                                              const EdgeInsets.symmetric(
+                                            horizontal:
+                                                14,
+                                            vertical:
+                                                14,
+                                          ),
+
+                                          decoration:
+                                              BoxDecoration(
+
+                                            color: Colors
+                                                .white,
+
+                                            borderRadius:
+                                                BorderRadius.circular(
+                                                    16),
+
+                                            border:
+                                                Border.all(
+                                              color: Colors
+                                                  .black12,
+                                            ),
+
+                                            boxShadow:
+                                                const [
+
+                                              BoxShadow(
+                                                blurRadius:
+                                                    4,
+                                                color: Colors
+                                                    .black12,
+                                                offset:
+                                                    Offset(
+                                                        0,
+                                                        2),
+                                              )
+                                            ],
+                                          ),
+
+                                          child: Row(
+
+                                            mainAxisAlignment:
+                                                MainAxisAlignment
+                                                    .spaceBetween,
+
+                                            children: [
+
+                                              Expanded(
+
+                                                child:
+                                                    Column(
+
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment
+                                                          .start,
+
+                                                  children: [
+
+                                                    Text(
+
+                                                      student['name']
+                                                              ?.toString() ??
+                                                          "-",
+
+                                                      style:
+                                                          const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize:
+                                                            16,
+                                                      ),
+                                                    ),
+
+                                                    const SizedBox(
+                                                        height:
+                                                            4),
+
+                                                    Text(
+
+                                                      student['email']
+                                                              ?.toString() ??
+                                                          "-",
+
+                                                      style:
+                                                          const TextStyle(
+                                                        color:
+                                                            Colors.black54,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+
+                                              Container(
+
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal:
+                                                      10,
+                                                  vertical:
+                                                      4,
+                                                ),
+
+                                                decoration:
+                                                    BoxDecoration(
+
+                                                  color:
+                                                      student['status']?.toString() ==
+                                                              "active"
+
+                                                          ? Colors.green
+
+                                                          : Colors.orange,
+
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          20),
+                                                ),
+
+                                                child:
+                                                    Text(
+
+                                                  student['status']
+                                                          ?.toString() ??
+                                                      "active",
+
+                                                  style:
+                                                      const TextStyle(
+                                                    color:
+                                                        Colors.white,
+                                                    fontWeight:
+                                                        FontWeight.bold,
+                                                    fontSize:
+                                                        12,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+
+                                      }).toList(),
                                     ),
-                                  ),
-
-                                  const SizedBox(
-                                      height: 5),
-
-                                  Align(
-
-                                    alignment:
-                                        Alignment
-                                            .centerLeft,
-
-                                    child: Text(
-                                      "Total Student : ${lab['enrolled']}",
-                                    ),
-                                  ),
-
-                                  const SizedBox(
-                                      height: 5),
-
-                                  Align(
-
-                                    alignment:
-                                        Alignment
-                                            .centerLeft,
-
-                                    child: Text(
-                                      "Cap Available : $available",
-                                    ),
-                                  ),
                                 ],
                               ),
                             );
+
                           }).toList(),
                         ),
-
-                      const SizedBox(height: 20),
-
-                      const Align(
-
-                        alignment: Alignment.centerLeft,
-
-                        child: Text(
-
-                          "List Registered Student",
-
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      const Text(
-                        "No student registered yet",
-                      ),
                     ],
                   ),
                 ),

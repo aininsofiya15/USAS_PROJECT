@@ -20,11 +20,13 @@ class Registration extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'student_id',
-        'section_id',
-        'status',
-        'registered_at',
-    ];
+    'student_id',
+    'subject_id',
+    'section_id',
+    'lab_id',
+    'status',
+    'registered_at',
+];
 
     /**
      * Get the student that owns the registration.
@@ -41,5 +43,14 @@ class Registration extends Model
     {
         // Adjust 'section_id' if your sections table uses a different PK name
         return $this->belongsTo(Section::class, 'section_id', 'section_id');
-    }
+    } 
+
+    public function lab(): BelongsTo
+{
+    return $this->belongsTo(
+        Lab::class,
+        'lab_id',
+        'lab_id'
+    );
+}
 }
