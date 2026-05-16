@@ -80,7 +80,7 @@ Route::get('/treasurer/fees-summary', [TuitionFeesController::class, 'getTuition
 Route::get('/treasurer/fees-status', [TuitionFeesController::class, 'getStudentsFeeStatus']);
 Route::get('/treasurer/student-details/{userId}', [TuitionFeesController::class, 'getStudentDetail']);
 Route::get('/treasurer/unpaid-count', [TuitionFeesController::class, 'getUnpaidCount']);
-Route::post('/treasurer/save-block-settings', [TuitionFeesController::class, 'saveBlockSettings']);
+Route::post('/treasurer/block-settings', [TuitionFeesController::class, 'updateBlockSettings']);
 Route::get('/student/financial-details/{id}', [TuitionFeesController::class, 'getStudentFinancialProfile']);
 Route::get('/student/payment-history/{userId}', [TuitionFeesController::class, 'getPaymentHistory']); 
 Route::post('/student/update-bank', [TuitionFeesController::class, 'updateStudentBank']);
