@@ -59,6 +59,7 @@ Route::get('/subject-details/{id}', [RegistrarSubjectController::class, 'getSubj
 Route::get('/student/subjects',[StudentSubjectController::class, 'getSubjects']);
 Route::get('/student/registered-subjects/{student_id}',[StudentSubjectController::class,'getRegisteredSubjects']);
 Route::post('/student/register-subject',[StudentSubjectController::class,'registerSubject']);
+Route::put('/student/drop-subject/{registration_id}',[StudentSubjectController::class,'dropSubject']);
 //-----------------------------------------------------------------------------
 
 
@@ -72,6 +73,10 @@ Route::get('/attendance/{id}', [AttendanceController::class, 'getDetails']);
 Route::post('/attendance/update/{id}', [AttendanceController::class, 'updateAttendanceDetails']);
 Route::get('/attendance/present/{id}', [AttendanceController::class, 'getClassStudentAttendance']);
 Route::get('/attendance/not-present/{id}', [AttendanceController::class, 'getClassNotPresentStudents']);
+
+//STUDENT ROUTES
+Route::get('/student/dashboard/{studentId}', [AttendanceController::class, 'fetchStudentClassModule']);
+Route::get('/attendance/submissions/{sectionId}/{studentId}', [AttendanceController::class, 'getAttendanceSubmission']);
 
 //JIHA (TREASURER + STUDENT)
 Route::get('/treasurer/student-count', [TuitionFeesController::class, 'getStudentCount']);

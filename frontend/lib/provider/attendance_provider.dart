@@ -198,6 +198,104 @@ class AttendanceProvider with ChangeNotifier {
     }
   }
 
+List<dynamic> _studentCurriculum = [];
+List<dynamic> _studentCoCurriculum = [];
+
+List<dynamic> get studentCurriculum => _studentCurriculum;
+List<dynamic> get studentCoCurriculum => _studentCoCurriculum;
+
+Future<void> fetchStudentClassModule(String studentId) async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    final response = await http.get(
+      Uri.parse("${Api.baseUrl}/student/dashboard/$studentId")
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      
+      if (jsonResponse['success'] == true) {
+        // FIX: Access the 'data' key first
+        final actualData = jsonResponse['data']; 
+        
+        _studentCurriculum = actualData['curriculum'] ?? [];
+        _studentCoCurriculum = actualData['co_curriculum'] ?? [];
+      }
+    }
+  } catch (e) {
+    debugPrint("Dashboard Fetch Error: $e");
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
+List<dynamic> _attendanceSubmissions = [];
+List<dynamic> get attendanceSubmissions => _attendanceSubmissions;
+
+Future<void> getAttendanceSubmission(int sectionId, String studentId) async {
+  _isLoading = true;
+  _attendanceSubmissions = []; 
+  notifyListeners();
+
+  try {
+    final response = await http.get(
+      Uri.parse("${Api.baseUrl}/attendance/submissions/$sectionId/$studentId")
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      
+      // FIX: Access the 'data' key here
+      if (jsonResponse['success'] == true) {
+        _attendanceSubmissions = jsonResponse['data'];
+      }
+    }
+  } catch (e) {
+    debugPrint("Error fetching submissions: $e");
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
+Future<bool> submitStudentAttendance({
+  required int attendanceId,
+  required String studentId,
+  required String code,
+}) async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    final response = await http.post(
+      Uri.parse("${Api.baseUrl}/attendance/submit"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        'attendance_id': attendanceId,
+        'student_id': studentId,
+        'code': code,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      final errorData = jsonDecode(response.body);
+      _errorMessage = errorData['message'] ?? "Submission failed";
+      return false;
+    }
+  } catch (e) {
+    _errorMessage = "Connection error: $e";
+    return false;
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
 
   /// Fetches student records for a specific module session
   /// AININ

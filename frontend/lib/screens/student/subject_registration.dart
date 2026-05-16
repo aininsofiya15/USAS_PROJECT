@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../domain/subject.dart';
 import '../../provider/student_subject_provider.dart';
 
-/// IMPORT SAME SIDEBAR & HEADER
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
 
@@ -43,7 +42,6 @@ class _SubjectRegistrationPageState
 
     return Scaffold(
 
-      /// SAME SIDEBAR
       drawer: const AppSidebar(),
 
       backgroundColor:
@@ -53,10 +51,8 @@ class _SubjectRegistrationPageState
 
         children: [
 
-          /// SAME HEADER
           const UsasHeader(),
 
-          /// PAGE CONTENT
           Expanded(
 
             child:
@@ -67,7 +63,6 @@ class _SubjectRegistrationPageState
               builder:
                   (context, snapshot) {
 
-                /// LOADING
                 if (snapshot.connectionState ==
                     ConnectionState.waiting) {
 
@@ -77,7 +72,6 @@ class _SubjectRegistrationPageState
                   );
                 }
 
-                /// ERROR
                 if (snapshot.hasError) {
 
                   return Center(
@@ -87,7 +81,6 @@ class _SubjectRegistrationPageState
                   );
                 }
 
-                /// EMPTY
                 if (!snapshot.hasData ||
                     snapshot.data!.isEmpty) {
 
@@ -218,7 +211,6 @@ class _SubjectRegistrationPageState
                             height: 20,
                           ),
 
-                          /// NO SECTION
                           if (subject
                               .sections
                               .isEmpty)
@@ -239,7 +231,6 @@ class _SubjectRegistrationPageState
                               ),
                             ),
 
-                          /// SECTION LIST
                           Column(
 
                             children:
@@ -249,167 +240,613 @@ class _SubjectRegistrationPageState
                                     .map(
                               (section) {
 
-                                return Container(
+                                if (section
+                                    .labs
+                                    .isEmpty) {
 
-                                  margin:
-                                      const EdgeInsets.only(
-                                    bottom:
-                                        10,
-                                  ),
+                                  return const Padding(
 
-                                  child:
-                                      Row(
+                                    padding:
+                                        EdgeInsets.all(
+                                      10,
+                                    ),
 
-                                    children: [
+                                    child: Text(
+                                      "No Lab Available",
+                                    ),
+                                  );
+                                }
 
-                                      /// SECTION
-                                      Expanded(
+                                return Column(
 
-                                        child:
-                                            Container(
+                                  children:
 
-                                          padding:
-                                              const EdgeInsets.symmetric(
-                                            vertical:
-                                                12,
-                                          ),
+                                      section
+                                          .labs
+                                          .map(
+                                    (lab) {
 
-                                          decoration:
-                                              BoxDecoration(
+                                      return Container(
 
-                                            color: Colors
-                                                .blue
-                                                .shade100,
-
-                                            borderRadius:
-                                                BorderRadius.circular(
-                                              20,
-                                            ),
-                                          ),
-
-                                          child:
-                                              Text(
-
-                                            section
-                                                .sectionNo,
-
-                                            textAlign:
-                                                TextAlign.center,
-
-                                            style:
-                                                const TextStyle(
-
-                                              fontWeight:
-                                                  FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-
-                                      const SizedBox(
-                                        width:
-                                            10,
-                                      ),
-
-                                      /// CAPACITY
-                                      Expanded(
-
-                                        child:
-                                            Container(
-
-                                          padding:
-                                              const EdgeInsets.symmetric(
-                                            vertical:
-                                                12,
-                                          ),
-
-                                          decoration:
-                                              BoxDecoration(
-
-                                            color: Colors
-                                                .teal
-                                                .shade100,
-
-                                            borderRadius:
-                                                BorderRadius.circular(
-                                              20,
-                                            ),
-                                          ),
-
-                                          child:
-                                              Text(
-
-                                            "${section.capacity} Left",
-
-                                            textAlign:
-                                                TextAlign.center,
-
-                                            style:
-                                                const TextStyle(
-
-                                              fontWeight:
-                                                  FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-
-                                      const SizedBox(
-                                        width:
-                                            10,
-                                      ),
-
-                                      /// ADD BUTTON
-                                      ElevatedButton(
-
-                                        style:
-                                            ElevatedButton.styleFrom(
-
-                                          backgroundColor:
-                                              Colors.green,
-
-                                          shape:
-                                              RoundedRectangleBorder(
-
-                                            borderRadius:
-                                                BorderRadius.circular(
+                                        margin:
+                                            const EdgeInsets.only(
+                                          bottom:
                                               12,
-                                            ),
-                                          ),
                                         ),
 
-                                        onPressed:
-                                            () {
+                                        child: Row(
 
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
 
-                                            SnackBar(
+                                          children: [
 
-                                              content:
-                                                  Text(
+                                            /// LAB INFO
+                                            Expanded(
 
-                                                "Registered ${subject.subjectCode} ${section.sectionNo}",
+                                              flex: 2,
+
+                                              child: Container(
+
+                                                padding:
+                                                    const EdgeInsets.all(
+                                                  10,
+                                                ),
+
+                                                decoration:
+                                                    BoxDecoration(
+
+                                                  color:
+                                                      Colors.blue.shade100,
+
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                    20,
+                                                  ),
+                                                ),
+
+                                                child:
+                                                    Column(
+
+                                                  children: [
+
+                                                    Text(
+
+                                                      lab.labName ?? '',
+
+                                                      textAlign:
+                                                          TextAlign.center,
+
+                                                      style:
+                                                          const TextStyle(
+
+                                                        fontWeight:
+                                                            FontWeight.bold,
+
+                                                        fontSize:
+                                                            14,
+                                                      ),
+                                                    ),
+
+                                                    const SizedBox(
+                                                      height:
+                                                          5,
+                                                    ),
+
+                                                    Text(
+                                                      lab.scheduleDay ?? '',
+                                                    ),
+
+                                                    Text(
+                                                      lab.scheduleTime ?? '',
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
-                                          );
-                                        },
 
-                                        child:
-                                            const Text(
+                                            const SizedBox(
+                                              width:
+                                                  10,
+                                            ),
 
-                                          "+ Add",
+                                            /// CAPACITY
+                                            Expanded(
 
-                                          style:
-                                              TextStyle(
-                                            color:
-                                                Colors.white,
-                                          ),
+                                              child:
+                                                  Container(
+
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  vertical:
+                                                      20,
+                                                ),
+
+                                                decoration:
+                                                    BoxDecoration(
+
+                                                  color:
+                                                      Colors.teal.shade100,
+
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                    20,
+                                                  ),
+                                                ),
+
+                                                child:
+                                                    Text(
+
+                                                  "${lab.capacity - lab.enrolled} Left",
+
+                                                  textAlign:
+                                                      TextAlign.center,
+
+                                                  style:
+                                                      const TextStyle(
+
+                                                    fontWeight:
+                                                        FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+
+                                            const SizedBox(
+                                              width:
+                                                  10,
+                                            ),
+
+                                            /// ADD BUTTON
+                                            ElevatedButton(
+
+                                              style:
+                                                  ElevatedButton.styleFrom(
+
+                                                backgroundColor:
+                                                    Colors.green,
+
+                                                shape:
+                                                    RoundedRectangleBorder(
+
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                    12,
+                                                  ),
+                                                ),
+                                              ),
+
+                                              onPressed:
+                                                  () async {
+
+                                                try {
+
+                                                  await provider.registerSubject(
+
+                                                    studentId:
+                                                        1,
+
+                                                    subjectId:
+                                                        subject.subjectId,
+
+                                                    sectionId:
+                                                        section.sectionId,
+
+                                                    labId:
+                                                        lab.labId,
+                                                  );
+
+                                                  /// SUCCESS POPUP
+                                                  showDialog(
+
+                                                    context:
+                                                        context,
+
+                                                    barrierDismissible:
+                                                        false,
+
+                                                    builder:
+                                                        (context) {
+
+                                                      return Dialog(
+
+                                                        child:
+                                                            Container(
+
+                                                          padding:
+                                                              const EdgeInsets.all(
+                                                            25,
+                                                          ),
+
+                                                          decoration:
+                                                              BoxDecoration(
+
+                                                            color:
+                                                                Colors.white,
+
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                              20,
+                                                            ),
+                                                          ),
+
+                                                          child:
+                                                              Column(
+
+                                                            mainAxisSize:
+                                                                MainAxisSize.min,
+
+                                                            children: [
+
+                                                              const Icon(
+
+                                                                Icons.check_circle,
+
+                                                                color:
+                                                                    Colors.green,
+
+                                                                size:
+                                                                    70,
+                                                              ),
+
+                                                              const SizedBox(
+                                                                height:
+                                                                    20,
+                                                              ),
+
+                                                              const Text(
+
+                                                                "Subject added successfully",
+
+                                                                textAlign:
+                                                                    TextAlign.center,
+
+                                                                style:
+                                                                    TextStyle(
+
+                                                                  fontSize:
+                                                                      18,
+
+                                                                  fontWeight:
+                                                                      FontWeight.bold,
+                                                                ),
+                                                              ),
+
+                                                              const SizedBox(
+                                                                height:
+                                                                    25,
+                                                              ),
+
+                                                              ElevatedButton(
+
+                                                                style:
+                                                                    ElevatedButton.styleFrom(
+
+                                                                  backgroundColor:
+                                                                      Colors.green,
+                                                                ),
+
+                                                                onPressed:
+                                                                    () {
+
+                                                                  Navigator.pop(
+                                                                    context,
+                                                                  );
+                                                                },
+
+                                                                child:
+                                                                    const Text(
+
+                                                                  "OK",
+
+                                                                  style:
+                                                                      TextStyle(
+
+                                                                    color:
+                                                                        Colors.white,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                  );
+
+                                                  setState(() {
+
+                                                    subjectsFuture =
+                                                        provider.fetchSubjects();
+                                                  });
+
+                                                }catch (e) {
+
+  String errorMessage = e.toString();
+
+  /// SCHEDULE CONFLICT
+  if (errorMessage.contains("Schedule conflict")) {
+
+    showDialog(
+
+      context: context,
+
+      barrierDismissible: false,
+
+      builder: (context) {
+
+        return Dialog(
+
+          child: Container(
+
+            padding: const EdgeInsets.all(25),
+
+            decoration: BoxDecoration(
+
+              color: Colors.white,
+
+              borderRadius: BorderRadius.circular(20),
+            ),
+
+            child: Column(
+
+              mainAxisSize: MainAxisSize.min,
+
+              children: [
+
+                const Icon(
+
+                  Icons.close,
+
+                  color: Colors.red,
+
+                  size: 70,
+                ),
+
+                const SizedBox(height: 20),
+
+                const Text(
+
+                  "Selected subject has a schedule conflict with your existing timetable",
+
+                  textAlign: TextAlign.center,
+
+                  style: TextStyle(
+
+                    fontSize: 18,
+
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 25),
+
+                ElevatedButton(
+
+                  style: ElevatedButton.styleFrom(
+
+                    backgroundColor: Colors.red,
+                  ),
+
+                  onPressed: () {
+
+                    Navigator.pop(context);
+                  },
+
+                  child: const Text(
+
+                    "OK",
+
+                    style: TextStyle(
+
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+  }
+
+  /// DUPLICATE SUBJECT
+  else if (errorMessage.contains("already registered")) {
+
+    showDialog(
+
+      context: context,
+
+      barrierDismissible: false,
+
+      builder: (context) {
+
+        return Dialog(
+
+          child: Container(
+
+            padding: const EdgeInsets.all(25),
+
+            decoration: BoxDecoration(
+
+              color: Colors.white,
+
+              borderRadius: BorderRadius.circular(20),
+            ),
+
+            child: Column(
+
+              mainAxisSize: MainAxisSize.min,
+
+              children: [
+
+                const Icon(
+
+                  Icons.warning,
+
+                  color: Colors.orange,
+
+                  size: 70,
+                ),
+
+                const SizedBox(height: 20),
+
+                const Text(
+
+                  "You have already registered this subject",
+
+                  textAlign: TextAlign.center,
+
+                  style: TextStyle(
+
+                    fontSize: 18,
+
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 25),
+
+                ElevatedButton(
+
+                  style: ElevatedButton.styleFrom(
+
+                    backgroundColor: Colors.orange,
+                  ),
+
+                  onPressed: () {
+
+                    Navigator.pop(context);
+                  },
+
+                  child: const Text(
+
+                    "OK",
+
+                    style: TextStyle(
+
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+  }
+
+  /// CREDIT LIMIT
+  else {
+
+    showDialog(
+
+      context: context,
+
+      barrierDismissible: false,
+
+      builder: (context) {
+
+        return Dialog(
+
+          child: Container(
+
+            padding: const EdgeInsets.all(25),
+
+            decoration: BoxDecoration(
+
+              color: Colors.white,
+
+              borderRadius: BorderRadius.circular(20),
+            ),
+
+            child: Column(
+
+              mainAxisSize: MainAxisSize.min,
+
+              children: [
+
+                const Icon(
+
+                  Icons.close,
+
+                  color: Colors.red,
+
+                  size: 70,
+                ),
+
+                const SizedBox(height: 20),
+
+                const Text(
+
+                  "You have reached the maximum subject registration limit",
+
+                  textAlign: TextAlign.center,
+
+                  style: TextStyle(
+
+                    fontSize: 18,
+
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 25),
+
+                ElevatedButton(
+
+                  style: ElevatedButton.styleFrom(
+
+                    backgroundColor: Colors.red,
+                  ),
+
+                  onPressed: () {
+
+                    Navigator.pop(context);
+                  },
+
+                  child: const Text(
+
+                    "OK",
+
+                    style: TextStyle(
+
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+                                              },
+
+                                              child:
+                                                  const Text(
+
+                                                "+ Add",
+
+                                                style:
+                                                    TextStyle(
+
+                                                  color:
+                                                      Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                      );
+                                    },
+                                  ).toList(),
                                 );
                               },
                             ).toList(),

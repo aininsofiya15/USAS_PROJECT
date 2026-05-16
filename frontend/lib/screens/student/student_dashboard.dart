@@ -1,3 +1,4 @@
+import 'package:USAS/screens/student/attendance_dashboard.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/header.dart'; 
 import '../../widgets/navigation_bar.dart';
@@ -44,7 +45,8 @@ class StudentDashboard extends StatelessWidget {
               children: [
                 _buildCategoryCard("Subject Registration", "assets/icons/sub_reg.png", () {}),
                 _buildCategoryCard("Curriculum Activity", "assets/icons/curriculum.png", () {}),
-                _buildCategoryCard("Attendance", "assets/icons/attendance.png", () {}),
+                _buildCategoryCard("Attendance", "assets/icons/attendance.png", () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const AttendanceDashboard()));                }),
                 _buildCategoryCard("Tuition Fees", "assets/icons/tuition.png", () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const FinancialInfoPage()));
                 }),

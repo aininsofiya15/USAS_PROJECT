@@ -12,12 +12,39 @@ class StudentSubjectController extends Controller
     /// GET ALL SUBJECTS
     public function getSubjects()
     {
-        $subjects = Subject::with('sections')
-            ->where('subject_status', 'active')
-            ->get();
+        $subjects = Subject::with([
+
+            'sections' => function ($query) {
+
+                $query
+
+                    ->withCount([
+
+                        'registrations as registered_count' => function ($q) {
+
+                            $q->where(
+                                'status',
+                                'active'
+                            );
+                        }
+                    ])
+
+                    ->with('labs');
+            }
+
+        ])
+
+        ->where(
+            'subject_status',
+            'active'
+        )
+
+        ->get();
 
         return response()->json([
+
             'success' => true,
+
             'data' => $subjects
         ]);
     }
@@ -41,12 +68,28 @@ class StudentSubjectController extends Controller
                 'sections.section_id'
             )
 
+            ->join(
+                'labs',
+                'registration.lab_id',
+                '=',
+                'labs.lab_id'
+            )
+
             ->select(
+
                 'registration.registration_id',
+
                 'subjects.subject_code',
+
                 'subjects.subject_name',
+
                 'subjects.credit_hours',
-                'sections.section_no'
+
+                'labs.lab_name',
+
+                'labs.schedule_day',
+
+                'labs.schedule_time'
             )
 
             ->where(
@@ -62,69 +105,248 @@ class StudentSubjectController extends Controller
             ->get();
 
         return response()->json([
+
             'success' => true,
+
             'data' => $registrations
-        ]);
-    } 
-
-    public function registerSubject(Request $request)
-{
-    $exists = \DB::table('registration')
-
-        ->where(
-            'student_id',
-            $request->student_id
-        )
-
-        ->where(
-            'subject_id',
-            $request->subject_id
-        )
-
-        ->where(
-            'status',
-            'active'
-        )
-
-        ->exists();
-
-    /// PREVENT DUPLICATE
-    if ($exists) {
-
-        return response()->json([
-
-            'success' => false,
-
-            'message' =>
-                'Subject already registered'
         ]);
     }
 
-    /// INSERT
-    \DB::table('registration')->insert([
+    /// REGISTER SUBJECT
+    public function registerSubject(
+        Request $request
+    )
+    {
+        $exists = DB::table('registration')
 
-        'student_id' =>
-            $request->student_id,
+            ->where(
+                'student_id',
+                $request->student_id
+            )
 
-        'subject_id' =>
-            $request->subject_id,
+            ->where(
+                'subject_id',
+                $request->subject_id
+            )
 
-        'section_id' =>
-            $request->section_id,
+            ->where(
+                'status',
+                'active'
+            )
 
-        'lab_id' => 1,
+            ->exists();
 
-        'status' => 'active',
+        /// PREVENT DUPLICATE
+        if ($exists) {
 
-        'registered_at' => now(),
-    ]);
+            return response()->json([
+
+                'success' => false,
+
+                'message' =>
+                    'Subject already registered'
+            ]);
+        } 
+
+        /// CHECK TOTAL CREDIT HOUR
+$currentCredit = DB::table('registration')
+
+    ->join(
+        'subjects',
+        'registration.subject_id',
+        '=',
+        'subjects.subject_id'
+    )
+
+    ->where(
+        'registration.student_id',
+        $request->student_id
+    )
+
+    ->where(
+        'registration.status',
+        'active'
+    )
+
+    ->sum('subjects.credit_hours');
+
+
+/// GET NEW SUBJECT CREDIT
+$newSubject = DB::table('subjects')
+
+    ->where(
+        'subject_id',
+        $request->subject_id
+    )
+
+    ->first();
+
+
+/// LIMIT 20 CREDIT
+if (($currentCredit + $newSubject->credit_hours) > 20) {
 
     return response()->json([
 
-        'success' => true,
+        'success' => false,
 
         'message' =>
-            'Subject registered successfully'
-    ]);
+            'Maximum 20 credit hours exceeded'
+    ], 400);
 }
+
+/// GET NEW LAB
+$newLab = DB::table('labs')
+
+    ->where(
+        'lab_id',
+        $request->lab_id
+    )
+
+    ->first();
+
+
+/// GET EXISTING REGISTERED LABS
+$existingLabs = DB::table('registration')
+
+    ->join(
+        'labs',
+        'registration.lab_id',
+        '=',
+        'labs.lab_id'
+    )
+
+    ->where(
+        'registration.student_id',
+        $request->student_id
+    )
+
+    ->where(
+        'registration.status',
+        'active'
+    )
+
+    ->select(
+
+        'labs.schedule_day',
+
+        'labs.schedule_time'
+    )
+
+    ->get();
+
+
+/// CHECK CONFLICT
+foreach ($existingLabs as $lab) {
+
+    /// SAME DAY
+    if (
+
+        strtolower($lab->schedule_day) ==
+        strtolower($newLab->schedule_day)
+
+    ) {
+
+        /// SAME TIME
+        if (
+
+            strtolower($lab->schedule_time) ==
+            strtolower($newLab->schedule_time)
+
+        ) {
+
+            return response()->json([
+
+                'success' => false,
+
+                'message' =>
+
+                    'Schedule conflict detected'
+            ], 400);
+        }
+    }
+}
+        /// INSERT REGISTRATION
+        DB::table('registration')
+
+            ->insert([
+
+                'student_id' =>
+                    $request->student_id,
+
+                'subject_id' =>
+                    $request->subject_id,
+
+                'section_id' =>
+                    $request->section_id,
+
+                'lab_id' =>
+                    $request->lab_id,
+
+                'status' => 'active',
+
+                'registered_at' => now(),
+            ]);
+
+        /// INCREASE LAB ENROLLED
+        DB::table('labs')
+
+            ->where(
+                'lab_id',
+                $request->lab_id
+            )
+
+            ->increment('enrolled');
+
+        return response()->json([
+
+            'success' => true,
+
+            'message' =>
+                'Subject registered successfully'
+        ]);
+    }
+
+    /// DROP SUBJECT
+    public function dropSubject($registration_id)
+    {
+        $registration = DB::table('registration')
+
+            ->where(
+                'registration_id',
+                $registration_id
+            )
+
+            ->first();
+
+        /// DECREASE LAB ENROLLED
+        DB::table('labs')
+
+            ->where(
+                'lab_id',
+                $registration->lab_id
+            )
+
+            ->decrement('enrolled');
+
+        /// UPDATE STATUS
+        DB::table('registration')
+
+            ->where(
+                'registration_id',
+                $registration_id
+            )
+
+            ->update([
+
+                'status' => 'dropped'
+            ]);
+
+        return response()->json([
+
+            'success' => true,
+
+            'message' =>
+                'Subject dropped successfully'
+        ]);
+    }
 }

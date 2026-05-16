@@ -231,14 +231,147 @@ public function getClassNotPresentStudents($attendanceId)
     ]);
 }
 
-//UpdateStudentAttendanceDetails
-//
+public function fetchStudentClassModule($studentId)
+{
+    try {
+        // 1. Fetch Academic Curriculum
+        // Path: registration -> sections -> subjects
+        $curriculum = DB::table('registration')
+            ->join('sections', 'registration.section_id', '=', 'sections.section_id')
+            ->join('subjects', 'sections.subject_id', '=', 'subjects.subject_id')
+            ->where('registration.student_id', $studentId)
+            ->where('registration.status', 'active')
+            ->select(
+                'subjects.subject_id', 
+                'subjects.subject_code', 
+                'subjects.subject_name',
+                'sections.section_id',
+                'sections.section_no'
+            )
+            ->get();
 
+        // 2. Fetch Co-Curriculum (Bookings -> Modules)
+        $coCurriculum = DB::table('bookings')
+            ->join('modules', 'bookings.module_id', '=', 'modules.id')
+            ->where('bookings.student_id', $studentId)
+            ->select(
+                'modules.id as module_id', 
+                'modules.activity_name', 
+                'modules.date_time', 
+                'modules.venue'
+            )
+            ->get();
 
-    /**
-     * Fetch attendance details for a specific Pusat ADAB module session.
-     * This follows the logic: Booking -> ModuleAttendance -> Attendance -> Records.
-     */
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'curriculum' => $curriculum,
+                'co_curriculum' => $coCurriculum
+            ]
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false, 
+            'message' => 'Query Error: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+public function getAttendanceSubmission($sectionId, $studentId)
+{
+    try {
+        // 1. Get all attendance sessions created for this section
+        $sessions = DB::table('class_attendances')
+            ->join('attendances', 'class_attendances.attendance_id', '=', 'attendances.id')
+            ->where('class_attendances.section_id', $sectionId)
+            ->select(
+                'class_attendances.attendance_id',
+                'class_attendances.class_type',
+                'class_attendances.date',
+                'class_attendances.time',
+                'attendances.attendance_code'
+            )
+            ->orderBy('class_attendances.date', 'desc')
+            ->get();
+
+        $today = date('Y-m-d');
+
+        // 2. Loop through to determine the status for the student
+        foreach ($sessions as $session) {
+            // Check if student has already submitted for this specific session
+            $submission = DB::table('attendance_records')
+                ->where('attendance_id', $session->attendance_id)
+                ->where('student_id', $studentId)
+                ->first();
+
+            if ($submission) {
+                $session->status = 'Submitted';
+            } elseif ($session->date == $today) {
+                $session->status = 'Active';
+            } else {
+                $session->status = 'Expired';
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $sessions
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
+
+public function submitAttendance(Request $request)
+{
+    $request->validate([
+        'attendance_id' => 'required|exists:attendances,id',
+        'student_id' => 'required',
+        'code' => 'required|string|size:6'
+    ]);
+
+    try {
+        // 1. Check if the code matches the generated session
+        $session = DB::table('attendances')
+            ->where('id', $request->attendance_id)
+            ->where('attendance_code', $request->code)
+            ->first();
+
+        if (!$session) {
+            return response()->json(['success' => false, 'message' => 'Invalid attendance code.'], 422);
+        }
+
+        // 2. Prevent duplicate submission
+        $exists = DB::table('attendance_records')
+            ->where('attendance_id', $request->attendance_id)
+            ->where('student_id', $request->student_id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json(['success' => false, 'message' => 'Attendance already submitted.'], 409);
+        }
+
+        // 3. Insert the record
+        DB::table('attendance_records')->insert([
+            'attendance_id' => $request->attendance_id,
+            'student_id' => $request->student_id,
+            'status' => 'Present',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Attendance submitted successfully!']);
+
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
+
+//------------------------------------------------
+//AININ
+//-----------------------------------------------
     public function getPusatAdabAttendance($bookingId)
     {
         $modules = Module::where('status', 'published')

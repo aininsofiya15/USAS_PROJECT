@@ -3,240 +3,132 @@ import 'package:flutter/material.dart';
 import 'faculty_layout.dart';
 
 class SubjectFormPage extends StatefulWidget {
-
   const SubjectFormPage({super.key});
 
   @override
-  State<SubjectFormPage> createState() =>
-      _SubjectFormPageState();
+  State<SubjectFormPage> createState() => _SubjectFormPageState();
 }
 
-class _SubjectFormPageState
-    extends State<SubjectFormPage> {
-
-  final TextEditingController nameController =
-      TextEditingController();
-
-  final TextEditingController codeController =
-      TextEditingController();
-
-  final TextEditingController creditController =
-      TextEditingController();
-
-  final TextEditingController sectionController =
-      TextEditingController();
+class _SubjectFormPageState extends State<SubjectFormPage> {
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController codeController = TextEditingController();
+  final TextEditingController creditController = TextEditingController();
+  final TextEditingController sectionController = TextEditingController();
 
   List lecturers = [];
-
   List<Map<String, dynamic>> sections = [];
 
   @override
   void initState() {
-
     super.initState();
-
     loadLecturers();
   }
 
   void loadLecturers() async {
-
-    var data =
-        await RegistrarSubjectProvider()
-            .getLecturers();
-
+    var data = await RegistrarSubjectProvider().getLecturers();
     setState(() {
-
       lecturers = data;
     });
   }
 
+  String _formatTime(TimeOfDay time, BuildContext context) {
+    return time.format(context);
+  }
+
   @override
   Widget build(BuildContext context) {
-
     return FacultyLayout(
-
       body: Center(
-
         child: SingleChildScrollView(
-
           child: Container(
-
             margin: const EdgeInsets.all(20),
-
             padding: const EdgeInsets.all(20),
-
             decoration: BoxDecoration(
-
               color: Colors.white,
-
-              borderRadius:
-                  BorderRadius.circular(20),
-
+              borderRadius: BorderRadius.circular(20),
               boxShadow: const [
-
-                BoxShadow(
-                  blurRadius: 8,
-                  color: Colors.black12,
-                )
+                BoxShadow(blurRadius: 8, color: Colors.black12),
               ],
             ),
-
             child: Column(
-
               children: [
-
                 const Text(
-
                   "Subject Registration Form",
-
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
 
                 const SizedBox(height: 25),
 
                 TextField(
-
                   controller: nameController,
-
-                  decoration:
-                      const InputDecoration(
-
+                  decoration: const InputDecoration(
                     labelText: "Subject Name",
-
-                    border:
-                        OutlineInputBorder(),
+                    border: OutlineInputBorder(),
                   ),
                 ),
 
                 const SizedBox(height: 15),
 
                 TextField(
-
                   controller: codeController,
-
-                  decoration:
-                      const InputDecoration(
-
+                  decoration: const InputDecoration(
                     labelText: "Subject Code",
-
-                    border:
-                        OutlineInputBorder(),
+                    border: OutlineInputBorder(),
                   ),
                 ),
 
                 const SizedBox(height: 15),
 
                 TextField(
-
                   controller: creditController,
-
-                  keyboardType:
-                      TextInputType.number,
-
-                  decoration:
-                      const InputDecoration(
-
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
                     labelText: "Credit Hours",
-
-                    border:
-                        OutlineInputBorder(),
+                    border: OutlineInputBorder(),
                   ),
                 ),
 
                 const SizedBox(height: 15),
 
                 TextField(
-
                   controller: sectionController,
-
-                  keyboardType:
-                      TextInputType.number,
-
+                  keyboardType: TextInputType.number,
                   onChanged: (value) {
-
-                    int total =
-                        int.tryParse(value) ?? 0;
-
-                    sections = List.generate(
-                      total,
-                      (index) {
-
-                        return {
-
-                          "section_name":
-                              "Section ${index + 1}",
-
-                          "lecturer_id": null,
-
-                          "lab_controller":
-                              TextEditingController(),
-
-                          "labs": [],
-                        };
-                      },
-                    );
-
+                    int total = int.tryParse(value) ?? 0;
+                    sections = List.generate(total, (index) {
+                      return {
+                        "section_name": "Section ${index + 1}",
+                        "lecturer_id": null,
+                        "lab_controller": TextEditingController(),
+                        "labs": [],
+                      };
+                    });
                     setState(() {});
                   },
-
-                  decoration:
-                      const InputDecoration(
-
+                  decoration: const InputDecoration(
                     labelText: "Total Section",
-
-                    border:
-                        OutlineInputBorder(),
+                    border: OutlineInputBorder(),
                   ),
                 ),
 
                 const SizedBox(height: 25),
 
                 ...sections.map((section) {
-
                   return Container(
-
-                    margin:
-                        const EdgeInsets.only(
-                            bottom: 20),
-
-                    padding:
-                        const EdgeInsets.all(15),
-
+                    margin: const EdgeInsets.only(bottom: 20),
+                    padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
-
-                      color:
-                          const Color(0xFFF6F0D8),
-
-                      borderRadius:
-                          BorderRadius.circular(
-                              15),
-
-                      border: Border.all(
-                        color: Colors.black12,
-                      ),
+                      color: const Color(0xFFF6F0D8),
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: Colors.black12),
                     ),
-
                     child: Column(
-
-                      crossAxisAlignment:
-                          CrossAxisAlignment
-                              .start,
-
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
                         Text(
-
                           section['section_name'],
-
-                          style:
-                              const TextStyle(
-
-                            fontWeight:
-                                FontWeight.bold,
-
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
                             fontSize: 18,
                           ),
                         ),
@@ -244,319 +136,251 @@ class _SubjectFormPageState
                         const SizedBox(height: 15),
 
                         DropdownButtonFormField(
-
-                          items:
-                              lecturers.map((lecturer) {
-
+                          items: lecturers.map((lecturer) {
                             return DropdownMenuItem(
-
-                              value:
-                                  lecturer['id'],
-
-                              child: Text(
-                                lecturer['name'],
-                              ),
+                              value: lecturer['id'],
+                              child: Text(lecturer['name']),
                             );
-
                           }).toList(),
-
                           onChanged: (value) {
-
-                            section['lecturer_id'] =
-                                value;
+                            section['lecturer_id'] = value;
                           },
-
-                          decoration:
-                              const InputDecoration(
-
-                            labelText:
-                                "Select Lecturer",
-
-                            border:
-                                OutlineInputBorder(),
+                          decoration: const InputDecoration(
+                            labelText: "Select Lecturer",
+                            border: OutlineInputBorder(),
                           ),
                         ),
 
                         const SizedBox(height: 15),
 
                         TextField(
-
-                          controller:
-                              section['lab_controller'],
-
-                          keyboardType:
-                              TextInputType.number,
-
+                          controller: section['lab_controller'],
+                          keyboardType: TextInputType.number,
                           onChanged: (value) {
-
-                            int totalLabs =
-                                int.tryParse(
-                                        value) ??
-                                    0;
-
-                            section['labs'] =
-                                List.generate(
-
-                              totalLabs,
-
-                              (labIndex) {
-
-                                return {
-
-                                  "lab_name":
-                                      "${section['section_name']}${String.fromCharCode(65 + labIndex)}",
-
-                                  "capacity_controller":
-                                      TextEditingController(),
-
-                                  "schedule_day_controller":
-                                      TextEditingController(),
-
-                                  "schedule_time_controller":
-                                      TextEditingController(),
-                                };
-                              },
-                            );
-
+                            int totalLabs = int.tryParse(value) ?? 0;
+                            section['labs'] = List.generate(totalLabs, (labIndex) {
+                              return {
+                                "lab_name":
+                                    "${section['section_name']}${String.fromCharCode(65 + labIndex)}",
+                                "capacity_controller": TextEditingController(),
+                                "selected_day": null,
+                                "start_time": null,
+                                "end_time": null,
+                              };
+                            });
                             setState(() {});
                           },
-
-                          decoration:
-                              const InputDecoration(
-
-                            labelText:
-                                "Total Labs",
-
-                            border:
-                                OutlineInputBorder(),
+                          decoration: const InputDecoration(
+                            labelText: "Total Labs",
+                            border: OutlineInputBorder(),
                           ),
                         ),
 
                         const SizedBox(height: 20),
 
-                        ...section['labs']
-                            .map<Widget>((lab) {
-
+                        ...section['labs'].map<Widget>((lab) {
                           return Container(
-
-                            margin:
-                                const EdgeInsets
-                                    .only(
-                                    bottom: 15),
-
-                            padding:
-                                const EdgeInsets
-                                    .all(15),
-
-                            decoration:
-                                BoxDecoration(
-
+                            margin: const EdgeInsets.only(bottom: 15),
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
                               color: Colors.white,
-
-                              borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                          15),
-
-                              border: Border.all(
-                                color:
-                                    Colors.black12,
-                              ),
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: Colors.black12),
                             ),
-
                             child: Column(
-
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
-
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-
                                 Text(
-
                                   lab['lab_name'],
-
-                                  style:
-                                      const TextStyle(
-
-                                    fontWeight:
-                                        FontWeight
-                                            .bold,
-
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
                                     fontSize: 16,
                                   ),
                                 ),
 
-                                const SizedBox(
-                                    height: 15),
+                                const SizedBox(height: 15),
 
                                 TextField(
-
-                                  controller: lab[
-                                      'capacity_controller'],
-
-                                  keyboardType:
-                                      TextInputType
-                                          .number,
-
-                                  decoration:
-                                      const InputDecoration(
-
-                                    labelText:
-                                        "Lab Capacity",
-
-                                    border:
-                                        OutlineInputBorder(),
+                                  controller: lab['capacity_controller'],
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    labelText: "Lab Capacity",
+                                    border: OutlineInputBorder(),
                                   ),
                                 ),
 
-                                const SizedBox(
-                                    height: 15),
+                                const SizedBox(height: 15),
 
-                                TextField(
-
-                                  controller: lab[
-                                      'schedule_day_controller'],
-
-                                  decoration:
-                                      const InputDecoration(
-
-                                    labelText:
-                                        "Schedule Day",
-
-                                    border:
-                                        OutlineInputBorder(),
+                                /// DAY DROPDOWN
+                                DropdownButtonFormField<String>(
+                                  value: lab['selected_day'],
+                                  decoration: const InputDecoration(
+                                    labelText: "Schedule Day",
+                                    border: OutlineInputBorder(),
                                   ),
+                                  items: [
+                                    "Monday",
+                                    "Tuesday",
+                                    "Wednesday",
+                                    "Thursday",
+                                    "Friday",
+                                  ].map((day) {
+                                    return DropdownMenuItem(
+                                      value: day,
+                                      child: Text(day),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      lab['selected_day'] = value;
+                                    });
+                                  },
                                 ),
 
-                                const SizedBox(
-                                    height: 15),
+                                const SizedBox(height: 15),
 
-                                TextField(
+                                /// TIME PICKERS
+                                Row(
+                                  children: [
+                                    /// START TIME
+                                    Expanded(
+                                      child: InkWell(
+                                        onTap: () async {
+                                          final picked = await showTimePicker(
+                                            context: context,
+                                            initialTime: lab['start_time'] ??
+                                                TimeOfDay.now(),
+                                          );
+                                          if (picked != null) {
+                                            setState(() {
+                                              lab['start_time'] = picked;
+                                            });
+                                          }
+                                        },
+                                        child: InputDecorator(
+                                          decoration: const InputDecoration(
+                                            labelText: "Start Time",
+                                            border: OutlineInputBorder(),
+                                            suffixIcon: Icon(Icons.access_time),
+                                          ),
+                                          child: Text(
+                                            lab['start_time'] == null
+                                                ? "Select"
+                                                : _formatTime(
+                                                    lab['start_time'], context),
+                                            style: TextStyle(
+                                              color: lab['start_time'] == null
+                                                  ? Colors.grey
+                                                  : Colors.black,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
 
-                                  controller: lab[
-                                      'schedule_time_controller'],
+                                    const SizedBox(width: 10),
 
-                                  decoration:
-                                      const InputDecoration(
-
-                                    labelText:
-                                        "Schedule Time",
-
-                                    border:
-                                        OutlineInputBorder(),
-                                  ),
+                                    /// END TIME
+                                    Expanded(
+                                      child: InkWell(
+                                        onTap: () async {
+                                          final picked = await showTimePicker(
+                                            context: context,
+                                            initialTime: lab['end_time'] ??
+                                                TimeOfDay.now(),
+                                          );
+                                          if (picked != null) {
+                                            setState(() {
+                                              lab['end_time'] = picked;
+                                            });
+                                          }
+                                        },
+                                        child: InputDecorator(
+                                          decoration: const InputDecoration(
+                                            labelText: "End Time",
+                                            border: OutlineInputBorder(),
+                                            suffixIcon: Icon(Icons.access_time),
+                                          ),
+                                          child: Text(
+                                            lab['end_time'] == null
+                                                ? "Select"
+                                                : _formatTime(
+                                                    lab['end_time'], context),
+                                            style: TextStyle(
+                                              color: lab['end_time'] == null
+                                                  ? Colors.grey
+                                                  : Colors.black,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           );
-
                         }).toList(),
                       ],
                     ),
                   );
-
                 }).toList(),
 
                 const SizedBox(height: 20),
 
                 SizedBox(
-
                   width: double.infinity,
-
                   height: 50,
-
                   child: ElevatedButton(
-
                     onPressed: () async {
-
-                      FocusScope.of(context)
-                          .unfocus();
+                      FocusScope.of(context).unfocus();
 
                       List formattedSections = [];
 
                       for (var section in sections) {
-
                         List formattedLabs = [];
 
-                        for (var lab
-                            in section['labs']) {
+                        for (var lab in section['labs']) {
+                          // ✅ declared only once here
+                          final startTime = lab['start_time'] as TimeOfDay?;
+                          final endTime = lab['end_time'] as TimeOfDay?;
+                          final scheduleTime = (startTime != null && endTime != null)
+                              ? "${startTime.format(context)} - ${endTime.format(context)}"
+                              : "";
 
                           formattedLabs.add({
-
-                            "lab_name":
-                                lab['lab_name'],
-
-                            "capacity":
-                                lab[
-                                  'capacity_controller']
-                                    .text,
-
-                            "schedule_day":
-                                lab[
-                                  'schedule_day_controller']
-                                    .text,
-
-                            "schedule_time":
-                                lab[
-                                  'schedule_time_controller']
-                                    .text,
+                            "lab_name": lab['lab_name'],
+                            "capacity": lab['capacity_controller'].text,
+                            "schedule_day": lab['selected_day'] ?? "",
+                            "schedule_time": scheduleTime,
                           });
                         }
 
                         formattedSections.add({
-
-                          "section_name":
-                              section[
-                                  'section_name'],
-
-                          "lecturer_id":
-                              section[
-                                  'lecturer_id'],
-
-                          "labs":
-                              formattedLabs,
+                          "section_name": section['section_name'],
+                          "lecturer_id": section['lecturer_id'],
+                          "labs": formattedLabs,
                         });
                       }
 
-                      var response =
-                          await RegistrarSubjectProvider()
-                              .registerSubject(
-
-                        subjectName:
-                            nameController.text,
-
-                        subjectCode:
-                            codeController.text,
-
-                        creditHours:
-                            creditController.text,
-
-                        totalSection:
-                            sectionController.text,
-
-                        sections:
-                            formattedSections,
+                      var response = await RegistrarSubjectProvider()
+                          .registerSubject(
+                        subjectName: nameController.text,
+                        subjectCode: codeController.text,
+                        creditHours: creditController.text,
+                        totalSection: sectionController.text,
+                        sections: formattedSections,
                       );
 
                       print(response);
 
-                      ScaffoldMessenger.of(
-                              context)
-                          .showSnackBar(
-
+                      ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-
-                          content: Text(
-                            "Subject Registered Successfully",
-                          ),
+                          content: Text("Subject Registered Successfully"),
                         ),
                       );
                     },
-
-                    child: const Text(
-                      "Register Subject",
-                    ),
+                    child: const Text("Register Subject"),
                   ),
                 ),
               ],

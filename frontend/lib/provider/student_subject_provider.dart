@@ -76,4 +76,75 @@ class StudentSubjectProvider {
     );
   }
 }
+
+Future<void> registerSubject({
+
+  required int studentId,
+
+  required int subjectId,
+
+  required int sectionId,
+
+  required int labId,
+
+}) async {
+
+  final response = await http.post(
+
+    Uri.parse(
+      "${Api.baseUrl}/student/register-subject",
+    ),
+
+    headers: {
+
+      "Content-Type":
+          "application/json",
+    },
+
+    body: jsonEncode({
+
+      "student_id":
+          studentId,
+
+      "subject_id":
+          subjectId,
+
+      "section_id":
+          sectionId,
+
+      "lab_id":
+          labId,
+    }),
+  );
+
+  final data =
+      jsonDecode(response.body);
+
+  if (data['success'] != true) {
+
+    throw Exception(
+      data['message'],
+    );
+  }
+}
+
+Future<void> dropSubject(
+  int registrationId,
+) async {
+
+  final response = await http.put(
+
+    Uri.parse(
+
+      "${Api.baseUrl}/student/drop-subject/$registrationId",
+    ),
+  );
+
+  if (response.statusCode != 200) {
+
+    throw Exception(
+      "Failed to drop subject",
+    );
+  }
+}
 }
