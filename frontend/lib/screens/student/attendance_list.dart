@@ -5,6 +5,7 @@ import '../../provider/user_provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
+import 'attendance_submission.dart';
 
 class AttendanceListPage extends StatefulWidget {
   final int sectionId;
@@ -28,7 +29,6 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = Provider.of<UserProvider>(context, listen: false).userId;
-      // Call the new method we created in the provider
       Provider.of<AttendanceProvider>(context, listen: false)
           .getAttendanceSubmission(widget.sectionId, userId.toString());
     });
@@ -37,7 +37,7 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFD1E9F6), // Light blue background
+      backgroundColor: const Color(0xFFD1E9F6),
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
@@ -54,10 +54,8 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
               ),
               const SizedBox(height: 20),
               
-              // Subject Info Card
               _buildSubjectHeader(),
 
-              // Attendance Sessions Table
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.all(20),
@@ -146,14 +144,14 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
           DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
         ],
         rows: provider.attendanceSubmissions.map((session) {
-          String status = session['status']; // Active, Submitted, or Expired
+          String status = session['status'] ?? 'Expired';
 
           return DataRow(cells: [
             DataCell(Text(session['class_type'] ?? "", style: const TextStyle(fontSize: 10))),
             DataCell(Text(session['date'] ?? "", style: const TextStyle(fontSize: 10))),
             DataCell(Text(session['time'] ?? "", style: const TextStyle(fontSize: 10))),
             DataCell(
-              _buildActionButton(status, session['attendance_id']),
+              _buildActionButton(status, session),
             ),
           ]);
         }).toList(),
@@ -161,7 +159,7 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
     );
   }
 
-  Widget _buildActionButton(String status, int attendanceId) {
+  Widget _buildActionButton(String status, Map<String, dynamic> session) {
     bool isActive = status == 'Active';
     bool isSubmitted = status == 'Submitted';
 
@@ -176,32 +174,23 @@ class _AttendanceListPageState extends State<AttendanceListPage> {
         ),
         onPressed: isActive
             ? () {
-                // TODO: Open Dialog for Code Submission
-                _showCodeDialog(attendanceId);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => AttendanceSubmissionPage(
+                      sessionData: session, // This is exactly what attendance_submission expects
+                      sectionId: widget.sectionId,
+                      subjectCode: widget.subjectCode,
+                      subjectName: widget.subjectName,
+                    ),
+                  ),
+                );
               }
             : null,
         child: Text(
           isSubmitted ? "Submitted" : "Submit",
           style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
         ),
-      ),
-    );
-  }
-
-  void _showCodeDialog(int attendanceId) {
-    // Placeholder for the submission code dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Enter Attendance Code"),
-        content: const TextField(
-          decoration: InputDecoration(hintText: "6-digit code"),
-          keyboardType: TextInputType.number,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(onPressed: () {}, child: const Text("Verify")),
-        ],
       ),
     );
   }

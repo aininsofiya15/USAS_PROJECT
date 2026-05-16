@@ -175,7 +175,7 @@ class AppSidebar extends StatelessWidget {
                     const Divider(color: Colors.white24, height: 10),
                     _buildMenuItem(context, Icons.assignment_turned_in, "Attendance", role),
                     _buildSubMenuItem(context, "Attendance", role),
-                    _buildSubMenuItem(context, "Attendance History", role),
+                    _buildSubMenuItem(context, "Attendance History",  role, destination: AttendanceDashboard()),
                   ],
                 ],
               ),

@@ -324,6 +324,51 @@ public function getAttendanceSubmission($sectionId, $studentId)
     }
 }
 
+public function submitAttendance(Request $request)
+{
+    $request->validate([
+        'attendance_id' => 'required|exists:attendances,id',
+        'student_id' => 'required',
+        'code' => 'required|string|size:6'
+    ]);
+
+    try {
+        // 1. Check if the code matches the generated session
+        $session = DB::table('attendances')
+            ->where('id', $request->attendance_id)
+            ->where('attendance_code', $request->code)
+            ->first();
+
+        if (!$session) {
+            return response()->json(['success' => false, 'message' => 'Invalid attendance code.'], 422);
+        }
+
+        // 2. Prevent duplicate submission
+        $exists = DB::table('attendance_records')
+            ->where('attendance_id', $request->attendance_id)
+            ->where('student_id', $request->student_id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json(['success' => false, 'message' => 'Attendance already submitted.'], 409);
+        }
+
+        // 3. Insert the record
+        DB::table('attendance_records')->insert([
+            'attendance_id' => $request->attendance_id,
+            'student_id' => $request->student_id,
+            'status' => 'Present',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Attendance submitted successfully!']);
+
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
+
 //------------------------------------------------
 //AININ
 //-----------------------------------------------

@@ -198,7 +198,7 @@ class AttendanceProvider with ChangeNotifier {
     }
   }
 
-  List<dynamic> _studentCurriculum = [];
+List<dynamic> _studentCurriculum = [];
 List<dynamic> _studentCoCurriculum = [];
 
 List<dynamic> get studentCurriculum => _studentCurriculum;
@@ -237,7 +237,7 @@ List<dynamic> get attendanceSubmissions => _attendanceSubmissions;
 
 Future<void> getAttendanceSubmission(int sectionId, String studentId) async {
   _isLoading = true;
-  _attendanceSubmissions = []; // Clear list before fetching new ones
+  _attendanceSubmissions = []; 
   notifyListeners();
 
   try {
@@ -247,16 +247,49 @@ Future<void> getAttendanceSubmission(int sectionId, String studentId) async {
 
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
+      
+      // FIX: Access the 'data' key here
       if (jsonResponse['success'] == true) {
-    final actualData = jsonResponse['data']; // The wrapper in your JSON
-    
-    // Ensure these lists are populated from actualData
-    _studentCurriculum = actualData['curriculum'] ?? [];
-    _studentCoCurriculum = actualData['co_curriculum'] ?? [];
-}
+        _attendanceSubmissions = jsonResponse['data'];
+      }
     }
   } catch (e) {
     debugPrint("Error fetching submissions: $e");
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
+Future<bool> submitStudentAttendance({
+  required int attendanceId,
+  required String studentId,
+  required String code,
+}) async {
+  _isLoading = true;
+  notifyListeners();
+
+  try {
+    final response = await http.post(
+      Uri.parse("${Api.baseUrl}/attendance/submit"),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        'attendance_id': attendanceId,
+        'student_id': studentId,
+        'code': code,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return true;
+    } else {
+      final errorData = jsonDecode(response.body);
+      _errorMessage = errorData['message'] ?? "Submission failed";
+      return false;
+    }
+  } catch (e) {
+    _errorMessage = "Connection error: $e";
+    return false;
   } finally {
     _isLoading = false;
     notifyListeners();
