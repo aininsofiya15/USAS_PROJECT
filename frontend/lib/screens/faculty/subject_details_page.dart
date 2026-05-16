@@ -1,9 +1,9 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import 'faculty_layout.dart';
+import '../../widgets/app_sidebar.dart';
+import '../../widgets/header.dart';
 
 class SubjectDetailsPage extends StatefulWidget {
 

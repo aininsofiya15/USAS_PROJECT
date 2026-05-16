@@ -2,6 +2,7 @@ import '../../provider/registrar_subject_provider.dart';
 import 'package:flutter/material.dart';
 import 'faculty_layout.dart';
 
+
 class SubjectFormPage extends StatefulWidget {
   const SubjectFormPage({super.key});
 

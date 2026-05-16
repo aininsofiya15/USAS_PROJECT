@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'faculty_layout.dart';
 import 'subject_form_page.dart';
 import 'subject_details_page.dart';
+import '../../widgets/app_sidebar.dart';
+import '../../widgets/header.dart';
 
 class SubjectRegistrationPage extends StatefulWidget {
 
