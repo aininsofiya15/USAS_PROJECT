@@ -14,24 +14,18 @@ class RegistrarSubjectController extends Controller
 {
 
     public function registerSubject(Request $request)
-    {
+{
+    DB::beginTransaction();
+
+    try {
 
         $subject = Subject::create([
 
-            'subject_name' =>
-                $request->subject_name,
-
-            'subject_code' =>
-                $request->subject_code,
-
-            'credit_hours' =>
-                $request->credit_hours,
-
-            'total_section' =>
-                $request->total_section,
-
+            'subject_name' => $request->subject_name,
+            'subject_code' => $request->subject_code,
+            'credit_hours' => $request->credit_hours,
+            'total_section' => $request->total_section,
             'total_lab' => 0,
-
             'subject_status' => 'active',
         ]);
 
@@ -39,14 +33,11 @@ class RegistrarSubjectController extends Controller
 
             $section = Section::create([
 
-                'subject_id' =>
-                    $subject->subject_id,
+                'subject_id' => $subject->subject_id,
 
-                'lecturer_id' =>
-                    $sectionData['lecturer_id'],
+                'lecturer_id' => $sectionData['lecturer_id'],
 
-                'section_no' =>
-                    $sectionData['section_name'],
+                'section_no' => $sectionData['section_name'],
 
                 'capacity' => 0,
             ]);
@@ -55,30 +46,40 @@ class RegistrarSubjectController extends Controller
 
                 Lab::create([
 
-                    'section_id' =>
-                        $section->section_id,
+                    'section_id' => $section->section_id,
 
-                    'lab_name' =>
-                        $labData['lab_name'],
+                    'lab_name' => $labData['lab_name'],
 
-                    'capacity' =>
-                        $labData['capacity'],
+                    'capacity' => $labData['capacity'],
 
-                    'schedule_day' =>
-                        $labData['schedule_day'],
+                    'schedule_day' => $labData['schedule_day'],
 
-                    'schedule_time' =>
-                        $labData['schedule_time'],
+                    'schedule_time' => $labData['schedule_time'],
                 ]);
             }
         }
 
+        DB::commit();
+
         return response()->json([
 
-            'message' =>
-                'Subject Registered Successfully',
+            'success' => true,
+            'message' => 'Subject Registered Successfully',
         ]);
+
+    } catch (\Exception $e) {
+
+        DB::rollBack();
+
+        return response()->json([
+
+            'success' => false,
+            'error' => $e->getMessage(),
+            'line' => $e->getLine(),
+            'file' => $e->getFile(),
+        ], 500);
     }
+}
 
     public function getSubjects()
     {
@@ -147,35 +148,43 @@ class RegistrarSubjectController extends Controller
 
                 $registrations = DB::table('registration')
 
-                    ->join(
-                        'users',
-                        'registration.student_id',
-                        '=',
-                        'users.id'
-                    )
 
-                    ->where(
-                        'registration.lab_id',
-                        $lab->lab_id
-                    )
+    ->join(
+        'users',
+        'registration.student_id',
+        '=',
+        'users.id'
+    )
 
-                    ->select(
-                        'users.id',
-                        'users.name',
-                        'users.email',
-                        'registration.status'
-                    )
+    ->where(
+        'registration.lab_id',
+        $lab->lab_id
+    )
 
-                    ->get();
+    ->where(
+        'registration.status',
+        'active'
+    )
 
-                $lab->registrations = $registrations;
+    ->select(
+        'users.id',
+        'users.name',
+        'users.email',
+        'registration.status'
+    )
 
-                $lab->total_students =
-                    $registrations->count();
+    ->distinct()
 
-                $lab->available =
-                    $lab->capacity -
-                    $lab->total_students;
+    ->get();
+
+$lab->registrations = $registrations;
+
+$lab->total_students =
+    $registrations->count();
+
+$lab->available =
+    $lab->capacity -
+    $lab->total_students;
             }
 
             $section->labs = $labs;
