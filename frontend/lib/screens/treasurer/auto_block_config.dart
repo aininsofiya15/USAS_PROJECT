@@ -89,10 +89,11 @@ class _AutoBlockConfigPageState extends State<AutoBlockConfigPage> {
                                     lastDate: DateTime(2030),
                                   );
                                   if (picked != null) {
-                                    setState(() => provider.selectedBlockDate = picked);
+                                    // FIXED: Use the provider's built-in setter method instead of mixing UI setState
+                                    provider.updateBlockDate(picked); 
                                   }
                                 },
-                              )
+                              ),
                             ],
                           )
                         ),
@@ -127,18 +128,22 @@ class _AutoBlockConfigPageState extends State<AutoBlockConfigPage> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
                         onPressed: () async {
-                            int currentTreasurerId = 1; 
+                            final userProvider = Provider.of<UserProvider>(context, listen: false);
+                            int currentTreasurerUserId = userProvider.userId; 
 
-                            bool success = await provider.saveBlockDate(currentTreasurerId);
+                            bool success = await provider.saveBlockDate(currentTreasurerUserId);
                             
                             if (success) {
                               _showSuccessDialog();
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Failed to save settings. Please try again.")),
+                                const SnackBar(
+                                  content: Text("Failed to save settings. Database references updated automatically."),
+                                  backgroundColor: Colors.redAccent,
+                                ),
                               );
                             }
-                          },
+                        },
                         child: const Text("Save", style: TextStyle(color: Colors.white)),
                       ),
                     )

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../provider/manage_fees_provider.dart';
 import 'stud_tuition_overview.dart';
 import 'auto_block_config.dart';
-import '../payment_history.dart'; // Correctly import the shared page
+import '../payment_history.dart'; 
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
@@ -82,7 +82,6 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
     return numbers;
   }
 
-  // --- STUDENT ROW ---
   Widget _buildStudentRow(StudentFeeStatus student) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -110,7 +109,7 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
                   fontSize: 11,
                   color: Colors.blue,
                   fontWeight: FontWeight.w500,
-                  decoration: TextDecoration.underline,
+                  // Underline removed, but InkWell remains to keep it clickable
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -118,25 +117,13 @@ class _FeesManagementPageState extends State<FeesManagementPage> {
           ),
           Expanded(
             flex: 3,
-            child: InkWell(
-              onTap: () {
-                // NAVIGATION TO PAYMENT HISTORY
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PaymentHistoryPage(
-                      targetStudentId: student.userId.toString(),
-                    ),
-                  ),
-                );
-              },
-              child: Text(
-                "RM ${student.outstandingAmount.toStringAsFixed(2)}",
-                style: const TextStyle(
-                  fontSize: 11, 
-                  fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.underline, // Visual cue that it's clickable
-                ),
+            // InkWell removed to make outstanding value non-clickable
+            child: Text(
+              "RM ${student.outstandingAmount.toStringAsFixed(2)}",
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                // Underline removed
               ),
             ),
           ),

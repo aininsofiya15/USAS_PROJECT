@@ -169,35 +169,55 @@ class TuitionFeesController extends Controller
     }
 
     // Save the block date
-    public function saveBlockSettings(Request $request) {
-        try {
-            // Find the record where the Primary Key 'id' matches the Logged-in User ID
-            $treasurer = \DB::table('treasurers')
-                ->where('id', $request->treasurer_id) 
-                ->first();
+    public function updateBlockSettings(Request $request) 
+{
+        $request->validate([
+            'treasurer_id' => 'required', // This is the numeric User ID from Flutter
+            'block_start_date' => 'required|date',
+        ]);
 
+        try {
+            $userId = intval($request->treasurer_id);
+            $formattedDate = \Carbon\Carbon::parse($request->block_start_date)->format('Y-m-d');
+
+            // 1. Find the corresponding row in treasurers using the logged-in user's numeric ID
+            $treasurer = \DB::table('treasurers')->where('id', $userId)->first();
+
+            // 2. If they don't exist yet, automatically provision them a profile
             if (!$treasurer) {
-                return response()->json([
-                    'status' => 'error', 
-                    'message' => 'This user (ID: '.$request->treasurer_id.') is not registered as a Treasurer.'
-                ], 404);
+                $stringIdentifier = 'TR' . str_pad($userId, 4, '0', STR_PAD_LEFT); // Generates TR0001, etc.
+                
+                \DB::table('treasurers')->insert([
+                    'id' => $userId,
+                    'treasurer_id' => $stringIdentifier,
+                    'department' => 'Treasury Department',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+                
+                $targetStringId = $stringIdentifier;
+            } else {
+                // Grab the string format (TRXXXX) from the database record
+                $targetStringId = $treasurer->treasurer_id;
             }
 
-            // Save using the string treasurer_id (e.g. TR-001)
+            // 3. Perform an update-or-insert into block_settings using the matching string foreign key
             \DB::table('block_settings')->updateOrInsert(
-                ['block_id' => 1], 
+                ['treasurer_id' => $targetStringId], // Matches based on the correct string ID relation
                 [
-                    'treasurer_id' => $treasurer->treasurer_id, 
-                    'block_date'   => $request->block_date,
-                    'updated_at'   => now(),
-                    'created_at'   => now(),
+                    'block_date' => $formattedDate,
+                    'updated_at' => now()
                 ]
             );
 
-            return response()->json(['status' => 'success'], 200);
+            return response()->json(['success' => true], 200);
 
         } catch (\Exception $e) {
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            \Log::error("CRITICAL ERROR IN BLOCK SETTINGS: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 

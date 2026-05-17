@@ -70,11 +70,12 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
                     isBlue: false
                   ), 
                   
-                  // 2. Total Payment from 'total_payment' field
+                  // 2. Total Payment from 'total_payment' field (UNDERLINE REMOVED HERE)
                   _buildDetailRow(
                     "Total Payment", 
                     formatCurrency(data['total_payment']), 
                     isBlue: true,
+                    showUnderline: false, // Explicitly turned off underline
                     onTap: () {
                       Navigator.push(
                         context,
@@ -107,7 +108,6 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
     );
   }
 
-  // ... rest of your _buildInfoCard and _buildDetailRow methods stay the same
   Widget _buildInfoCard(String title, List<Widget> children) {
     return Container(
       width: double.infinity,
@@ -128,7 +128,14 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
     );
   }
 
-  Widget _buildDetailRow(String label, dynamic value, {bool isBlue = false, VoidCallback? onTap}) {
+  // FIXED METHOD: Added showUnderline option to prevent automatic underlining
+  Widget _buildDetailRow(
+    String label, 
+    dynamic value, {
+    bool isBlue = false, 
+    bool showUnderline = false, // Set to false by default
+    VoidCallback? onTap,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: InkWell(
@@ -144,7 +151,7 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
                   fontSize: 13,
                   fontWeight: isBlue ? FontWeight.bold : FontWeight.normal,
                   color: isBlue ? const Color(0xFF3F51B5) : Colors.black,
-                  decoration: onTap != null ? TextDecoration.underline : TextDecoration.none,
+                  decoration: showUnderline ? TextDecoration.underline : TextDecoration.none,
                 ),
               ),
             ),

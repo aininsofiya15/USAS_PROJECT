@@ -208,30 +208,26 @@ Future<void> fetchStudentsFeeStatus({int page = 1}) async {
   }
 
   Future<bool> saveBlockDate(int treasurerId) async {
-    isLoading = true;
-    notifyListeners();
     try {
       final response = await http.post(
-        Uri.parse('${Api.baseUrl}/treasurer/save-block-settings'),
-        headers: _headers,
+        Uri.parse('${Api.baseUrl}/treasurer/block-settings'),
+        headers: _headers, // Verifies 'Content-Type': 'application/json' is active
         body: json.encode({
-          'block_date': selectedBlockDate.toIso8601String().split('T')[0],
           'treasurer_id': treasurerId,
+          'block_start_date': selectedBlockDate.toIso8601String(),
         }),
       );
-      
-      // Print the body if it fails to see the error from the Controller
-      if (response.statusCode != 200) {
-        debugPrint("Server Error: ${response.body}");
-      }
 
-      isLoading = false;
-      notifyListeners();
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return responseData['success'] == true;
+      } else {
+        debugPrint("API rejected request parameters with code: ${response.statusCode}");
+        debugPrint("Server Response payload summary: ${response.body}");
+        return false;
+      }
     } catch (e) {
-      debugPrint("Network Error: $e");
-      isLoading = false;
-      notifyListeners();
+      debugPrint("Failed to execute saveBlockDate routine network thread: $e");
       return false;
     }
   }

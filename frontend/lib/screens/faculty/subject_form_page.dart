@@ -1,6 +1,8 @@
 import '../../provider/registrar_subject_provider.dart';
 import 'package:flutter/material.dart';
-import 'faculty_layout.dart';
+import '../../widgets/app_sidebar.dart';
+import '../../widgets/header.dart';
+
 
 class SubjectFormPage extends StatefulWidget {
   const SubjectFormPage({super.key});
@@ -37,8 +39,12 @@ class _SubjectFormPageState extends State<SubjectFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    return FacultyLayout(
-      body: Center(
+   return Scaffold(
+  appBar: const UsasHeader(),
+  drawer: const AppSidebar(),
+  backgroundColor:  const Color(0xFFFDF9EC),
+
+  body: Center(
         child: SingleChildScrollView(
           child: Container(
             margin: const EdgeInsets.all(20),

@@ -235,7 +235,7 @@ class _StudentListPageState extends State<StudentListPage> {
                                         Expanded(
                                           flex: 5,
                                           child: Text(
-                                            student['student_name'] ?? "Unknown",
+                                            student['name'] ?? "Unknown",
                                             style: const TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w500,

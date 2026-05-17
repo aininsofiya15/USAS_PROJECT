@@ -5,11 +5,17 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class StudentSeeder extends Seeder
 {
     public function run(): void
     {
+        // Prevent foreign key restrictions from deadlocking database modifications
+        Schema::disableForeignKeyConstraints();
+        DB::table('students')->truncate();
+        Schema::enableForeignKeyConstraints();
+
         $studentUsers = User::where('role', 'student')->get();
         
         $coursesWithPrefixes = [
@@ -46,15 +52,12 @@ class StudentSeeder extends Seeder
         ];
 
         foreach ($studentUsers as $index => $user) {
-            // Priority Logic: If index is 35 or above (the last 10 students), 
-            // force them into Faculty of Computing.
             if ($index >= 35) {
                 $facultyName = 'Faculty of Computing';
                 $facultyCourses = $coursesWithPrefixes[$facultyName];
                 $courseName = array_rand($facultyCourses);
                 $coursePrefix = $facultyCourses[$courseName];
             } else {
-                // Randomly pick from all faculties for the first 35 students
                 $facultyName = array_rand($coursesWithPrefixes);
                 $courseName = array_rand($coursesWithPrefixes[$facultyName]);
                 $coursePrefix = $coursesWithPrefixes[$facultyName][$courseName];
@@ -70,21 +73,23 @@ class StudentSeeder extends Seeder
             $randomDigits = rand(1000, 9999);
             $icNo = $yearPrefix . $month . $day . $stateCode . $randomDigits;
 
-            DB::table('students')->updateOrInsert(
-                ['id' => $user->id],
-                [
-                    'student_id' => $matricNo,
-                    'ic_no' => $icNo,
-                    'faculty' => $facultyName,
-                    'course_name' => $courseName,
-                    'program' => $this->determineProgramType($courseName),
-                    'current_semester' => rand(1, 4),
-                    'year' => 2024,
-                    'is_blocked' => false,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]
-            );
+            $currentSemester = rand(1, 4);
+            $calculatedYear = (int) ceil($currentSemester / 2);
+
+            // Using pure insert since we cleanly truncate at the start of execution now
+            DB::table('students')->insert([
+                'id' => $user->id,
+                'student_id' => $matricNo,
+                'ic_no' => $icNo,
+                'faculty' => $facultyName,
+                'course_name' => $courseName,
+                'program' => $this->determineProgramType($courseName),
+                'current_semester' => $currentSemester,
+                'year' => $calculatedYear,
+                'is_blocked' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
     }
 
