@@ -16,57 +16,89 @@ class RegistrarSubjectProvider {
 
   }) async {
 
-    print("API CALLED");
+    print("========== API CALLED ==========");
 
-    var response = await http.post(
+    final body = {
 
-      Uri.parse(Api.registerSubject),
+      "subject_name": subjectName,
 
-      headers: {
+      "subject_code": subjectCode,
 
-        "Content-Type":
-            "application/json",
-      },
+      "credit_hours": creditHours,
 
-      body: jsonEncode({
+      "total_section": totalSection,
 
-        "subject_name":
-            subjectName,
+      "sections": sections,
+    };
 
-        "subject_code":
-            subjectCode,
+    print("========== REQUEST BODY ==========");
+    print(jsonEncode(body));
 
-        "credit_hours":
-            creditHours,
+    try {
 
-        "total_section":
-            totalSection,
+      var response = await http.post(
 
-        "sections":
-            sections,
-      }),
-    );
+        Uri.parse(Api.registerSubject),
 
-    print(response.statusCode);
+        headers: {
 
-    print(response.body);
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
 
-    return jsonDecode(
-      response.body,
-    );
+        body: jsonEncode(body),
+      );
+
+      print("========== STATUS CODE ==========");
+      print(response.statusCode);
+
+      print("========== RESPONSE BODY ==========");
+      print(response.body);
+
+      // Prevent crash if backend returns HTML
+      if (response.body.startsWith("<!DOCTYPE html>")) {
+
+        return {
+          "success": false,
+          "message":
+              "Laravel backend crashed. Check php artisan serve terminal.",
+        };
+      }
+
+      return jsonDecode(response.body);
+
+    } catch (e) {
+
+      print("========== ERROR ==========");
+      print(e);
+
+      return {
+
+        "success": false,
+        "message": e.toString(),
+      };
+    }
   }
 
   Future getLecturers() async {
 
-    var response = await http.get(
+    try {
 
-      Uri.parse(
-        Api.lecturers,
-      ),
-    );
+      var response = await http.get(
 
-    return jsonDecode(
-      response.body,
-    );
+        Uri.parse(Api.lecturers),
+      );
+
+      print("LECTURERS STATUS: ${response.statusCode}");
+      print("LECTURERS BODY: ${response.body}");
+
+      return jsonDecode(response.body);
+
+    } catch (e) {
+
+      print(e);
+
+      return [];
+    }
   }
 }

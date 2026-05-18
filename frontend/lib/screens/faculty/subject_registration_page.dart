@@ -1,11 +1,10 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
-import 'faculty_layout.dart';
 import 'subject_form_page.dart';
 import 'subject_details_page.dart';
+import '../../widgets/app_sidebar.dart';
+import '../../widgets/header.dart';
 
 class SubjectRegistrationPage extends StatefulWidget {
 
@@ -56,9 +55,13 @@ class _SubjectRegistrationPageState
   @override
   Widget build(BuildContext context) {
 
-    return FacultyLayout(
+    return Scaffold(
 
-      body: Padding(
+  appBar: const UsasHeader(),
+  drawer: const AppSidebar(),
+  backgroundColor: const Color(0xFFFDF9EC),
+
+  body: Padding(
 
         padding: const EdgeInsets.all(16),
 

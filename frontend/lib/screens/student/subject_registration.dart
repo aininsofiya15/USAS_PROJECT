@@ -26,16 +26,49 @@ class _SubjectRegistrationPageState
       StudentSubjectProvider();
 
   late Future<List<SubjectModel>>
-      subjectsFuture;
+      subjectsFuture; 
+
+      List<SubjectModel> allSubjects = [];
+
+List<SubjectModel> filteredSubjects = [];
+
+TextEditingController searchController =
+    TextEditingController();
 
   @override
-  void initState() {
+  void initState() { 
 
     super.initState();
 
     subjectsFuture =
         provider.fetchSubjects();
-  }
+  } 
+
+  void searchSubjects(String keyword) {
+
+  setState(() {
+
+    filteredSubjects =
+        allSubjects.where((subject) {
+
+      final subjectName =
+          subject.subjectName
+              .toLowerCase();
+
+      final subjectCode =
+          subject.subjectCode
+              .toLowerCase();
+
+      return subjectName.contains(
+                 keyword.toLowerCase(),
+             ) ||
+             subjectCode.contains(
+                 keyword.toLowerCase(),
+             );
+
+    }).toList();
+  });
+}
 
   @override
   Widget build(BuildContext context) {
@@ -91,24 +124,67 @@ class _SubjectRegistrationPageState
                   );
                 }
 
-                final subjects =
-                    snapshot.data!;
+                allSubjects = snapshot.data!;
 
-                return ListView.builder(
+if (filteredSubjects.isEmpty &&
+    searchController.text.isEmpty) {
 
-                  padding:
-                      const EdgeInsets.all(
-                    16,
-                  ),
+  filteredSubjects = allSubjects;
+}
 
-                  itemCount:
-                      subjects.length,
+                return Column(
 
-                  itemBuilder:
-                      (context, index) {
+  children: [
 
-                    final subject =
-                        subjects[index];
+    Padding(
+
+      padding: const EdgeInsets.all(16),
+
+      child: TextField(
+
+        controller: searchController,
+
+        onChanged: searchSubjects,
+
+        decoration: InputDecoration(
+
+          hintText: "Search Subject",
+
+          prefixIcon:
+              const Icon(Icons.search),
+
+          filled: true,
+
+          fillColor: Colors.white,
+
+          border: OutlineInputBorder(
+
+            borderRadius:
+                BorderRadius.circular(15),
+
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    ),
+
+    Expanded(
+
+      child: ListView.builder(
+
+        padding:
+            const EdgeInsets.symmetric(
+          horizontal: 16,
+        ),
+
+        itemCount:
+            filteredSubjects.length,
+
+        itemBuilder:
+            (context, index) {
+
+          final subject =
+              filteredSubjects[index];
 
                     return Container(
 
@@ -854,8 +930,11 @@ class _SubjectRegistrationPageState
                         ],
                       ),
                     );
-                  },
-                );
+                                    },
+                ),
+              ),
+            ],
+          );
               },
             ),
           ),

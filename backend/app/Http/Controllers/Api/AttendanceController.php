@@ -327,47 +327,83 @@ public function getAttendanceSubmission($sectionId, $studentId)
 public function submitAttendance(Request $request)
 {
     $request->validate([
-        'attendance_id' => 'required|exists:attendances,id',
-        'student_id' => 'required',
-        'code' => 'required|string|size:6'
+        'attendance_id' => 'required|integer',
+        'student_id' => 'required|integer',
+        'code' => 'required|string|size:6',
+        'student_lat' => 'required|numeric',
+        'student_lng' => 'required|numeric',
     ]);
 
     try {
-        // 1. Check if the code matches the generated session
-        $session = DB::table('attendances')
-            ->where('id', $request->attendance_id)
-            ->where('attendance_code', $request->code)
-            ->first();
-
+        // 1. Fetch matching active target tracking session definitions
+        $session = DB::table('attendances')->where('id', $request->attendance_id)->first();
         if (!$session) {
-            return response()->json(['success' => false, 'message' => 'Invalid attendance code.'], 422);
+            return response()->json(['success' => false, 'message' => 'Attendance session not found.'], 404);
         }
 
-        // 2. Prevent duplicate submission
-        $exists = DB::table('attendance_records')
+        // 2. Validate the code input string
+        if (trim($session->attendance_code) !== trim($request->code)) {
+            return response()->json(['success' => false, 'message' => 'Invalid verification code. Please check and try again.'], 200);
+        }
+
+        // Defensive checks to stop division-by-zero or empty math crashes
+        $targetLat = !empty($session->geo_lat) ? $session->geo_lat : 4.6738; 
+        $targetLng = !empty($session->geo_long) ? $session->geo_long : 103.4243;
+        $allowedRadius = !empty($session->radius) ? $session->radius : 100;
+
+        // 3. Haversine Mathematical Distance Calculation
+        $earthRadius = 6371000; // Meters
+        $latDelta = deg2rad($targetLat - $request->student_lat);
+        $lngDelta = deg2rad($targetLng - $request->student_lng);
+
+        $a = sin($latDelta / 2) * sin($latDelta / 2) +
+             cos(deg2rad($request->student_lat)) * cos(deg2rad($targetLat)) *
+             sin($lngDelta / 2) * sin($lngDelta / 2);
+             
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        $distance = $earthRadius * $c; 
+
+        $inRange = $distance <= $allowedRadius;
+
+        if (!$inRange) {
+            return response()->json([
+                'success' => false,
+                'in_range' => false,
+                'distance' => round($distance),
+                'message' => 'Verification failed. Your position falls outside the perimeter range.'
+            ], 200);
+        }
+
+        // 4. Handle logging entries safely
+        $alreadyRecorded = DB::table('attendance_records')
             ->where('attendance_id', $request->attendance_id)
             ->where('student_id', $request->student_id)
             ->exists();
 
-        if ($exists) {
-            return response()->json(['success' => false, 'message' => 'Attendance already submitted.'], 409);
+        if (!$alreadyRecorded) {
+            // FIXED: Added 'submitted_time' to fulfill your table's database schema constraints
+            DB::table('attendance_records')->insert([
+                'attendance_id'  => $request->attendance_id,
+                'student_id'     => $request->student_id,
+                'status'         => 'Present',
+                'submitted_time' => now()->toTimeString(), // Sends current time format e.g., '17:34:26'
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ]);
         }
 
-        // 3. Insert the record
-        DB::table('attendance_records')->insert([
-            'attendance_id' => $request->attendance_id,
-            'student_id' => $request->student_id,
-            'status' => 'Present',
-            'created_at' => now(),
-            'updated_at' => now()
-        ]);
-
-        return response()->json(['success' => true, 'message' => 'Attendance submitted successfully!']);
+        return response()->json([
+            'success' => true,
+            'in_range' => true,
+            'distance' => round($distance),
+            'message' => 'Success! Attendance recorded successfully!'
+        ], 200);
 
     } catch (\Exception $e) {
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        return response()->json(['success' => false, 'message' => 'Internal server crash error: ' . $e->getMessage()], 500);
     }
 }
+
 
 //------------------------------------------------
 //AININ

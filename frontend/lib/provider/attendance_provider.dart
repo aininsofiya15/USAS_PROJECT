@@ -261,38 +261,45 @@ Future<void> getAttendanceSubmission(int sectionId, String studentId) async {
   }
 }
 
-Future<bool> submitStudentAttendance({
+Future<Map<String, dynamic>> submitAttendance({
   required int attendanceId,
   required String studentId,
   required String code,
+  required double lat,
+  required double lng,
 }) async {
-  _isLoading = true;
-  notifyListeners();
-
   try {
     final response = await http.post(
       Uri.parse("${Api.baseUrl}/attendance/submit"),
-      headers: {"Content-Type": "application/json"},
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json", // Forces Laravel to return JSON errors instead of HTML pages
+      },
       body: jsonEncode({
         'attendance_id': attendanceId,
         'student_id': studentId,
         'code': code,
+        'student_lat': lat,
+        'student_lng': lng,
       }),
     );
 
+    debugPrint("Server Status Response Code: ${response.statusCode}");
+    debugPrint("Server Response Payload Body: ${response.body}");
+
     if (response.statusCode == 200) {
-      return true;
-    } else {
-      final errorData = jsonDecode(response.body);
-      _errorMessage = errorData['message'] ?? "Submission failed";
-      return false;
+      return jsonDecode(response.body);
     }
+    
+    // Decode the error message from the backend if available
+    final errorData = jsonDecode(response.body);
+    return {
+      'success': false, 
+      'message': errorData['message'] ?? 'Server error: ${response.statusCode}'
+    };
   } catch (e) {
-    _errorMessage = "Connection error: $e";
-    return false;
-  } finally {
-    _isLoading = false;
-    notifyListeners();
+    debugPrint("Network Execution Exception: $e");
+    return {'success': false, 'message': 'Network timeout or connection drop: $e'};
   }
 }
 

@@ -25,5 +25,14 @@ class Lab extends Model
             'section_id',
             'section_id'
         );
-    }
+    } 
+
+    public function registrations()
+{
+    return $this->hasMany(
+        Registration::class,
+        'lab_id',
+        'lab_id'
+    );
+}
 }
