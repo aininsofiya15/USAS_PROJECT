@@ -78,7 +78,8 @@ Route::get('/attendance/not-present/{id}', [AttendanceController::class, 'getCla
 Route::get('/student/dashboard/{studentId}', [AttendanceController::class, 'fetchStudentClassModule']);
 Route::get('/attendance/submissions/{sectionId}/{studentId}', [AttendanceController::class, 'getAttendanceSubmission']);
 
-//JIHA (TREASURER + STUDENT)
+//JIHA 
+//TREASURER ROUTES
 Route::get('/treasurer/student-count', [TuitionFeesController::class, 'getStudentCount']);
 Route::get('/treasurer/dashboard-summary', [TuitionFeesController::class, 'dashboardSummary']);
 Route::get('/treasurer/fees-summary', [TuitionFeesController::class, 'getTuitionFeesSummary']);
@@ -86,6 +87,11 @@ Route::get('/treasurer/fees-status', [TuitionFeesController::class, 'getStudents
 Route::get('/treasurer/student-details/{userId}', [TuitionFeesController::class, 'getStudentDetail']);
 Route::get('/treasurer/unpaid-count', [TuitionFeesController::class, 'getUnpaidCount']);
 Route::post('/treasurer/block-settings', [TuitionFeesController::class, 'updateBlockSettings']);
+Route::get('/treasurer/report-totals', [TuitionFeesController::class, 'getFinancialReportTotals']);
+Route::get('/treasurer/report/download-pdf', [TuitionFeesController::class, 'downloadFinancialReportPDF']);
+Route::get('/treasurer/report/download-csv', [TuitionFeesController::class, 'downloadFinancialReportCSV']);
+
+//STUDENT ROUTES
 Route::get('/student/financial-details/{id}', [TuitionFeesController::class, 'getStudentFinancialProfile']);
 Route::get('/student/payment-history/{userId}', [TuitionFeesController::class, 'getPaymentHistory']); 
 Route::post('/student/update-bank', [TuitionFeesController::class, 'updateStudentBank']);

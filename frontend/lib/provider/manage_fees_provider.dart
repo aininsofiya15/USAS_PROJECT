@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api.dart'; 
+import 'dart:io';
 
 class StudentFeeStatus {
   final int userId;
@@ -52,6 +53,8 @@ class FeesManagementProvider extends ChangeNotifier {
   int totalStudents = 0;
   double totalPaidReport = 0.0;
   double totalOutstandingReport = 0.0;
+  double onlineBankingTotal = 0.0;
+  double cardPaymentTotal = 0.0;
 
     // Add these getters to FeesManagementProvider
   double get totalPaidAmount => summary['paid']?.toDouble() ?? 0.0; 
@@ -324,23 +327,38 @@ Future<bool> updateBankAccount(String studentId, String accNo, String bankName) 
   }
 
   Future<void> fetchReportTotals() async {
-  try {
-    final response = await http.get(
-      Uri.parse('${Api.baseUrl}/treasurer/report-totals'),
-      headers: _headers,
-    );
+    isLoading = true;
+    errorMessage = '';
+    notifyListeners();
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      // Update the variables we just created
-      totalPaidReport = (data['total_paid'] ?? 0.0).toDouble();
-      totalOutstandingReport = (data['total_outstanding'] ?? 0.0).toDouble();
+    try {
+      final response = await http.get(
+        Uri.parse('${Api.baseUrl}/treasurer/report-totals'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // Update dynamic dashboard card numeric metrics
+        totalPaidReport = (data['total_paid'] ?? 0.0).toDouble();
+        totalOutstandingReport = (data['total_outstanding'] ?? 0.0).toDouble();
+        
+        // Assign specific blocked counters safely inside your existing summary mapping
+        summary['blocked'] = data['blocked_count'] ?? 0;
+
+        // Map incoming bar chart values 
+        summary['bank_count'] = data['online_banking_count'] ?? (onlineBankingTotal > 0 ? (onlineBankingTotal / 150).round() : 0);
+        summary['card_count'] = data['card_payment_count'] ?? (cardPaymentTotal > 0 ? (cardPaymentTotal / 150).round() : 0);
+      }
+    } catch (e) {
+      errorMessage = "Failed to synchronize remote metrics pipeline.";
+      debugPrint("Fetch Report Error: $e");
+    } finally {
+      isLoading = false;
       notifyListeners();
     }
-  } catch (e) {
-    debugPrint("Fetch Report Error: $e");
   }
-}
 
   void setFilter(String filter) {
     currentFilter = filter;
