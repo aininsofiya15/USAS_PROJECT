@@ -94,6 +94,8 @@ Route::get('/treasurer/report/download-pdf', [TuitionFeesController::class, 'dow
 Route::get('/treasurer/report/download-csv', [TuitionFeesController::class, 'downloadFinancialReportCSV']);
 
 //STUDENT ROUTES
+Route::get('/student/dashboard-status/{student_id}', [TuitionFeesController::class, 'getStudentDashboardStatus']);
 Route::get('/student/financial-details/{id}', [TuitionFeesController::class, 'getStudentFinancialProfile']);
+Route::post('/student/complete-payment', [App\Http\Controllers\TuitionFeesController::class, 'completePayment']);
 Route::get('/student/payment-history/{userId}', [TuitionFeesController::class, 'getPaymentHistory']); 
 Route::post('/student/update-bank', [TuitionFeesController::class, 'updateStudentBank']);

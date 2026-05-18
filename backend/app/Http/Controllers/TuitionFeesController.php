@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Str;
 use App\Models\User;
 use App\Models\Student;
 use App\Models\StudentFee;
@@ -9,7 +10,7 @@ use App\Models\Payment;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-
+    
 class TuitionFeesController extends Controller
 {
     public function index()
@@ -39,6 +40,49 @@ class TuitionFeesController extends Controller
         return response()->json([
             'total_students' => $count
         ]);
+    }
+
+    public function getStudentDashboardStatus($student_id)
+    {
+        try {
+            // 1. Fetch the latest configuration from block_settings table
+            // We use standard column layout matching your saveBlockDate method
+            $blockSetting = DB::table('block_settings')
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // Fallback default date string matching your requested layout requirement
+            $blockDate = '2026-05-18';
+            if ($blockSetting) {
+                // Determine if column name uses block_start_date or block_date
+                $blockDate = $blockSetting->block_start_date ?? $blockSetting->block_date ?? '2026-05-18';
+            }
+
+            // 2. Fetch student payment status profile from fees table
+            $feeRecord = DB::table('fees')
+                ->where('student_id', $student_id)
+                ->orWhere('user_id', $student_id) // Fallback support for primary key lookups
+                ->first();
+
+            // Default to 'unpaid' if no table rows exist for this student profile context
+            $paymentStatus = $feeRecord ? strtolower($feeRecord->status) : 'unpaid';
+
+            // 3. Return the exact JSON structure required by the Flutter provider
+            return response()->json([
+                'success' => true,
+                'block_date' => Carbon::parse($blockDate)->format('Y-m-d'),
+                'payment_status' => $paymentStatus,
+                'total_credits' => 12,
+                'curriculum_progress' => 0.70
+            ], 200);
+
+        } catch (\Exception $e) {
+            // If something crashes, log it and return clear debugging context info
+            return response()->json([
+                'success' => false,
+                'message' => 'Backend Error Context: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function getTuitionFeesSummary(Request $request) 
@@ -265,41 +309,48 @@ class TuitionFeesController extends Controller
     //students
     public function getStudentFinancialProfile($userId)
     {
-        // 1. Fetch the profile
-        $data = DB::table('students')
-            ->join('users', 'users.id', '=', 'students.id') 
-            ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id')
-            ->leftJoin('bank_accounts', 'students.student_id', '=', 'bank_accounts.student_id')
-            ->select(
-                'users.name',
-                'students.student_id', 
-                'students.ic_no',
-                'students.course_name',
-                'students.program',
-                'bank_accounts.bank_name',
-                'bank_accounts.acc_no',
-                'fees.total_invoice', 
-                'fees.outstanding_amount' 
-            )
-            ->where('users.id', $userId)
-            ->first();
+        try {
+            // 1. Fetch the profile by joining users, students, fees, and bank accounts
+            $data = DB::table('students')
+                ->join('users', 'users.id', '=', 'students.id') 
+                ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id')
+                ->leftJoin('bank_accounts', 'students.student_id', '=', 'bank_accounts.student_id')
+                ->select(
+                    'users.name',
+                    'students.student_id', 
+                    'students.ic_no',
+                    'students.course_name',
+                    'students.program',
+                    'bank_accounts.bank_name',
+                    'bank_accounts.acc_no',
+                    'fees.total_invoice',          
+                    'fees.outstanding_amount'      
+                )
+                ->where('users.id', $userId)
+                ->first();
 
-        // 2. Check if student exists
-        if (!$data) {
-            return response()->json(['message' => 'Student not found'], 404);
+            // 2. Check if student records exist
+            if (!$data) {
+                return response()->json(['message' => 'Student not found'], 404);
+            }
+
+            // 3. Calculate Total Payment by summing 'total_payment' from successful payments
+            $totalPayment = DB::table('payments')
+                ->where('student_id', $data->student_id) 
+                ->where('status', 'Success') // Only sum completed transactions
+                ->sum('total_payment');       // Explicitly matches your payments table
+
+            // 4. Cast to an array and force float types for stable Flutter parsing
+            $result = (array)$data;
+            $result['total_invoice'] = (float)($data->total_invoice ?? 0.00);
+            $result['total_payment'] = (float)$totalPayment;
+            $result['outstanding_amount'] = (float)($data->outstanding_amount ?? 0.00);
+
+            return response()->json($result);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        // 3. Calculate Total Payment
-        // We use $data->student_id (the matric string) to find payments
-        $totalPayment = DB::table('payments')
-            ->where('student_id', $data->student_id) 
-            ->sum('total_payment');
-
-        // 4. Merge and Return
-        $result = (array)$data;
-        $result['total_payment'] = (float)$totalPayment;
-
-        return response()->json($result);
     }
 
     public function updateStudentBank(Request $request)
@@ -352,13 +403,68 @@ class TuitionFeesController extends Controller
             // 2. Fetch payments
             $history = DB::table('payments')
                 ->where('student_id', $matricId)
-                ->select('payment_id', 'payment_desc', 'amount', 'payment_date')
+                ->select('payment_id', 'payment_desc', 'total_payment as amount', 'payment_date')
                 ->orderBy('payment_date', 'desc')
                 ->get();
 
             return response()->json($history);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function completePayment(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required',
+            'amount' => 'required|numeric|min:1',
+            'method' => 'required|string'
+        ]);
+
+        // Find student table matching row
+        $student = DB::table('students')->where('id', $request->user_id)->first();
+        if (!$student) {
+            return response()->json(['error' => 'Student record not found'], 404);
+        }
+
+        $fee = DB::table('fees')->where('student_id', $student->student_id)->first();
+
+        DB::beginTransaction();
+        try {
+            // 1. Create a successful invoice item entry track line
+            $paymentId = 'TXN-' . strtoupper(Str::random(8));
+            DB::table('payments')->insert([
+                'payment_id' => $paymentId,
+                'student_id' => $student->student_id,
+                'fee_id' => $fee->fee_id ?? null,
+                'total_payment' => $request->amount,
+                'payment_desc' => 'Tuition Fee Balance Settlement',
+                'payment_method' => $request->method,
+                'status' => 'Success', // Instantly marked successful
+                'payment_date' => now(),
+            ]);
+
+            // 2. Adjust outstanding fields on fees table structure
+            if ($fee) {
+                $newPaidAmount = $fee->paid_amount + $request->amount;
+                // Ensure outstanding never drops into negative anomalies
+                $newOutstanding = max(0, $fee->total_invoice - $newPaidAmount); 
+                $newStatus = $newOutstanding <= 0 ? 'paid' : 'unpaid';
+
+                DB::table('fees')->where('student_id', $student->student_id)->update([
+                    'paid_amount' => $newPaidAmount,
+                    'outstanding_amount' => $newOutstanding,
+                    'status' => $newStatus,
+                    'updated_at' => now()
+                ]);
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Balances updated successfully']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Transaction tracking breakdown: ' . $e->getMessage()], 500);
         }
     }
 

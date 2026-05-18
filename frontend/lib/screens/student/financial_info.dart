@@ -4,6 +4,7 @@ import '../../provider/manage_fees_provider.dart';
 import '../../provider/user_provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
+import 'payment_gateway.dart'; // Ensure MockGatewayPage is written here or update import accordingly
 
 class FinancialInfoPage extends StatefulWidget {
   const FinancialInfoPage({super.key});
@@ -27,6 +28,10 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Read user provider once to obtain the core ID string safely
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final currentUserId = userProvider.userId.toString();
+
     return Scaffold(
       backgroundColor: const Color(0xFFD6EAF8),
       appBar: const UsasHeader(),
@@ -57,7 +62,7 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                   _buildRow("Program", data['program'] ?? "N/A"),
                   _buildRow("Bank", data['bank_name'] ?? "Not Linked"),
                   _buildRow("Bank Account No.", data['acc_no'] ?? "Not Linked"),
-                  _buildRow("Total Invoice", "RM ${data['total_invoice'] ?? '0.00'}", isBlue: false), // Set isBlue to false
+                  _buildRow("Total Invoice", "RM ${data['total_invoice'] ?? '0.00'}", isBlue: false), 
 
                   GestureDetector(
                     onTap: () => Navigator.pushNamed(context, '/payment_history'),
@@ -95,7 +100,9 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                   _buildSelectionRow("Choose Payment", "Internet Banking"),
                   _buildSelectionRow("Method", "Credit Card/Debit Card"),
                   const SizedBox(height: 20),
-                  _buildPayButton(),
+                  
+                  // FIXED: Now accurately passing the mapped data state and userId string variables
+                  _buildPayButton(data, currentUserId),
                 ]),
               ],
             ),
@@ -112,12 +119,11 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Fixed width for labels to prevent them from being too close to values
           SizedBox(
             width: 140, 
             child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
           ),
-          const SizedBox(width: 10), // Extra gap
+          const SizedBox(width: 10), 
           Expanded(
             child: Text(
               value,
@@ -207,7 +213,7 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
     );
   }
 
-  Widget _buildPayButton() {
+  Widget _buildPayButton(Map<String, dynamic> financialData, String dynamicUserId) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -216,8 +222,42 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           padding: const EdgeInsets.symmetric(vertical: 12),
         ),
-        onPressed: () {},
-        child: const Text("Pay", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        onPressed: () async {
+          final outstanding = double.tryParse(financialData['outstanding_amount']?.toString() ?? '0') ?? 0.0;
+          
+          if (outstanding <= 0) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Your account balance is already settled.")),
+            );
+            return;
+          }
+
+          if (_selectedMethod == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Please select a payment method before proceeding.")),
+            );
+            return;
+          }
+
+          final bool? paymentSuccess = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MockGatewayPage(
+                userId: dynamicUserId,
+                amountToPay: outstanding,
+              ),
+            ),
+          );
+
+          if (paymentSuccess == true) {
+            Provider.of<FeesManagementProvider>(context, listen: false)
+                .fetchStudentFinancialProfile(dynamicUserId);
+          }
+        },
+        child: const Text(
+          "Pay", 
+          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
+        ),
       ),
     );
   }
