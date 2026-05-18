@@ -303,6 +303,40 @@ Future<Map<String, dynamic>> submitAttendance({
   }
 }
 
+List<dynamic> _historyRecords = [];
+List<dynamic> get historyRecords => _historyRecords;
+
+Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async {
+  _isLoading = true;
+  _historyRecords = [];
+  notifyListeners();
+
+  try {
+    // Construct the endpoint URI dynamically with an optional date parameter string
+    String url = "${Api.baseUrl}/student/attendance-history/$studentId";
+    if (dateFilter != null) {
+      url += "?date=$dateFilter";
+    }
+
+    final response = await http.get(
+      Uri.parse(url),
+      headers: {"Accept": "application/json"},
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      if (jsonResponse['success'] == true) {
+        _historyRecords = jsonResponse['data'] ?? [];
+      }
+    }
+  } catch (e) {
+    debugPrint("Failed executing history state map stream filter: $e");
+  } finally {
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
 
   /// Fetches student records for a specific module session
   /// AININ

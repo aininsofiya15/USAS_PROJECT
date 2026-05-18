@@ -4,6 +4,7 @@ import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
 import 'financial_info.dart';
+import 'attendance_records.dart'; // IMPORT YOUR NEW HISTORICAL PAGE HERE
 
 class StudentDashboard extends StatelessWidget {
   final String name;
@@ -31,7 +32,8 @@ class StudentDashboard extends StatelessWidget {
             _buildSearchBar(),
             const SizedBox(height: 25),
 
-            _buildSectionTitle("Categories"),
+            // FIXED: Passed context here to allow navigation from the header text action button
+            _buildSectionTitle("Categories", context),
             const SizedBox(height: 10),
 
             // Categories Grid (2x2)
@@ -46,7 +48,8 @@ class StudentDashboard extends StatelessWidget {
                 _buildCategoryCard("Subject Registration", "assets/icons/sub_reg.png", () {}),
                 _buildCategoryCard("Curriculum Activity", "assets/icons/curriculum.png", () {}),
                 _buildCategoryCard("Attendance", "assets/icons/attendance.png", () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const AttendanceDashboard()));                }),
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const AttendanceDashboard()));                
+                }),
                 _buildCategoryCard("Tuition Fees", "assets/icons/tuition.png", () {
                   Navigator.push(context, MaterialPageRoute(builder: (context) => const FinancialInfoPage()));
                 }),
@@ -54,7 +57,7 @@ class StudentDashboard extends StatelessWidget {
             ),
 
             const SizedBox(height: 30),
-            _buildSectionTitle("Recent Updates"),
+            _buildSectionTitle("Recent Updates", context),
             const SizedBox(height: 10),
 
             // Recent Updates Horizontal List
@@ -93,13 +96,26 @@ class StudentDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  // FIXED: Added BuildContext parameter to navigate straight to your history list view page
+  Widget _buildSectionTitle(String title, BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         if (title == "Categories")
-          TextButton(onPressed: () {}, child: const Text("See All", style: TextStyle(color: Colors.green))),
+          TextButton(
+            onPressed: () {
+              // NAVIGATES TO ATTENDANCE RECORDS HISTORY PAGE
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (context) => const AttendanceRecordsPage())
+              );
+            }, 
+            child: const Text(
+              "Attendance History", 
+              style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)
+            ),
+          ),
       ],
     );
   }
@@ -145,7 +161,7 @@ class StudentDashboard extends StatelessWidget {
           const Spacer(),
           ElevatedButton(
             onPressed: () {},
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: StadiumBorder(), padding: EdgeInsets.symmetric(horizontal: 10)),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: const StadiumBorder(), padding: const EdgeInsets.symmetric(horizontal: 10)),
             child: const Text("Add Module", style: TextStyle(fontSize: 10, color: Colors.white)),
           )
         ],

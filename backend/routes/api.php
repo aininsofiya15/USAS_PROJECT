@@ -78,7 +78,7 @@ Route::get('/attendance/not-present/{id}', [AttendanceController::class, 'getCla
 Route::get('/student/dashboard/{studentId}', [AttendanceController::class, 'fetchStudentClassModule']);
 Route::get('/attendance/submissions/{sectionId}/{studentId}', [AttendanceController::class, 'getAttendanceSubmission']);
 Route::post('/attendance/submit', [AttendanceController::class, 'submitAttendance']);
-
+Route::get('/student/attendance-history/{studentId}', [AttendanceController::class, 'getSubmittedAttendanceRecords']);
 
 //JIHA (TREASURER + STUDENT)
 Route::get('/treasurer/student-count', [TuitionFeesController::class, 'getStudentCount']);

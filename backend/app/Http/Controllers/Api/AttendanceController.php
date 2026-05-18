@@ -404,6 +404,53 @@ public function submitAttendance(Request $request)
     }
 }
 
+public function getSubmittedAttendanceRecords($studentId)
+{
+    try {
+        // 1. Get Curriculum Attendance Records
+        $curriculum = DB::table('attendances')
+            ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
+            ->join('sections', 'attendances.section_id', '=', 'sections.section_id')
+            ->join('subjects', 'sections.subject_id', '=', 'subjects.subject_id')
+            ->where('attendance_records.student_id', $studentId)
+            ->where('attendance_records.status', 'Present')
+            ->select(
+                'subjects.subject_code as display_name', // e.g., BCY3083
+                'attendances.class_type as lecture_lab', 
+                'attendances.date',                      
+                'attendances.time',
+                DB::raw("'Curriculum' as attendance_type") // Label tag identifier
+            );
+
+        // 2. Get Co-Curriculum Attendance Records (Unified via UNION)
+        // Adjust the table and column names to match your precise co-curriculum structure
+        $records = DB::table('modules')
+            ->join('bookings', 'modules.id', '=', 'bookings.module_id')
+            ->where('bookings.student_id', $studentId)
+            ->where('bookings.status', 'Present') // Or wherever you store verified co-curr attendance
+            ->select(
+                'modules.activity_name as display_name', // e.g., KAYAKING ADVENTURE
+                DB::raw("'Activity' as lecture_lab"),    // Placeholder for table cell consistency
+                DB::raw("DATE(modules.date_time) as date"),
+                DB::raw("TIME(modules.date_time) as time"),
+                DB::raw("'Co-Curriculum' as attendance_type") // Label tag identifier
+            )
+            ->union($curriculum) // Combine queries
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $records
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false, 
+            'message' => 'Failed to fetch historical database records: ' . $e->getMessage()
+        ], 500);
+    }
+}
 
 //------------------------------------------------
 //AININ
