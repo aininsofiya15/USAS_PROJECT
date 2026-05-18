@@ -11,13 +11,27 @@ class SubjectFormPage extends StatefulWidget {
 }
 
 class _SubjectFormPageState extends State<SubjectFormPage> {
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController codeController = TextEditingController();
-  final TextEditingController creditController = TextEditingController();
+  // ── Admin theme colours ────────────────────────────────────────────────────
+  static const Color kPrimary     = Color(0xFFD97706); // amber-600
+  static const Color kPrimaryDark = Color(0xFFB45309); // amber-700
+  static const Color kBg          = Color(0xFFFFFBF0); // warm off-white
+  static const Color kCardBg      = Color(0xFFFEF9EE); // section card bg
+  static const Color kBorder      = Color(0xFFFDE68A); // amber-200
+  static const Color kLabel       = Color(0xFF92400E); // amber-900
+  static const Color kHint        = Color(0xFFBFB49A);
+  static const Color kText        = Color(0xFF1A1208);
+
+  final TextEditingController nameController    = TextEditingController();
+  final TextEditingController codeController    = TextEditingController();
+  final TextEditingController creditController  = TextEditingController();
   final TextEditingController sectionController = TextEditingController();
 
   List lecturers = [];
   List<Map<String, dynamic>> sections = [];
+
+  static const List<String> _days = [
+    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'
+  ];
 
   @override
   void initState() {
@@ -27,164 +41,248 @@ class _SubjectFormPageState extends State<SubjectFormPage> {
 
   void loadLecturers() async {
     var data = await RegistrarSubjectProvider().getLecturers();
-    setState(() {
-      lecturers = data;
-    });
+    setState(() => lecturers = data);
   }
 
-  String _formatTime(TimeOfDay time, BuildContext context) {
-    return time.format(context);
-  }
-
-  // ─── Reset all form fields ─────────────────────────────────────────────────
   void _resetForm() {
     nameController.clear();
     codeController.clear();
     creditController.clear();
     sectionController.clear();
-    setState(() {
-      sections = [];
-    });
+    setState(() => sections = []);
   }
 
-  // ─── Success popup ─────────────────────────────────────────────────────────
+  // ── Success dialog ─────────────────────────────────────────────────────────
   void _showSuccessDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: kPrimary.withOpacity(0.15),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEAF3DE),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check_rounded,
-                    color: Color(0xFF3B6D11),
-                    size: 40,
-                  ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: kPrimary.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  "Subject Registration\nSuccess!",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF0D3B6E),
-                    height: 1.3,
-                  ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: kPrimary,
+                  size: 44,
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  "The subject has been registered\nsuccessfully.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF8A7A55),
-                    height: 1.5,
-                  ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                "Subject Registered!",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: kText,
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0D3B6E),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _resetForm();
-                    },
-                    child: const Text(
-                      "OK",
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                "The subject has been registered successfully.",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: kLabel, height: 1.5),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _resetForm();
+                  },
+                  child: const Text(
+                    "OK",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
-  // ─── Reusable styled text field ───────────────────────────────────────────
+  // ── Shared input decoration ────────────────────────────────────────────────
+  InputDecoration _inputDec(String hint) => InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: kHint, fontSize: 14),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kBorder, width: 1),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kPrimary, width: 1.5),
+        ),
+      );
+
+  // ── Field label ────────────────────────────────────────────────────────────
+  Widget _label(String text, {IconData? icon}) => Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 13, color: kLabel),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              text.toUpperCase(),
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: kLabel,
+                letterSpacing: 0.7,
+              ),
+            ),
+          ],
+        ),
+      );
+
+  // ── Text field ─────────────────────────────────────────────────────────────
   Widget _buildField({
     required String label,
     required TextEditingController controller,
     TextInputType keyboardType = TextInputType.text,
     IconData? icon,
     void Function(String)? onChanged,
+    String hint = '',
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 14, color: const Color(0xFF8A7A55)),
-              const SizedBox(width: 5),
-            ],
-            Text(
-              label.toUpperCase(),
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF8A7A55),
-                letterSpacing: 0.6,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 5),
+        _label(label, icon: icon),
         TextField(
           controller: controller,
           keyboardType: keyboardType,
           onChanged: onChanged,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF2A2010)),
-          decoration: InputDecoration(
-            hintText: _hintFor(label),
-            hintStyle:
-                const TextStyle(color: Color(0xFFBFB49A), fontSize: 14),
-            filled: true,
-            fillColor: const Color(0xFFFDFAF2),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  const BorderSide(color: Color(0xFFD9CFB0), width: 0.5),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  const BorderSide(color: Color(0xFF0D3B6E), width: 1),
+          style: const TextStyle(fontSize: 14, color: kText),
+          decoration: _inputDec(hint),
+        ),
+      ],
+    );
+  }
+
+  // ── Lecturer dropdown ──────────────────────────────────────────────────────
+  Widget _buildLecturerDropdown(Map<String, dynamic> section) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Lecturer', icon: Icons.person_outline),
+        Theme(
+          // Override dropdown menu theme so the popup is rounded + amber tinted
+          data: Theme.of(context).copyWith(
+            canvasColor: Colors.white,
+            focusColor: kPrimary.withOpacity(0.08),
+          ),
+          child: DropdownButtonFormField<dynamic>(
+            isExpanded: true,
+            icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                color: kPrimary, size: 22),
+            dropdownColor: Colors.white,
+            menuMaxHeight: 240,
+            value: section['lecturer_id'],
+            items: lecturers.map((item) {
+              final isSelected = section['lecturer_id'] == item['id'];
+              return DropdownMenuItem<dynamic>(
+                value: item['id'],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 4, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? kPrimary.withOpacity(0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? kPrimary
+                              : kPrimary.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.person_rounded,
+                          size: 16,
+                          color: isSelected ? Colors.white : kPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        item['name'],
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                          color: isSelected ? kPrimary : kText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+            onChanged: (value) =>
+                setState(() => section['lecturer_id'] = value),
+            decoration: InputDecoration(
+              hintText: 'Select lecturer',
+              hintStyle: const TextStyle(color: kHint, fontSize: 14),
+              prefixIcon: const Icon(Icons.person_outline,
+                  color: kPrimary, size: 20),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 12),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kBorder, width: 1),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    const BorderSide(color: kPrimary, width: 1.5),
+              ),
             ),
           ),
         ),
@@ -192,204 +290,93 @@ class _SubjectFormPageState extends State<SubjectFormPage> {
     );
   }
 
-  String _hintFor(String label) {
-    switch (label.toLowerCase()) {
-      case 'subject name':
-        return 'e.g. Data Structures & Algorithms';
-      case 'subject code':
-        return 'e.g. CSC2103';
-      case 'credit hours':
-        return '3';
-      case 'total sections':
-        return '2';
-      case 'total labs':
-        return '2';
-      case 'lab capacity':
-        return '30';
-      default:
-        return '';
-    }
-  }
-
-  // ─── Reusable dropdown field ───────────────────────────────────────────────
-  Widget _buildDropdown({
-    required String label,
-    required List items,
-    required void Function(dynamic) onChanged,
-    IconData? icon,
-  }) {
+  // ── Modern day pill selector ───────────────────────────────────────────────
+  Widget _buildDayPills(Map<String, dynamic> lab) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 14, color: const Color(0xFF8A7A55)),
-              const SizedBox(width: 5),
-            ],
-            Text(
-              label.toUpperCase(),
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF8A7A55),
-                letterSpacing: 0.6,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 5),
-        DropdownButtonFormField(
-          items: items.map((item) {
-            return DropdownMenuItem(
-              value: item['id'],
-              child: Text(
-                item['name'],
-                style:
-                    const TextStyle(fontSize: 14, color: Color(0xFF2A2010)),
+        _label('Schedule Day', icon: Icons.calendar_today_outlined),
+        Wrap(
+          spacing: 8,
+          children: _days.map((day) {
+            final selected = lab['selected_day'] == day;
+            return GestureDetector(
+              onTap: () => setState(() => lab['selected_day'] = day),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: selected ? kPrimary : Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                    color: selected ? kPrimary : kBorder,
+                    width: 1.5,
+                  ),
+                ),
+                child: Text(
+                  day.substring(0, 3), // Mon, Tue …
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? Colors.white : kLabel,
+                  ),
+                ),
               ),
             );
           }).toList(),
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            hintText: 'Select lecturer',
-            hintStyle:
-                const TextStyle(color: Color(0xFFBFB49A), fontSize: 14),
-            filled: true,
-            fillColor: const Color(0xFFFDFAF2),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  const BorderSide(color: Color(0xFFD9CFB0), width: 0.5),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  const BorderSide(color: Color(0xFF0D3B6E), width: 1),
-            ),
-          ),
         ),
       ],
     );
   }
 
-  // ─── Day dropdown ──────────────────────────────────────────────────────────
-  Widget _buildDayDropdown(Map<String, dynamic> lab) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: const [
-            Icon(Icons.calendar_today_outlined,
-                size: 14, color: Color(0xFF8A7A55)),
-            SizedBox(width: 5),
-            Text(
-              'SCHEDULE DAY',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF8A7A55),
-                letterSpacing: 0.6,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 5),
-        DropdownButtonFormField<String>(
-          value: lab['selected_day'],
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: const Color(0xFFFDFAF2),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  const BorderSide(color: Color(0xFFD9CFB0), width: 0.5),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide:
-                  const BorderSide(color: Color(0xFF0D3B6E), width: 1),
-            ),
-          ),
-          hint: const Text(
-            'Select day',
-            style: TextStyle(color: Color(0xFFBFB49A), fontSize: 14),
-          ),
-          items: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
-              .map((day) => DropdownMenuItem(
-                    value: day,
-                    child: Text(
-                      day,
-                      style: const TextStyle(
-                          fontSize: 14, color: Color(0xFF2A2010)),
-                    ),
-                  ))
-              .toList(),
-          onChanged: (value) =>
-              setState(() => lab['selected_day'] = value),
-        ),
-      ],
-    );
-  }
-
-  // ─── Time picker tile ──────────────────────────────────────────────────────
+  // ── Modern time picker button ──────────────────────────────────────────────
   Widget _buildTimePicker({
     required String label,
     required TimeOfDay? time,
     required Future<void> Function() onTap,
   }) {
+    final hasTime = time != null;
+    final display = hasTime
+        ? '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}'
+        : 'Pick time';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            const Icon(Icons.access_time,
-                size: 14, color: Color(0xFF8A7A55)),
-            const SizedBox(width: 5),
-            Text(
-              label.toUpperCase(),
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF8A7A55),
-                letterSpacing: 0.6,
+        _label(label, icon: Icons.access_time_rounded),
+        GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: hasTime ? kPrimary.withOpacity(0.08) : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: hasTime ? kPrimary : kBorder,
+                width: hasTime ? 1.5 : 1,
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 5),
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFDFAF2),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                  color: const Color(0xFFD9CFB0), width: 0.5),
-            ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Icon(
+                  Icons.schedule_rounded,
+                  size: 16,
+                  color: hasTime ? kPrimary : kHint,
+                ),
+                const SizedBox(width: 8),
                 Text(
-                  time == null
-                      ? 'Select'
-                      : '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+                  display,
                   style: TextStyle(
                     fontSize: 14,
-                    color: time == null
-                        ? const Color(0xFFBFB49A)
-                        : const Color(0xFF2A2010),
+                    fontWeight:
+                        hasTime ? FontWeight.w600 : FontWeight.normal,
+                    color: hasTime ? kPrimary : kHint,
                   ),
                 ),
-                const Icon(Icons.access_time,
-                    size: 16, color: Color(0xFF8A7A55)),
               ],
             ),
           ),
@@ -403,401 +390,505 @@ class _SubjectFormPageState extends State<SubjectFormPage> {
     return Scaffold(
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
-      backgroundColor: const Color(0xFFFDF9EC),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Container(
-            margin: const EdgeInsets.all(20),
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border:
-                  Border.all(color: const Color(0xFFE8E0C4), width: 0.5),
-              boxShadow: const [
-                BoxShadow(blurRadius: 8, color: Colors.black12),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Title ────────────────────────────────────────────────
-                const Center(
-                  child: Text(
-                    "Subject Registration Form",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0D3B6E),
+      backgroundColor: kBg,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // ── Page header banner ───────────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              decoration: BoxDecoration(
+                color: kPrimary,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    child: const Icon(Icons.menu_book_rounded,
+                        color: Colors.white, size: 24),
                   ),
-                ),
+                  const SizedBox(width: 14),
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Subject Registration",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        "Fill in subject details below",
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
 
-                const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-                // ── Subject Name ─────────────────────────────────────────
-                _buildField(
-                  label: 'Subject Name',
-                  controller: nameController,
-                  icon: Icons.book_outlined,
-                ),
+            // ── Main form card ───────────────────────────────────────────
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: kBorder, width: 1),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.orange.shade50,
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Subject Name
+                  _buildField(
+                    label: 'Subject Name',
+                    controller: nameController,
+                    icon: Icons.book_outlined,
+                    hint: 'e.g. Data Structures & Algorithms',
+                  ),
+                  const SizedBox(height: 14),
 
-                const SizedBox(height: 14),
+                  // Subject Code
+                  _buildField(
+                    label: 'Subject Code',
+                    controller: codeController,
+                    icon: Icons.tag,
+                    hint: 'e.g. CSC2103',
+                  ),
+                  const SizedBox(height: 14),
 
-                // ── Subject Code ─────────────────────────────────────────
-                _buildField(
-                  label: 'Subject Code',
-                  controller: codeController,
-                  icon: Icons.tag,
-                ),
+                  // Credit Hours + Total Sections
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildField(
+                          label: 'Credit Hours',
+                          controller: creditController,
+                          keyboardType: TextInputType.number,
+                          icon: Icons.star_outline,
+                          hint: '3',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildField(
+                          label: 'Total Sections',
+                          controller: sectionController,
+                          keyboardType: TextInputType.number,
+                          icon: Icons.view_list_outlined,
+                          hint: '2',
+                          onChanged: (value) {
+                            int total = int.tryParse(value) ?? 0;
+                            sections = List.generate(total, (index) {
+                              return {
+                                "section_name": "Section ${index + 1}",
+                                "lecturer_id": null,
+                                "lab_controller": TextEditingController(),
+                                "labs": [],
+                              };
+                            });
+                            setState(() {});
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
 
-                const SizedBox(height: 14),
-
-                // ── Credit Hours + Total Sections (side by side) ──────────
-                Row(
+            // ── Section cards ────────────────────────────────────────────
+            if (sections.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 4, vertical: 10),
+                child: Row(
                   children: [
-                    Expanded(
-                      child: _buildField(
-                        label: 'Credit Hours',
-                        controller: creditController,
-                        keyboardType: TextInputType.number,
-                        icon: Icons.star_outline,
+                    Container(
+                      width: 4,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: kPrimary,
+                        borderRadius: BorderRadius.circular(4),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildField(
-                        label: 'Total Sections',
-                        controller: sectionController,
-                        keyboardType: TextInputType.number,
-                        icon: Icons.view_list_outlined,
-                        onChanged: (value) {
-                          int total = int.tryParse(value) ?? 0;
-                          sections = List.generate(total, (index) {
-                            return {
-                              "section_name": "Section ${index + 1}",
-                              "lecturer_id": null,
-                              "lab_controller":
-                                  TextEditingController(),
-                              "labs": [],
-                            };
-                          });
-                          setState(() {});
-                        },
+                    const SizedBox(width: 8),
+                    const Text(
+                      'SECTIONS',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: kLabel,
+                        letterSpacing: 0.8,
                       ),
                     ),
                   ],
                 ),
+              ),
+            ],
 
-                if (sections.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Container(height: 0.5, color: const Color(0xFFE8E0C4)),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'SECTIONS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF8A7A55),
-                      letterSpacing: 0.8,
+            ...sections.asMap().entries.map((entry) {
+              final sectionIndex = entry.key;
+              final section = entry.value;
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: kBorder, width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.orange.shade50,
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
-                // ── Section Cards ─────────────────────────────────────────
-                ...sections.asMap().entries.map((entry) {
-                  final sectionIndex = entry.key;
-                  final section = entry.value;
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 16),
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFDF9EC),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                          color: const Color(0xFFD9CFB0), width: 0.5),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Section header with numbered badge
-                        Row(
-                          children: [
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0D3B6E),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                '${sectionIndex + 1}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Section header
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                      decoration: BoxDecoration(
+                        color: kPrimary.withOpacity(0.08),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(18),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              color: kPrimary,
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              section['section_name'],
+                            alignment: Alignment.center,
+                            child: Text(
+                              '${sectionIndex + 1}',
                               style: const TextStyle(
                                 fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF1A2E3B),
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
                               ),
                             ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        // Lecturer dropdown
-                        _buildDropdown(
-                          label: 'Lecturer',
-                          items: lecturers,
-                          icon: Icons.person_outline,
-                          onChanged: (value) =>
-                              section['lecturer_id'] = value,
-                        ),
-
-                        const SizedBox(height: 14),
-
-                        // Total labs field
-                        _buildField(
-                          label: 'Total Labs',
-                          controller: section['lab_controller'],
-                          keyboardType: TextInputType.number,
-                          icon: Icons.science_outlined,
-                          onChanged: (value) {
-                            int totalLabs = int.tryParse(value) ?? 0;
-                            section['labs'] = List.generate(
-                              totalLabs,
-                              (labIndex) => {
-                                "lab_name":
-                                    "${section['section_name']} ${String.fromCharCode(65 + labIndex)}",
-                                "capacity_controller":
-                                    TextEditingController(),
-                                "selected_day": null,
-                                "start_time": null,
-                                "end_time": null,
-                              },
-                            );
-                            setState(() {});
-                          },
-                        ),
-
-                        if (section['labs'].isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          const Text(
-                            'LABS',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF8A7A55),
-                              letterSpacing: 0.5,
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            section['section_name'],
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: kPrimaryDark,
                             ),
                           ),
-                          const SizedBox(height: 8),
                         ],
+                      ),
+                    ),
 
-                        // ── Lab Cards ───────────────────────────────────
-                        ...section['labs'].map<Widget>((lab) {
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            padding: const EdgeInsets.all(13),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                  color: const Color(0xFFD9CFB0),
-                                  width: 0.5),
-                            ),
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Lecturer
+                          _buildLecturerDropdown(section),
+                          const SizedBox(height: 14),
+
+                          // Total Labs
+                          _buildField(
+                            label: 'Total Labs',
+                            controller: section['lab_controller'],
+                            keyboardType: TextInputType.number,
+                            icon: Icons.science_outlined,
+                            hint: '2',
+                            onChanged: (value) {
+                              int totalLabs = int.tryParse(value) ?? 0;
+                              section['labs'] = List.generate(
+                                totalLabs,
+                                (labIndex) => {
+                                  "lab_name":
+                                      "${section['section_name']} ${String.fromCharCode(65 + labIndex)}",
+                                  "capacity_controller":
+                                      TextEditingController(),
+                                  "selected_day": null,
+                                  "start_time": null,
+                                  "end_time": null,
+                                },
+                              );
+                              setState(() {});
+                            },
+                          ),
+
+                          // Lab cards
+                          if (section['labs'].isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            Row(
                               children: [
-                                // Lab name with blue dot
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFF185FA5),
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 7),
-                                    Text(
-                                      lab['lab_name'],
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF185FA5),
-                                      ),
-                                    ),
-                                  ],
+                                Container(
+                                  width: 4,
+                                  height: 14,
+                                  decoration: BoxDecoration(
+                                    color: kPrimary.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
                                 ),
-
-                                const SizedBox(height: 12),
-
-                                // Capacity
-                                _buildField(
-                                  label: 'Lab Capacity',
-                                  controller:
-                                      lab['capacity_controller'],
-                                  keyboardType: TextInputType.number,
-                                ),
-
-                                const SizedBox(height: 12),
-
-                                // Schedule day
-                                _buildDayDropdown(lab),
-
-                                const SizedBox(height: 12),
-
-                                // Start & End time
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildTimePicker(
-                                        label: 'Start Time',
-                                        time: lab['start_time'],
-                                        onTap: () async {
-                                          final picked =
-                                              await showTimePicker(
-                                            context: context,
-                                            initialTime:
-                                                lab['start_time'] ??
-                                                    TimeOfDay.now(),
-                                          );
-                                          if (picked != null) {
-                                            setState(() =>
-                                                lab['start_time'] =
-                                                    picked);
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
-                                      child: _buildTimePicker(
-                                        label: 'End Time',
-                                        time: lab['end_time'],
-                                        onTap: () async {
-                                          final picked =
-                                              await showTimePicker(
-                                            context: context,
-                                            initialTime:
-                                                lab['end_time'] ??
-                                                    TimeOfDay.now(),
-                                          );
-                                          if (picked != null) {
-                                            setState(() =>
-                                                lab['end_time'] =
-                                                    picked);
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                  ],
+                                const SizedBox(width: 7),
+                                const Text(
+                                  'LABS',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: kLabel,
+                                    letterSpacing: 0.7,
+                                  ),
                                 ),
                               ],
                             ),
-                          );
-                        }).toList(),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                            const SizedBox(height: 10),
+                          ],
 
-                const SizedBox(height: 8),
+                          ...section['labs'].map<Widget>((lab) {
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: kCardBg,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: kBorder,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  // Lab name badge
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: const BoxDecoration(
+                                          color: kPrimary,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 7),
+                                      Text(
+                                        lab['lab_name'],
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: kPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
 
-                // ── Submit Button ────────────────────────────────────────
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0D3B6E),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                                  const SizedBox(height: 12),
+
+                                  // Capacity
+                                  _buildField(
+                                    label: 'Lab Capacity',
+                                    controller:
+                                        lab['capacity_controller'],
+                                    keyboardType: TextInputType.number,
+                                    icon: Icons.people_outline,
+                                    hint: '30',
+                                  ),
+
+                                  const SizedBox(height: 14),
+
+                                  // Day pills
+                                  _buildDayPills(lab),
+
+                                  const SizedBox(height: 14),
+
+                                  // Start & End time
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: _buildTimePicker(
+                                          label: 'Start Time',
+                                          time: lab['start_time'],
+                                          onTap: () async {
+                                            final picked =
+                                                await showTimePicker(
+                                              context: context,
+                                              initialTime:
+                                                  lab['start_time'] ??
+                                                      TimeOfDay.now(),
+                                              builder: (ctx, child) =>
+                                                  Theme(
+                                                data: Theme.of(ctx)
+                                                    .copyWith(
+                                                  colorScheme:
+                                                      const ColorScheme
+                                                          .light(
+                                                    primary: kPrimary,
+                                                    onPrimary:
+                                                        Colors.white,
+                                                  ),
+                                                ),
+                                                child: child!,
+                                              ),
+                                            );
+                                            if (picked != null) {
+                                              setState(() =>
+                                                  lab['start_time'] =
+                                                      picked);
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: _buildTimePicker(
+                                          label: 'End Time',
+                                          time: lab['end_time'],
+                                          onTap: () async {
+                                            final picked =
+                                                await showTimePicker(
+                                              context: context,
+                                              initialTime:
+                                                  lab['end_time'] ??
+                                                      TimeOfDay.now(),
+                                              builder: (ctx, child) =>
+                                                  Theme(
+                                                data: Theme.of(ctx)
+                                                    .copyWith(
+                                                  colorScheme:
+                                                      const ColorScheme
+                                                          .light(
+                                                    primary: kPrimary,
+                                                    onPrimary:
+                                                        Colors.white,
+                                                  ),
+                                                ),
+                                                child: child!,
+                                              ),
+                                            );
+                                            if (picked != null) {
+                                              setState(() =>
+                                                  lab['end_time'] =
+                                                      picked);
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ],
                       ),
-                      elevation: 0,
                     ),
-                    onPressed: () async {
-                      FocusScope.of(context).unfocus();
+                  ],
+                ),
+              );
+            }).toList(),
 
-                      List formattedSections = [];
+            const SizedBox(height: 8),
 
-                      for (var section in sections) {
-                        List formattedLabs = [];
-
-                        for (var lab in section['labs']) {
-                          final startTime =
-                              lab['start_time'] as TimeOfDay?;
-                          final endTime =
-                              lab['end_time'] as TimeOfDay?;
-                          final scheduleTime =
-                              (startTime != null && endTime != null)
-                                  ? "${startTime.format(context)} - ${endTime.format(context)}"
-                                  : "";
-
-                          formattedLabs.add({
-                            "lab_name": lab['lab_name'],
-                            "capacity":
-                                lab['capacity_controller'].text,
-                            "schedule_day":
-                                lab['selected_day'] ?? "",
-                            "schedule_time": scheduleTime,
-                          });
-                        }
-
-                        formattedSections.add({
-                          "section_name": section['section_name'],
-                          "lecturer_id": section['lecturer_id'],
-                          "labs": formattedLabs,
-                        });
-                      }
-
-                      var response = await RegistrarSubjectProvider()
-                          .registerSubject(
-                        subjectName: nameController.text,
-                        subjectCode: codeController.text,
-                        creditHours: creditController.text,
-                        totalSection: sectionController.text,
-                        sections: formattedSections,
-                      );
-
-                      print(response);
-
-                      _showSuccessDialog();
-                    },
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.check_circle_outline, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          "Register Subject",
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+            // ── Submit button ────────────────────────────────────────────
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-              ],
+                icon: const Icon(Icons.check_circle_outline_rounded,
+                    size: 20),
+                label: const Text(
+                  "Register Subject",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                onPressed: () async {
+                  FocusScope.of(context).unfocus();
+
+                  List formattedSections = [];
+
+                  for (var section in sections) {
+                    List formattedLabs = [];
+
+                    for (var lab in section['labs']) {
+                      final startTime = lab['start_time'] as TimeOfDay?;
+                      final endTime = lab['end_time'] as TimeOfDay?;
+                      final scheduleTime =
+                          (startTime != null && endTime != null)
+                              ? "${startTime.format(context)} - ${endTime.format(context)}"
+                              : "";
+
+                      formattedLabs.add({
+                        "lab_name": lab['lab_name'],
+                        "capacity": lab['capacity_controller'].text,
+                        "schedule_day": lab['selected_day'] ?? "",
+                        "schedule_time": scheduleTime,
+                      });
+                    }
+
+                    formattedSections.add({
+                      "section_name": section['section_name'],
+                      "lecturer_id": section['lecturer_id'],
+                      "labs": formattedLabs,
+                    });
+                  }
+
+                  var response = await RegistrarSubjectProvider()
+                      .registerSubject(
+                    subjectName: nameController.text,
+                    subjectCode: codeController.text,
+                    creditHours: creditController.text,
+                    totalSection: sectionController.text,
+                    sections: formattedSections,
+                  );
+
+                  print(response);
+                  _showSuccessDialog();
+                },
+              ),
             ),
-          ),
+
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );
