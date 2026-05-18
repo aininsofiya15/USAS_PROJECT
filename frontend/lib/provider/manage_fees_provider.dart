@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api.dart'; 
+import 'package:intl/intl.dart'; // Added for Date formatting
 
 class StudentFeeStatus {
   final int userId;
@@ -52,28 +53,87 @@ class FeesManagementProvider extends ChangeNotifier {
   int totalStudents = 0;
   double totalPaidReport = 0.0;
   double totalOutstandingReport = 0.0;
+  double onlineBankingTotal = 0.0;
+  double cardPaymentTotal = 0.0;
 
-    // Add these getters to FeesManagementProvider
+  // --- NEW STUDENT CORE RECENT UPDATES PORTAL STATE VARIABLES ---
+  bool studentIsBlocked = false;
+  String upcomingDueDateStr = "Loading...";
+  double curriculumProgress = 0.7; // Kept your layout default layout percentage value 
+  int totalCreditsCurrentSem = 12;  // Kept your layout default credit count variable
+
   double get totalPaidAmount => summary['paid']?.toDouble() ?? 0.0; 
   double get totalOutstandingBalance {
     return students.fold(0.0, (sum, item) => sum + item.outstandingAmount);
   }
 
-// Data for the Pie Chart
-int get paidCount => summary['paid'] ?? 0;
-int get unpaidCountStatus => summary['unpaid'] ?? 0;
+  int get paidCount => summary['paid'] ?? 0;
+  int get unpaidCountStatus => summary['unpaid'] ?? 0;
 
-  // Helper for headers to keep code clean
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
 
-
-Future<void> fetchDashboardSummary() async {
+  Future<void> fetchStudentPortalDashboardData(String studentId) async {
     isLoading = true;
     errorMessage = '';
-    // Re-confirm hardcoded values immediately
+    notifyListeners();
+
+    try {
+      final url = '${Api.baseUrl}/student/dashboard-status/$studentId';
+      debugPrint("Hitting dynamic student platform status pipeline via url context: $url");
+
+      final response = await http.get(
+        Uri.parse(url),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        if (data['success'] == true) {
+          // Extract matching variables directly from database payload elements keys
+          String blockDateRaw = data['block_date'] ?? "2026-05-18"; 
+          String paymentStatus = data['payment_status']?.toString().toLowerCase() ?? 'unpaid';
+          
+          totalCreditsCurrentSem = int.tryParse(data['total_credits']?.toString() ?? '12') ?? 12;
+          curriculumProgress = double.tryParse(data['curriculum_progress']?.toString() ?? '0.7') ?? 0.7;
+
+          // Parse structural string format safely ("2026-05-18 00:00:00")
+          DateTime parsedBlockDate = DateTime.parse("$blockDateRaw 00:00:00");
+          
+          // Re-format into dashboard view text panel string layout configuration block
+          upcomingDueDateStr = "${DateFormat('d MMMM').format(parsedBlockDate)}\n12:00 AM";
+
+          // Evaluate live runtime system conditions rules
+          DateTime currentSystemTime = DateTime.now();
+          if (paymentStatus == 'unpaid' && currentSystemTime.isAfter(parsedBlockDate)) {
+            studentIsBlocked = true;
+          } else {
+            studentIsBlocked = false;
+          }
+        } else {
+          errorMessage = data['message'] ?? 'Backend operation failed validation.';
+          upcomingDueDateStr = "Sync Error";
+        }
+      } else {
+        errorMessage = 'Server Error Status Code context: ${response.statusCode}';
+        upcomingDueDateStr = "Sync Error";
+      }
+    } catch (e) {
+      errorMessage = 'Network connection thread failure: ${e.toString()}';
+      upcomingDueDateStr = "Offline";
+      debugPrint("Student Dashboard System Engine Sync Error trace: $e");
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchDashboardSummary() async {
+    isLoading = true;
+    errorMessage = '';
     totalCollectedToday = 1250.50;
     totalCollectedThisWeek = 8400.00;
     notifyListeners();
@@ -104,65 +164,57 @@ Future<void> fetchDashboardSummary() async {
     }
   }
 
-  // Helper to trigger refresh from UI
   Future<void> refreshDashboard() async {
     await fetchDashboardSummary();
   }
 
-  // Update your fetch method to handle 10 items per page
-Future<void> fetchStudentsFeeStatus({int page = 1}) async {
-  currentPage = page;
-  isLoading = true;
-  errorMessage = '';
-  notifyListeners();
-
-  try {
-    // Explicitly add per_page=10 to the query string
-    final url = '${Api.baseUrl}/treasurer/fees-summary?'
-        'page=$currentPage'
-        '&per_page=10' 
-        '&status=$currentFilter'
-        '&search=$searchQuery';
-
-    final response = await http.get(Uri.parse(url), headers: _headers);
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      
-      if (data['summary'] != null) {
-        summary = Map<String, int>.from(data['summary']);
-      }
-
-      // Check if data is nested under 'students' -> 'data' (common in Laravel pagination)
-      final dynamic studentData = data['students'];
-      List<dynamic> studentsList = [];
-      
-      if (studentData is Map && studentData['data'] != null) {
-        // This is the correct path for Laravel Pagination
-        studentsList = studentData['data'];
-        totalStudents = studentData['total'] ?? 0;
-        totalPages = studentData['last_page'] ?? 1;
-    } else {
-        // If you reach here, your backend is NOT paginating correctly.
-        // It is sending a plain List, so we force-limit it to 10 for the UI.
-        studentsList = (studentData as List).take(10).toList(); 
-        totalStudents = studentData.length;
-        totalPages = (totalStudents / 10).ceil();
-    }
-
-      // Mapping the list to our model
-      students = studentsList.map((json) => StudentFeeStatus.fromJson(json)).toList();
-      
-    } else {
-      errorMessage = 'Failed to load data';
-    }
-  } catch (e) {
-    errorMessage = 'Error: ${e.toString()}';
-  } finally {
-    isLoading = false;
+  Future<void> fetchStudentsFeeStatus({int page = 1}) async {
+    currentPage = page;
+    isLoading = true;
+    errorMessage = '';
     notifyListeners();
+
+    try {
+      final url = '${Api.baseUrl}/treasurer/fees-summary?'
+          'page=$currentPage'
+          '&per_page=10' 
+          '&status=$currentFilter'
+          '&search=$searchQuery';
+
+      final response = await http.get(Uri.parse(url), headers: _headers);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        if (data['summary'] != null) {
+          summary = Map<String, int>.from(data['summary']);
+        }
+
+        final dynamic studentData = data['students'];
+        List<dynamic> studentsList = [];
+        
+        if (studentData is Map && studentData['data'] != null) {
+          studentsList = studentData['data'];
+          totalStudents = studentData['total'] ?? 0;
+          totalPages = studentData['last_page'] ?? 1;
+        } else {
+          studentsList = (studentData as List).take(10).toList(); 
+          totalStudents = studentData.length;
+          totalPages = (totalStudents / 10).ceil();
+        }
+
+        students = studentsList.map((json) => StudentFeeStatus.fromJson(json)).toList();
+        
+      } else {
+        errorMessage = 'Failed to load data';
+      }
+    } catch (e) {
+      errorMessage = 'Error: ${e.toString()}';
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
-}
 
   void goToPage(int page) {
     if (page >= 1 && page <= totalPages) {
@@ -211,7 +263,7 @@ Future<void> fetchStudentsFeeStatus({int page = 1}) async {
     try {
       final response = await http.post(
         Uri.parse('${Api.baseUrl}/treasurer/block-settings'),
-        headers: _headers, // Verifies 'Content-Type': 'application/json' is active
+        headers: _headers,
         body: json.encode({
           'treasurer_id': treasurerId,
           'block_start_date': selectedBlockDate.toIso8601String(),
@@ -222,17 +274,13 @@ Future<void> fetchStudentsFeeStatus({int page = 1}) async {
         final responseData = json.decode(response.body);
         return responseData['success'] == true;
       } else {
-        debugPrint("API rejected request parameters with code: ${response.statusCode}");
-        debugPrint("Server Response payload summary: ${response.body}");
         return false;
       }
     } catch (e) {
-      debugPrint("Failed to execute saveBlockDate routine network thread: $e");
       return false;
     }
   }
 
-  // --- NEW STUDENT PORTAL METHOD ---
   Future<void> fetchStudentFinancialProfile(String studentId) async {
     isLoading = true;
     errorMessage = '';
@@ -257,42 +305,41 @@ Future<void> fetchStudentsFeeStatus({int page = 1}) async {
     }
   }
 
-Future<bool> updateBankAccount(String studentId, String accNo, String bankName) async {
-  isLoading = true; // Use 'isLoading' to match your class variable
-  notifyListeners();
+  Future<bool> updateBankAccount(String studentId, String accNo, String bankName) async {
+    isLoading = true; 
+    notifyListeners();
 
-  try {
-    // 1. SEND DATA TO BACKEND
-    final response = await http.post(
-      Uri.parse('${Api.baseUrl}/student/update-bank'), // Your actual API endpoint
-      headers: _headers,
-      body: json.encode({
-        'student_id': studentId,
-        'acc_no': accNo,
-        'bank_name': bankName,
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('${Api.baseUrl}/student/update-bank'),
+        headers: _headers,
+        body: json.encode({
+          'student_id': studentId,
+          'acc_no': accNo,
+          'bank_name': bankName,
+        }),
+      );
 
-    if (response.statusCode == 200) {
+      if (response.statusCode == 200) {
         if (selectedStudentDetail != null) {
             selectedStudentDetail!['acc_no'] = accNo;
             selectedStudentDetail!['bank_name'] = bankName;
         }
         notifyListeners();
         return true;
-    } else {
-      errorMessage = 'Failed to update database';
+      } else {
+        errorMessage = 'Failed to update database';
+        isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      errorMessage = 'Network error: ${e.toString()}';
       isLoading = false;
       notifyListeners();
       return false;
     }
-  } catch (e) {
-    errorMessage = 'Network error: ${e.toString()}';
-    isLoading = false;
-    notifyListeners();
-    return false;
   }
-}
 
   void updateBlockDate(DateTime date) {
     selectedBlockDate = date;
@@ -301,7 +348,7 @@ Future<bool> updateBankAccount(String studentId, String accNo, String bankName) 
 
   Future<void> fetchPaymentHistory(String studentId) async {
     isLoading = true;
-    paymentHistory = []; // Clear old data
+    paymentHistory = []; 
     notifyListeners();
 
     try {
@@ -324,33 +371,39 @@ Future<bool> updateBankAccount(String studentId, String accNo, String bankName) 
   }
 
   Future<void> fetchReportTotals() async {
-  try {
-    final response = await http.get(
-      Uri.parse('${Api.baseUrl}/treasurer/report-totals'),
-      headers: _headers,
-    );
+    isLoading = true;
+    errorMessage = '';
+    notifyListeners();
 
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      // Update the variables we just created
-      totalPaidReport = (data['total_paid'] ?? 0.0).toDouble();
-      totalOutstandingReport = (data['total_outstanding'] ?? 0.0).toDouble();
+    try {
+      final response = await http.get(
+        Uri.parse('${Api.baseUrl}/treasurer/report-totals'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        totalPaidReport = (data['total_paid'] ?? 0.0).toDouble();
+        totalOutstandingReport = (data['total_outstanding'] ?? 0.0).toDouble();
+        summary['blocked'] = data['blocked_count'] ?? 0;
+        summary['bank_count'] = data['online_banking_count'] ?? 0;
+        summary['card_count'] = data['card_payment_count'] ?? 0;
+      }
+    } catch (e) {
+      errorMessage = "Failed to synchronize remote metrics.";
+    } finally {
+      isLoading = false;
       notifyListeners();
     }
-  } catch (e) {
-    debugPrint("Fetch Report Error: $e");
   }
-}
 
   void setFilter(String filter) {
     currentFilter = filter;
-    // Instead of refresh: true, we just go back to page 1
     fetchStudentsFeeStatus(page: 1);
   }
 
   void searchStudents(String query) {
     searchQuery = query;
-    // Instead of refresh: true, we just go back to page 1
     fetchStudentsFeeStatus(page: 1);
   }
 }

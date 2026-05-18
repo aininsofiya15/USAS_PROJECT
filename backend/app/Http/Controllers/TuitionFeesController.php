@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Str;
 use App\Models\User;
 use App\Models\Student;
 use App\Models\StudentFee;
@@ -9,7 +10,7 @@ use App\Models\Payment;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-
+    
 class TuitionFeesController extends Controller
 {
     public function index()
@@ -39,6 +40,49 @@ class TuitionFeesController extends Controller
         return response()->json([
             'total_students' => $count
         ]);
+    }
+
+    public function getStudentDashboardStatus($student_id)
+    {
+        try {
+            // 1. Fetch the latest configuration from block_settings table
+            // We use standard column layout matching your saveBlockDate method
+            $blockSetting = DB::table('block_settings')
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            // Fallback default date string matching your requested layout requirement
+            $blockDate = '2026-05-18';
+            if ($blockSetting) {
+                // Determine if column name uses block_start_date or block_date
+                $blockDate = $blockSetting->block_start_date ?? $blockSetting->block_date ?? '2026-05-18';
+            }
+
+            // 2. Fetch student payment status profile from fees table
+            $feeRecord = DB::table('fees')
+                ->where('student_id', $student_id)
+                ->orWhere('user_id', $student_id) // Fallback support for primary key lookups
+                ->first();
+
+            // Default to 'unpaid' if no table rows exist for this student profile context
+            $paymentStatus = $feeRecord ? strtolower($feeRecord->status) : 'unpaid';
+
+            // 3. Return the exact JSON structure required by the Flutter provider
+            return response()->json([
+                'success' => true,
+                'block_date' => Carbon::parse($blockDate)->format('Y-m-d'),
+                'payment_status' => $paymentStatus,
+                'total_credits' => 12,
+                'curriculum_progress' => 0.70
+            ], 200);
+
+        } catch (\Exception $e) {
+            // If something crashes, log it and return clear debugging context info
+            return response()->json([
+                'success' => false,
+                'message' => 'Backend Error Context: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function getTuitionFeesSummary(Request $request) 
@@ -265,41 +309,48 @@ class TuitionFeesController extends Controller
     //students
     public function getStudentFinancialProfile($userId)
     {
-        // 1. Fetch the profile
-        $data = DB::table('students')
-            ->join('users', 'users.id', '=', 'students.id') 
-            ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id')
-            ->leftJoin('bank_accounts', 'students.student_id', '=', 'bank_accounts.student_id')
-            ->select(
-                'users.name',
-                'students.student_id', 
-                'students.ic_no',
-                'students.course_name',
-                'students.program',
-                'bank_accounts.bank_name',
-                'bank_accounts.acc_no',
-                'fees.total_invoice', 
-                'fees.outstanding_amount' 
-            )
-            ->where('users.id', $userId)
-            ->first();
+        try {
+            // 1. Fetch the profile by joining users, students, fees, and bank accounts
+            $data = DB::table('students')
+                ->join('users', 'users.id', '=', 'students.id') 
+                ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id')
+                ->leftJoin('bank_accounts', 'students.student_id', '=', 'bank_accounts.student_id')
+                ->select(
+                    'users.name',
+                    'students.student_id', 
+                    'students.ic_no',
+                    'students.course_name',
+                    'students.program',
+                    'bank_accounts.bank_name',
+                    'bank_accounts.acc_no',
+                    'fees.total_invoice',          
+                    'fees.outstanding_amount'      
+                )
+                ->where('users.id', $userId)
+                ->first();
 
-        // 2. Check if student exists
-        if (!$data) {
-            return response()->json(['message' => 'Student not found'], 404);
+            // 2. Check if student records exist
+            if (!$data) {
+                return response()->json(['message' => 'Student not found'], 404);
+            }
+
+            // 3. Calculate Total Payment by summing 'total_payment' from successful payments
+            $totalPayment = DB::table('payments')
+                ->where('student_id', $data->student_id) 
+                ->where('status', 'Success') // Only sum completed transactions
+                ->sum('total_payment');       // Explicitly matches your payments table
+
+            // 4. Cast to an array and force float types for stable Flutter parsing
+            $result = (array)$data;
+            $result['total_invoice'] = (float)($data->total_invoice ?? 0.00);
+            $result['total_payment'] = (float)$totalPayment;
+            $result['outstanding_amount'] = (float)($data->outstanding_amount ?? 0.00);
+
+            return response()->json($result);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        // 3. Calculate Total Payment
-        // We use $data->student_id (the matric string) to find payments
-        $totalPayment = DB::table('payments')
-            ->where('student_id', $data->student_id) 
-            ->sum('total_payment');
-
-        // 4. Merge and Return
-        $result = (array)$data;
-        $result['total_payment'] = (float)$totalPayment;
-
-        return response()->json($result);
     }
 
     public function updateStudentBank(Request $request)
@@ -352,13 +403,68 @@ class TuitionFeesController extends Controller
             // 2. Fetch payments
             $history = DB::table('payments')
                 ->where('student_id', $matricId)
-                ->select('payment_id', 'payment_desc', 'amount', 'payment_date')
+                ->select('payment_id', 'payment_desc', 'total_payment as amount', 'payment_date')
                 ->orderBy('payment_date', 'desc')
                 ->get();
 
             return response()->json($history);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function completePayment(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required',
+            'amount' => 'required|numeric|min:1',
+            'method' => 'required|string'
+        ]);
+
+        // Find student table matching row
+        $student = DB::table('students')->where('id', $request->user_id)->first();
+        if (!$student) {
+            return response()->json(['error' => 'Student record not found'], 404);
+        }
+
+        $fee = DB::table('fees')->where('student_id', $student->student_id)->first();
+
+        DB::beginTransaction();
+        try {
+            // 1. Create a successful invoice item entry track line
+            $paymentId = 'TXN-' . strtoupper(Str::random(8));
+            DB::table('payments')->insert([
+                'payment_id' => $paymentId,
+                'student_id' => $student->student_id,
+                'fee_id' => $fee->fee_id ?? null,
+                'total_payment' => $request->amount,
+                'payment_desc' => 'Tuition Fee Balance Settlement',
+                'payment_method' => $request->method,
+                'status' => 'Success', // Instantly marked successful
+                'payment_date' => now(),
+            ]);
+
+            // 2. Adjust outstanding fields on fees table structure
+            if ($fee) {
+                $newPaidAmount = $fee->paid_amount + $request->amount;
+                // Ensure outstanding never drops into negative anomalies
+                $newOutstanding = max(0, $fee->total_invoice - $newPaidAmount); 
+                $newStatus = $newOutstanding <= 0 ? 'paid' : 'unpaid';
+
+                DB::table('fees')->where('student_id', $student->student_id)->update([
+                    'paid_amount' => $newPaidAmount,
+                    'outstanding_amount' => $newOutstanding,
+                    'status' => $newStatus,
+                    'updated_at' => now()
+                ]);
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Balances updated successfully']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Transaction tracking breakdown: ' . $e->getMessage()], 500);
         }
     }
 
@@ -381,5 +487,153 @@ class TuitionFeesController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    // 1. Calculate dynamic metrics and generate an aesthetic PDF Report layout
+    public function downloadFinancialReportPDF()
+    {
+        // Aggregate absolute sums directly from database transaction columns
+        $totalPaid = \DB::table('payments')->where('status', 'Success')->sum('amount');
+        $totalOutstanding = \DB::table('fees')->sum('outstanding_amount');
+        $blockedCount = \DB::table('students')->where('is_blocked', true)->count();
+
+        $paidStudentsCount = \DB::table('fees')->where('status', 'paid')->count();
+        $unpaidStudentsCount = \DB::table('fees')->where('status', 'unpaid')->count();
+
+        // Gather table items to render inside the document
+        $records = \DB::table('users')
+            ->join('students', 'users.id', '=', 'students.id')
+            ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id')
+            ->select('students.student_id', 'users.name', 'fees.total_invoice', 'fees.paid_amount', 'fees.outstanding_amount', 'fees.status')
+            ->orderBy('students.student_id', 'asc')
+            ->get();
+
+        $data = [
+            'totalPaid' => $totalPaid,
+            'totalOutstanding' => $totalOutstanding,
+            'blockedCount' => $blockedCount,
+            'paidCount' => $paidStudentsCount,
+            'unpaidCount' => $unpaidStudentsCount,
+            'records' => $records,
+            'generatedAt' => now()->format('d MMMM YYYY H:i:s')
+        ];
+
+        // Inline structural HTML with minimal styling optimized specifically for DomPDF engines
+        $html = '
+        <html>
+        <head>
+            <style>
+                body { font-family: sans-serif; color: #333; margin: 10px; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .title { font-size: 24px; font-weight: bold; color: #1A5276; }
+                .meta-box { width: 100%; margin-bottom: 25px; border-collapse: collapse; }
+                .meta-card { background: #F2F4F4; padding: 15px; text-align: center; border: 1px solid #E5E7E9; width: 30%; }
+                .meta-label { font-size: 11px; text-transform: uppercase; color: #7F8C8D; margin-bottom: 5px; }
+                .meta-value { font-size: 16px; font-weight: bold; color: #2C3E50; }
+                .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+                .data-table th { background: #1A5276; color: white; padding: 8px; text-align: left; }
+                .data-table td { padding: 8px; border-bottom: 1px solid #E5E7E9; }
+                .status-badge { font-weight: bold; text-transform: uppercase; font-size: 10px; }
+                .paid { color: #27AE60; } .unpaid { color: #E67E22; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="title">USAS Financial Report Overview</div>
+                <div style="font-size: 11px; color: #95A5A6; margin-top: 5px;">Generated on: '.$data['generatedAt'].'</div>
+            </div>
+
+            <table class="meta-box" align="center">
+                <tr>
+                    <td class="meta-card">
+                        <div class="meta-label">Total Collections</div>
+                        <div class="meta-value">RM '.number_format($totalPaid, 2).'</div>
+                    </td>
+                    <td style="width: 5%"></td>
+                    <td class="meta-card">
+                        <div class="meta-label">Outstanding Balances</div>
+                        <div class="meta-value">RM '.number_format($totalOutstanding, 2).'</div>
+                    </td>
+                    <td style="width: 5%"></td>
+                    <td class="meta-card">
+                        <div class="meta-label">Blocked Accounts</div>
+                        <div class="meta-value">'.$blockedCount.' Students</div>
+                    </td>
+                </tr>
+            </table>
+
+            <h3>Account Ledger Summary</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Matric ID</th>
+                        <th>Student Name</th>
+                        <th>Invoiced</th>
+                        <th>Paid</th>
+                        <th>Outstanding</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>';
+                foreach($records as $row) {
+                    $html .= '<tr>
+                        <td>'.$row->student_id.'</td>
+                        <td>'.$row->name.'</td>
+                        <td>RM '.number_format($row->total_invoice, 2).'</td>
+                        <td>RM '.number_format($row->paid_amount, 2).'</td>
+                        <td>RM '.number_format($row->outstanding_amount, 2).'</td>
+                        <td class="status-badge '.strtolower($row->status).'">'.$row->status.'</td>
+                    </tr>';
+                }
+        $html .= '</tbody>
+            </table>
+        </body>
+        </html>';
+
+        $pdf = \Pdf::loadHTML($html);
+        return $pdf->download('USAS-Financial-Report-'.now()->format('Ymd').'.pdf');
+    }
+
+    // 2. Streams flat structured CSV tracking directly via native PHP output handles
+    public function downloadFinancialReportCSV()
+    {
+        $fileName = 'USAS-Financial-Ledger-'.now()->format('Ymd').'.csv';
+        
+        $records = \DB::table('users')
+            ->join('students', 'users.id', '=', 'students.id')
+            ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id')
+            ->select('students.student_id', 'users.name', 'fees.total_invoice', 'fees.paid_amount', 'fees.outstanding_amount', 'fees.status')
+            ->orderBy('students.student_id', 'asc')
+            ->get();
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function() use($records) {
+            $file = fopen('php://output', 'w');
+            
+            // Setup structural column headings
+            fputcsv($file, ['Matric ID', 'Student Name', 'Total Invoiced (RM)', 'Total Paid (RM)', 'Outstanding Balance (RM)', 'Fee Status']);
+
+            foreach ($records as $row) {
+                fputcsv($file, [
+                    $row->student_id,
+                    $row->name,
+                    number_format($row->total_invoice, 2, '.', ''),
+                    number_format($row->paid_amount, 2, '.', ''),
+                    number_format($row->outstanding_amount, 2, '.', ''),
+                    strtoupper($row->status)
+                ]);
+            }
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

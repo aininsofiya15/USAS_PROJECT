@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../provider/manage_fees_provider.dart';
 import 'stud_tuition_overview.dart';
 import 'auto_block_config.dart';
-import '../payment_history.dart'; 
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';

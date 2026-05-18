@@ -1,14 +1,97 @@
 import 'package:USAS/screens/student/attendance_dashboard.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../widgets/header.dart'; 
 import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
 import 'financial_info.dart';
+import '../../provider/manage_fees_provider.dart'; // Ensure this matches your directory structures
 import 'attendance_records.dart'; // IMPORT YOUR NEW HISTORICAL PAGE HERE
 
-class StudentDashboard extends StatelessWidget {
+class StudentDashboard extends StatefulWidget {
   final String name;
   const StudentDashboard({super.key, required this.name});
+
+  @override
+  State<StudentDashboard> createState() => _StudentDashboardState();
+}
+
+class _StudentDashboardState extends State<StudentDashboard> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<FeesManagementProvider>(context, listen: false)
+          .fetchStudentPortalDashboardData("STUDENT_ID_HERE");
+    });
+  }
+
+  // Exact blueprint structural replication of the overlay warning dialog from image_89beba.png
+  void _showAccessBlockedDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                const Icon(
+                  Icons.do_not_disturb_on_rounded,
+                  color: Colors.red,
+                  size: 44,
+                ),
+                const SizedBox(height: 15),
+                const Text(
+                  "ACCESS BLOCKED",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 15),
+                const Text(
+                  "Your academic access has been blocked due to unpaid tuition fees.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Colors.black54, height: 1.4),
+                ),
+                const Text(
+                  "You will be redirected to Tuition Fees page.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: Colors.black54, height: 1.4),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 45,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context); // Dismiss overlay route pop
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const FinancialInfoPage()),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0066FF),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      "Go to Tuition Fees",
+                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 5),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,63 +100,75 @@ class StudentDashboard extends StatelessWidget {
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Welcome, $name!",
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 15),
-            
-            // Search Bar
-            _buildSearchBar(),
-            const SizedBox(height: 25),
+      body: Consumer<FeesManagementProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            // FIXED: Passed context here to allow navigation from the header text action button
-            _buildSectionTitle("Categories", context),
-            const SizedBox(height: 10),
-
-            // Categories Grid (2x2)
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 15,
-              mainAxisSpacing: 15,
-              childAspectRatio: 1.1,
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildCategoryCard("Subject Registration", "assets/icons/sub_reg.png", () {}),
-                _buildCategoryCard("Curriculum Activity", "assets/icons/curriculum.png", () {}),
-                _buildCategoryCard("Attendance", "assets/icons/attendance.png", () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const AttendanceDashboard()));                
+                Text(
+                  "Welcome, ${widget.name}!",
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 15),
+                
+                // Search Bar
+                _buildSearchBar(),
+                const SizedBox(height: 25),
+
+                // FIXED: Passed context here to allow navigation from the header text action button
+            _buildSectionTitle("Categories", context),
+                const SizedBox(height: 10),
+
+                // Categories Grid (2x2)
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 15,
+                  mainAxisSpacing: 15,
+                  childAspectRatio: 1.1,
+                  children: [
+                    _buildCategoryCard("Subject Registration", "assets/icons/sub_reg.png", provider.studentIsBlocked, () {}),
+                    _buildCategoryCard("Curriculum Activity", "assets/icons/curriculum.png", provider.studentIsBlocked, () {}),
+                    _buildCategoryCard("Attendance", "assets/icons/attendance.png", provider.studentIsBlocked, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AttendanceDashboard()));
+                    
                 }),
-                _buildCategoryCard("Tuition Fees", "assets/icons/tuition.png", () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => const FinancialInfoPage()));
-                }),
+                    // Tuition Fees card stays false under block rules to allow student payments
+                    _buildCategoryCard("Tuition Fees", "assets/icons/tuition.png", false, () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const FinancialInfoPage()));
+                    }),
+                  ],
+                ),
+
+                const SizedBox(height: 30),
+                _buildSectionTitle("Recent Updates", context),
+                const SizedBox(height: 10),
+
+                // Recent Updates Horizontal List
+                SizedBox(
+                  height: 180,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(), 
+                    children: [
+                      _buildProgressCard("Curriculum Progress", provider.curriculumProgress),
+                      _buildStatCard("Total Credit Current Sem", provider.totalCreditsCurrentSem.toString()),
+                      _buildStatCard("Upcoming Due Date", provider.upcomingDueDateStr, isDate: true),
+                      const SizedBox(width: 10), 
+                    ],
+                  ),
+                ),
               ],
             ),
-
-            const SizedBox(height: 30),
-            _buildSectionTitle("Recent Updates", context),
-            const SizedBox(height: 10),
-
-            // Recent Updates Horizontal List
-            SizedBox(
-              height: 180,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _buildProgressCard("Curriculum Progress", 0.7),
-                  _buildStatCard("Total Credit Current Sem", "12"),
-                  _buildStatCard("Upcoming Due Date", "13 April\n12:30 PM", isDate: true),
-                ],
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -120,9 +215,15 @@ class StudentDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryCard(String title, String iconPath, VoidCallback onTap) {
+  Widget _buildCategoryCard(String title, String iconPath, bool isBlocked, VoidCallback onTap) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        if (isBlocked) {
+          _showAccessBlockedDialog(context);
+        } else {
+          onTap();
+        }
+      },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -132,9 +233,17 @@ class StudentDashboard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.apps, size: 40, color: Colors.blue), // Replace with Image.asset(iconPath)
+            Icon(Icons.apps, size: 40, color: isBlocked ? Colors.grey : Colors.blue), 
             const SizedBox(height: 8),
-            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF3F51B5))),
+            Text(
+              title, 
+              textAlign: TextAlign.center, 
+              style: TextStyle(
+                fontSize: 12, 
+                fontWeight: FontWeight.w600, 
+                color: isBlocked ? Colors.grey : const Color(0xFF3F51B5),
+              ),
+            ),
           ],
         ),
       ),
@@ -180,7 +289,14 @@ class StudentDashboard extends StatelessWidget {
         children: [
           Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
           const SizedBox(height: 20),
-          Text(value, style: TextStyle(fontSize: isDate ? 16 : 40, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+          Text(
+            value, 
+            style: TextStyle(
+              fontSize: isDate ? 14 : 40, 
+              fontWeight: FontWeight.bold,
+            ), 
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
