@@ -382,4 +382,152 @@ class TuitionFeesController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    // 1. Calculate dynamic metrics and generate an aesthetic PDF Report layout
+    public function downloadFinancialReportPDF()
+    {
+        // Aggregate absolute sums directly from database transaction columns
+        $totalPaid = \DB::table('payments')->where('status', 'Success')->sum('amount');
+        $totalOutstanding = \DB::table('fees')->sum('outstanding_amount');
+        $blockedCount = \DB::table('students')->where('is_blocked', true)->count();
+
+        $paidStudentsCount = \DB::table('fees')->where('status', 'paid')->count();
+        $unpaidStudentsCount = \DB::table('fees')->where('status', 'unpaid')->count();
+
+        // Gather table items to render inside the document
+        $records = \DB::table('users')
+            ->join('students', 'users.id', '=', 'students.id')
+            ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id')
+            ->select('students.student_id', 'users.name', 'fees.total_invoice', 'fees.paid_amount', 'fees.outstanding_amount', 'fees.status')
+            ->orderBy('students.student_id', 'asc')
+            ->get();
+
+        $data = [
+            'totalPaid' => $totalPaid,
+            'totalOutstanding' => $totalOutstanding,
+            'blockedCount' => $blockedCount,
+            'paidCount' => $paidStudentsCount,
+            'unpaidCount' => $unpaidStudentsCount,
+            'records' => $records,
+            'generatedAt' => now()->format('d MMMM YYYY H:i:s')
+        ];
+
+        // Inline structural HTML with minimal styling optimized specifically for DomPDF engines
+        $html = '
+        <html>
+        <head>
+            <style>
+                body { font-family: sans-serif; color: #333; margin: 10px; }
+                .header { text-align: center; margin-bottom: 30px; }
+                .title { font-size: 24px; font-weight: bold; color: #1A5276; }
+                .meta-box { width: 100%; margin-bottom: 25px; border-collapse: collapse; }
+                .meta-card { background: #F2F4F4; padding: 15px; text-align: center; border: 1px solid #E5E7E9; width: 30%; }
+                .meta-label { font-size: 11px; text-transform: uppercase; color: #7F8C8D; margin-bottom: 5px; }
+                .meta-value { font-size: 16px; font-weight: bold; color: #2C3E50; }
+                .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 12px; }
+                .data-table th { background: #1A5276; color: white; padding: 8px; text-align: left; }
+                .data-table td { padding: 8px; border-bottom: 1px solid #E5E7E9; }
+                .status-badge { font-weight: bold; text-transform: uppercase; font-size: 10px; }
+                .paid { color: #27AE60; } .unpaid { color: #E67E22; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <div class="title">USAS Financial Report Overview</div>
+                <div style="font-size: 11px; color: #95A5A6; margin-top: 5px;">Generated on: '.$data['generatedAt'].'</div>
+            </div>
+
+            <table class="meta-box" align="center">
+                <tr>
+                    <td class="meta-card">
+                        <div class="meta-label">Total Collections</div>
+                        <div class="meta-value">RM '.number_format($totalPaid, 2).'</div>
+                    </td>
+                    <td style="width: 5%"></td>
+                    <td class="meta-card">
+                        <div class="meta-label">Outstanding Balances</div>
+                        <div class="meta-value">RM '.number_format($totalOutstanding, 2).'</div>
+                    </td>
+                    <td style="width: 5%"></td>
+                    <td class="meta-card">
+                        <div class="meta-label">Blocked Accounts</div>
+                        <div class="meta-value">'.$blockedCount.' Students</div>
+                    </td>
+                </tr>
+            </table>
+
+            <h3>Account Ledger Summary</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Matric ID</th>
+                        <th>Student Name</th>
+                        <th>Invoiced</th>
+                        <th>Paid</th>
+                        <th>Outstanding</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>';
+                foreach($records as $row) {
+                    $html .= '<tr>
+                        <td>'.$row->student_id.'</td>
+                        <td>'.$row->name.'</td>
+                        <td>RM '.number_format($row->total_invoice, 2).'</td>
+                        <td>RM '.number_format($row->paid_amount, 2).'</td>
+                        <td>RM '.number_format($row->outstanding_amount, 2).'</td>
+                        <td class="status-badge '.strtolower($row->status).'">'.$row->status.'</td>
+                    </tr>';
+                }
+        $html .= '</tbody>
+            </table>
+        </body>
+        </html>';
+
+        $pdf = \Pdf::loadHTML($html);
+        return $pdf->download('USAS-Financial-Report-'.now()->format('Ymd').'.pdf');
+    }
+
+    // 2. Streams flat structured CSV tracking directly via native PHP output handles
+    public function downloadFinancialReportCSV()
+    {
+        $fileName = 'USAS-Financial-Ledger-'.now()->format('Ymd').'.csv';
+        
+        $records = \DB::table('users')
+            ->join('students', 'users.id', '=', 'students.id')
+            ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id')
+            ->select('students.student_id', 'users.name', 'fees.total_invoice', 'fees.paid_amount', 'fees.outstanding_amount', 'fees.status')
+            ->orderBy('students.student_id', 'asc')
+            ->get();
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function() use($records) {
+            $file = fopen('php://output', 'w');
+            
+            // Setup structural column headings
+            fputcsv($file, ['Matric ID', 'Student Name', 'Total Invoiced (RM)', 'Total Paid (RM)', 'Outstanding Balance (RM)', 'Fee Status']);
+
+            foreach ($records as $row) {
+                fputcsv($file, [
+                    $row->student_id,
+                    $row->name,
+                    number_format($row->total_invoice, 2, '.', ''),
+                    number_format($row->paid_amount, 2, '.', ''),
+                    number_format($row->outstanding_amount, 2, '.', ''),
+                    strtoupper($row->status)
+                ]);
+            }
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }
