@@ -198,6 +198,156 @@ class AttendanceProvider with ChangeNotifier {
     }
   }
 
+  //PusatAdab
+
+  Future<void> getAdabModules({String? selectedDate}) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // Endpoint matches the Laravel route we created
+      String url = "${Api.baseUrl}/get-adab-modules";
+      if (selectedDate != null) {
+        url += "?date=$selectedDate";
+      }
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> decodedResponse = jsonDecode(response.body);
+        
+        if (decodedResponse['success'] == true) {
+          final List<dynamic> data = decodedResponse['data'];
+          _pusatAdabModules = data.map((json) => Module.fromJson(json)).toList();
+        }
+      } else {
+        _pusatAdabModules = [];
+      }
+    } catch (e) {
+      debugPrint("Error fetching modules: $e");
+      _pusatAdabModules = [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // 1. Add a variable to store the fetched module details
+  Map<String, dynamic>? _moduleDetails;
+  Map<String, dynamic>? get moduleDetails => _moduleDetails;
+
+  // 2. Add the fetch method
+  Future<void> fetchModuleDetails(int moduleId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final url = Uri.parse('${Api.baseUrl}/modules/$moduleId/details');      
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          // 'Authorization': 'Bearer $_token', // Uncomment if your API needs a token
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        
+        // Update this based on how your JSON response is actually structured
+        _moduleDetails = {
+          'currentStudents': data['currentStudents'] ?? 0,
+          'totalStudents': data['totalStudents'] ?? 0,
+          'lecturerName': data['lecturerName'] ?? 'Sir / Madam',
+        };
+      } else {
+        debugPrint("Failed to fetch module details. Status Code: ${response.statusCode}");
+        _moduleDetails = null; // Reset on failure
+      }
+    } catch (e) {
+      debugPrint("Error fetching module details: $e");
+      _moduleDetails = null; // Reset on error
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+ Future<String?> generateModuleAttendance({
+    required int moduleId,
+    required double lat,
+    required double lng,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // Consistent URI parsing using the Api class constant
+      final url = Uri.parse(Api.generateModuleAttendance);
+      
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json", 
+        },
+        body: jsonEncode({
+          'module_id': moduleId,
+          'geo_lat': lat,
+          'geo_long': lng,
+        }),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['code']?.toString();
+      } else {
+        debugPrint("Pusat Adab Error: ${response.statusCode} - ${response.body}");
+      }
+    } catch (e) {
+      debugPrint("Connection Error: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return null;
+  }
+
+  Future<bool> storeModuleAttendance({
+    required int moduleId,
+    required String code,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse(Api.releaseAdabCode(moduleId)),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          // 'Authorization': 'Bearer $_token', // Uncomment if using tokens
+        },
+        body: json.encode({
+          'code': code,
+          'status': 'released', // Tell the backend the code is now active
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true; // Success!
+      } else {
+        debugPrint("Failed to release code. Status: ${response.statusCode}");
+        debugPrint("Response: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      debugPrint("Error releasing attendance code: $e");
+      return false;
+    }
+  }
+
+
+  //Student
+
 List<dynamic> _studentCurriculum = [];
 List<dynamic> _studentCoCurriculum = [];
 

@@ -23,6 +23,9 @@ class Api {
   // Attendance 
   static const String lecturerSubjects = "$baseUrl/lecturer/subjects";
   static const String generateAttendance = "$baseUrl/attendance/store";
+  static String moduleDetails(int moduleId) => "$baseUrl/modules/$moduleId/details";
+  static const String generateModuleAttendance = "$baseUrl/module-attendance/store";  
+  static String releaseAdabCode(int moduleId) => "$baseUrl/modules/$moduleId/release-code";
   
   
   //static const String attendance = "$baseUrl/attendance";

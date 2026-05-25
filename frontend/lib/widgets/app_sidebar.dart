@@ -10,6 +10,7 @@ import 'package:USAS/screens/faculty/subject_registration_page.dart';
 import '../screens/student/my_module_booking.dart';
 import '../screens/pusatAdab/attendance_record_list.dart';
 import '../screens/pusatAdab/module_attendance.dart';
+import '../screens/pusatAdab/attendance_for_module.dart';
 import '../screens/student/student_dashboard.dart';
 import '../screens/student/subject_registration.dart';
 
@@ -145,8 +146,8 @@ class AppSidebar extends StatelessWidget {
 
                     _buildMenuItem(context, Icons.description_outlined, "Attendance", role),
                     _buildSubMenuItem(context, "Module Attendance", role, destination:const ModuleAttendanceSelectionPage()),
-                    _buildSubMenuItem(context, "Attendance Records", role ),
-                    _buildSubMenuItem(context, "Wahidah Cuba", role, destination: const AttendanceDashboard()),
+                    _buildSubMenuItem(context, "Attendance Records", role),
+                    _buildSubMenuItem(context, "Wahidah Cuba", role, destination: const AddModuleAttendancePage()),
 
 
                   ] 

@@ -231,6 +231,77 @@ public function getClassNotPresentStudents($attendanceId)
     ]);
 }
 
+//PUSATADAB
+public function getAdabModules(Request $request)
+{
+    try {
+        $query = Module::query();
+
+        // Check if the Flutter app sent a ?date=YYYY-MM-DD parameter
+        if ($request->has('date') && !empty($request->date)) {
+            $query->whereDate('date_time', $request->date);
+        }
+
+        $modules = $query->select('id', 'activity_name', 'date_time', 'venue', 'status')
+                         ->orderBy('date_time', 'asc')
+                         ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $modules
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false, 
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+    public function storeModuleAttendance(Request $request)
+    {
+        // 1. Validate the incoming data from Flutter (now requires module_id)
+        $request->validate([
+            'module_id'  => 'required',
+            'geo_lat'    => 'required',
+            'geo_long'   => 'required',
+        ]);
+
+        return DB::transaction(function () use ($request) {
+            // 2. Create the General Attendance (Code & GPS)
+            $code = strtoupper(Str::random(6));
+            
+            $attendance = Attendance::create([
+                'attendance_code' => $code,
+                'geo_lat'         => $request->geo_lat,
+                'geo_long'        => $request->geo_long,
+                'geo_radius'      => 500, 
+            ]);
+
+            // 3. Create the Specific Module Attendance
+            DB::table('module_attendances')->insert([
+                'attendance_id' => $attendance->id,
+                'module_id'     => $request->module_id, // Grabs from Flutter's JSON body
+                'date'          => now()->toDateString(), 
+                'time'          => now()->toTimeString(), 
+                'created_at'    => now(),
+                'updated_at'    => now(),
+            ]);
+
+            // 4. Return the standard response
+            return response()->json([
+                'success'       => true,
+                'code'          => $code,
+                'attendance_id' => $attendance->id
+            ], 201);
+        });
+    }
+
+
+
+//STUDENT
+
 public function fetchStudentClassModule($studentId)
 {
     try {
