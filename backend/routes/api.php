@@ -60,6 +60,7 @@ Route::get('/student/subjects',[StudentSubjectController::class, 'getSubjects'])
 Route::get('/student/registered-subjects/{student_id}',[StudentSubjectController::class,'getRegisteredSubjects']);
 Route::post('/student/register-subject',[StudentSubjectController::class,'registerSubject']);
 Route::put('/student/drop-subject/{registration_id}',[StudentSubjectController::class,'dropSubject']);
+Route::get('/total-subjects', function () { return response()->json(['totalSubjects' => Subject::count()]);});
 //-----------------------------------------------------------------------------
 
 

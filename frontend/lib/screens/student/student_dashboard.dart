@@ -7,6 +7,7 @@ import '../../widgets/app_sidebar.dart';
 import 'financial_info.dart';
 import '../../provider/manage_fees_provider.dart'; // Ensure this matches your directory structures
 import 'attendance_records.dart'; // IMPORT YOUR NEW HISTORICAL PAGE HERE
+import 'subject_registration.dart';
 
 class StudentDashboard extends StatefulWidget {
   final String name;
@@ -134,7 +135,19 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   mainAxisSpacing: 15,
                   childAspectRatio: 1.1,
                   children: [
-                    _buildCategoryCard("Subject Registration", "assets/icons/sub_reg.png", provider.studentIsBlocked, () {}),
+                    _buildCategoryCard(
+                      "Subject Registration",
+                      "assets/icons/sub_reg.png",
+                      provider.studentIsBlocked,
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const StudentSubjectRegistrationPage(),
+                          ),
+                        );
+                      },
+                    ),
                     _buildCategoryCard("Curriculum Activity", "assets/icons/curriculum.png", provider.studentIsBlocked, () {}),
                     _buildCategoryCard("Attendance", "assets/icons/attendance.png", provider.studentIsBlocked, () {
                       Navigator.push(context, MaterialPageRoute(builder: (context) => const AttendanceDashboard()));
@@ -233,7 +246,17 @@ class _StudentDashboardState extends State<StudentDashboard> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.apps, size: 40, color: isBlocked ? Colors.grey : Colors.blue), 
+            title == "Subject Registration"
+    ? Image.asset(
+        iconPath,
+        width: 100,
+        height: 100,
+      )
+    : Icon(
+        Icons.apps,
+        size: 40,
+        color: isBlocked ? Colors.grey : Colors.blue,
+      ),
             const SizedBox(height: 8),
             Text(
               title, 
