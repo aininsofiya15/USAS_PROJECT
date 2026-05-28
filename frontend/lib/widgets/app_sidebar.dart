@@ -145,8 +145,8 @@ class AppSidebar extends StatelessWidget {
                     const Divider(color: Colors.black12, height: 10),
 
                     _buildMenuItem(context, Icons.description_outlined, "Attendance", role),
-                    _buildSubMenuItem(context, "Module Attendance", role, destination:const ModuleAttendanceSelectionPage()),
-                    _buildSubMenuItem(context, "Attendance Records", role),
+                    _buildSubMenuItem(context, "Module Attendance", role),
+                    _buildSubMenuItem(context, "Attendance Records", role, destination:const ModuleAttendanceSelectionPage()),
                     _buildSubMenuItem(context, "Wahidah Cuba", role, destination: const AddModuleAttendancePage()),
 
 
@@ -155,19 +155,17 @@ class AppSidebar extends StatelessWidget {
 
                   else ...[ //student
                     _buildMenuItem(context, Icons.home_outlined, "Home", role,
-
-  destination:
-      const StudentDashboard(
-    name: "Sharmila",
-  ),
-
-),
+                      destination:
+                          const StudentDashboard(
+                        name: "Sharmila",
+                      ),
+                    ),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
                     _buildMenuItem(context, Icons.grid_view, "Subject Registration", role,
-  destination: const StudentSubjectRegistrationPage(),),
+                      destination: const StudentSubjectRegistrationPage(),),
                     _buildSubMenuItem(context, "List of Registered Subjects", role, 
-      destination:
-      const ListRegisteredSubjectsPage(),),
+                          destination:
+                    const ListRegisteredSubjectsPage(),),
                     const Divider(color: Colors.white24, height: 10),
                     _buildMenuItem(context, Icons.menu_book, "Curriculum Activity", role),
                     _buildSubMenuItem(context, "View My Module", role, destination: MyBookingsPage()),

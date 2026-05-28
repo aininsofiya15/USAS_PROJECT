@@ -32,7 +32,7 @@ Route::get('/modules', [AttendanceController::class, 'fetchPusatAdabModules']);
 
 // 2. Route to get students for a specific booking (Attendance List Page)
 // This matches: Provider.fetchAttendanceDetails(bookingId)
-Route::get('/attendance/pusat-adab', [AttendanceController::class, 'fetchPusatAdabModules']);
+Route::get('/attendance/pusat-adab', [AttendanceRecordController::class, 'fetchPusatAdabModules']);
 
 // 3. Route to save student grades (Grade Dialog)
 // This matches: Provider.updateStudentGrade()

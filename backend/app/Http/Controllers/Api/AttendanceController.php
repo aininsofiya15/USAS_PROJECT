@@ -523,16 +523,5 @@ public function getSubmittedAttendanceRecords($studentId)
     }
 }
 
-//------------------------------------------------
-//AININ
-//-----------------------------------------------
-    public function fetchPusatAdabModules()
-    {
-        $modules = Module::where('status', 'published')
-            ->select('id', 'activity_name', 'date_time', 'venue', 'lecturer_name', 'status')
-            ->get();
-        
-        return response()->json(['data' => $modules], 200);
-    }
 
 }

@@ -11,6 +11,17 @@ use App\Models\ModuleAttendance;
 
 class AttendanceRecordController extends Controller
 {
+    
+//AININ
+
+    public function fetchPusatAdabModules()
+    {
+        $modules = Module::where('status', 'published')
+            ->select('id', 'activity_name', 'date_time', 'venue', 'lecturer_name', 'status')
+            ->get();
+        
+        return response()->json(['data' => $modules], 200);
+    }
     /**
      * 2. Fetch students for a specific module session.
      * Matches Route: /attendance/details/{bookingId}
