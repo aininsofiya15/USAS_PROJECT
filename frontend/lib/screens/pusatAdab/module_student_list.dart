@@ -29,18 +29,18 @@ class _StudentListPageState extends State<StudentListPage> {
   Widget build(BuildContext context) {
     final moduleProvider = Provider.of<ModuleProvider>(context);
 
-    // Safety guard so null/non-list data doesn't crash the app
     final dynamic rawData = moduleProvider.registeredStudents;
     final List<dynamic> studentList = (rawData is List) ? rawData : [];
 
-    // Filter by matric ID or name
     final List<dynamic> filteredList = searchQuery.isEmpty
         ? studentList
         : studentList.where((s) {
-            final String matricId = (s['matric_id'] ?? "").toString().toLowerCase();
-            final String name = (s['student_name'] ?? "").toString().toLowerCase();
+            final String matricId =
+                (s['matric_id'] ?? "").toString().toLowerCase();
+            final String name =
+                (s['student_name'] ?? "").toString().toLowerCase();
             return matricId.contains(searchQuery.toLowerCase()) ||
-                   name.contains(searchQuery.toLowerCase());
+                name.contains(searchQuery.toLowerCase());
           }).toList();
 
     return Scaffold(
@@ -55,16 +55,16 @@ class _StudentListPageState extends State<StudentListPage> {
           // ── MODULE INFO CARD ──────────────────────────────────────────
           Container(
             width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.07),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
                 )
               ],
             ),
@@ -75,12 +75,13 @@ class _StudentListPageState extends State<StudentListPage> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 17,
+                    fontSize: 16,
                     color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 12),
-                _infoText("Current Registration: ${studentList.length} / ${widget.module.capacity} Students"),
+                const SizedBox(height: 10),
+                _infoText(
+                    "Current Registration: ${studentList.length} / ${widget.module.capacity} Students"),
                 _infoText("Class Date: ${widget.module.dateTime}"),
                 _infoText("Venue: ${widget.module.venue}"),
                 _infoText("Lecturer Name: ${widget.module.lecturerName}"),
@@ -88,100 +89,101 @@ class _StudentListPageState extends State<StudentListPage> {
             ),
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
 
           // ── STUDENT LIST PANEL ────────────────────────────────────────
           Expanded(
             child: Container(
               width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(36),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
+                    color: Colors.black.withOpacity(0.05),
                     blurRadius: 10,
                   )
                 ],
               ),
               child: Column(
                 children: [
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
 
-                  // 🔍 Search Bar — outlined style, icon on RIGHT (Figma style)
+                  // 🔍 Search Bar
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 22),
-                    child: TextField(
-                      onChanged: (val) => setState(() => searchQuery = val),
-                      style: const TextStyle(fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: "Matric ID",
-                        hintStyle: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 14,
-                        ),
-                        suffixIcon: const Icon(
-                          Icons.search,
-                          color: Colors.grey,
-                          size: 20,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 12,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          borderSide: BorderSide(
-                            color: Colors.grey.shade300,
-                            width: 1.2,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: SizedBox(
+                      height: 40,
+                      child: TextField(
+                        onChanged: (val) => setState(() => searchQuery = val),
+                        style: const TextStyle(fontSize: 13),
+                        decoration: InputDecoration(
+                          hintText: "Search name or matric ID",
+                          hintStyle: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 13,
                           ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(25),
-                          borderSide: BorderSide(
-                            color: Colors.teal.shade300,
-                            width: 1.5,
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Colors.grey,
+                            size: 18,
                           ),
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 10),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: Colors.grey.shade300,
+                              width: 1,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(
+                              color: Colors.teal.shade300,
+                              width: 1.2,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFF8F8F8),
                         ),
-                        filled: false,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 10),
 
                   // 📋 Column Headers
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 22),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       children: const [
-                        SizedBox(width: 46), // avatar space
-                        Expanded(
-                          flex: 5,
-                          child: Text(
-                            "Student Name",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13.5,
-                              color: Colors.black87,
-                            ),
+                        SizedBox(width: 36), // avatar space
+                        SizedBox(width: 10),
+                        Text(
+                          "Student Name",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.black87,
                           ),
                         ),
+                        Spacer(),
                         Text(
                           "Matric ID",
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 13.5,
+                            fontSize: 13,
                             color: Colors.black87,
                           ),
                         ),
-                        SizedBox(width: 42), // delete icon space
+                        SizedBox(width: 36), // delete icon space
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16),
 
                   // 📝 Student List
@@ -189,14 +191,25 @@ class _StudentListPageState extends State<StudentListPage> {
                     child: moduleProvider.isLoading
                         ? const Center(child: CircularProgressIndicator())
                         : filteredList.isEmpty
-                            ? const Center(
-                                child: Text(
-                                  "No students found",
-                                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.person_off_outlined,
+                                        size: 40, color: Colors.grey[400]),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      "No students found",
+                                      style: TextStyle(
+                                          color: Colors.grey[500],
+                                          fontSize: 13),
+                                    ),
+                                  ],
                                 ),
                               )
                             : ListView.separated(
-                                padding: const EdgeInsets.only(bottom: 16),
+                                padding:
+                                    const EdgeInsets.only(top: 4, bottom: 12),
                                 itemCount: filteredList.length,
                                 separatorBuilder: (_, __) => const Divider(
                                   height: 1,
@@ -206,68 +219,7 @@ class _StudentListPageState extends State<StudentListPage> {
                                 ),
                                 itemBuilder: (context, index) {
                                   final student = filteredList[index];
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 6,
-                                      horizontal: 16,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        // Avatar — thin outline style matching Figma
-                                        Container(
-                                          width: 38,
-                                          height: 38,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: Colors.grey.shade400,
-                                              width: 1.5,
-                                            ),
-                                          ),
-                                          child: const Icon(
-                                            Icons.person_outline,
-                                            size: 22,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        // Student Name
-                                        Expanded(
-                                          flex: 5,
-                                          child: Text(
-                                            student['name'] ?? "Unknown",
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.black87,
-                                            ),
-                                          ),
-                                        ),
-                                        // Matric ID
-                                        Text(
-                                          student['matric_id'] ?? "-",
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            color: Colors.black54,
-                                          ),
-                                        ),
-                                        // Delete button
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.delete_outline,
-                                            color: Colors.redAccent,
-                                            size: 22,
-                                          ),
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(
-                                            minWidth: 36,
-                                            minHeight: 36,
-                                          ),
-                                          onPressed: () => _confirmDelete(student),
-                                        ),
-                                      ],
-                                    ),
-                                  );
+                                  return _buildStudentRow(student);
                                 },
                               ),
                   ),
@@ -280,14 +232,78 @@ class _StudentListPageState extends State<StudentListPage> {
     );
   }
 
-  // Helper for uniform info text styling
+  Widget _buildStudentRow(dynamic student) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Avatar
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFF0F0F0),
+              border: Border.all(color: Colors.grey.shade300, width: 1),
+            ),
+            child: const Icon(
+              Icons.person_outline,
+              size: 20,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(width: 10),
+
+          // Student Name
+          Expanded(
+            child: Text(
+              student['student_name'] ?? "Unknown",
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Matric ID
+          Text(
+            student['matric_id'] ?? "-",
+            style: const TextStyle(
+              fontSize: 12,
+              color: Colors.black54,
+            ),
+          ),
+
+          // Delete button
+          SizedBox(
+            width: 36,
+            height: 36,
+            child: IconButton(
+              icon: const Icon(
+                Icons.delete_outline,
+                color: Colors.redAccent,
+                size: 20,
+              ),
+              padding: EdgeInsets.zero,
+              onPressed: () => _confirmDelete(student),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _infoText(String text) {
     return Padding(
       padding: const EdgeInsets.only(top: 3),
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 13.5, color: Colors.black54),
+        style: const TextStyle(fontSize: 13, color: Colors.black54),
       ),
     );
   }
@@ -296,20 +312,23 @@ class _StudentListPageState extends State<StudentListPage> {
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding: const EdgeInsets.all(25),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 80),
-              const SizedBox(height: 20),
+              const Icon(Icons.warning_amber_rounded,
+                  color: Colors.red, size: 64),
+              const SizedBox(height: 16),
               const Text(
                 "Are you sure to remove this student?",
                 textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                style:
+                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
@@ -319,14 +338,17 @@ class _StudentListPageState extends State<StudentListPage> {
                         backgroundColor: Colors.blue,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 12),
+                        elevation: 0,
                       ),
                       child: const Text("Back",
                           style: TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold)),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ),
-                  const SizedBox(width: 15),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
@@ -334,11 +356,14 @@ class _StudentListPageState extends State<StudentListPage> {
                         backgroundColor: Colors.red,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 12),
+                        elevation: 0,
                       ),
                       child: const Text("Confirm",
                           style: TextStyle(
-                              color: Colors.white, fontWeight: FontWeight.bold)),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],

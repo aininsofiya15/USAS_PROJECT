@@ -13,6 +13,9 @@ class AttendanceProvider with ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
+  bool _isSubmitting = false;
+  bool get isSubmitting => _isSubmitting;
+
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
@@ -166,8 +169,6 @@ class AttendanceProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-
-
 
   // Function 1: Fetch Present Students
   Future<void> fetchClassPresentStudent(int attendanceId) async {
@@ -566,6 +567,43 @@ Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async
     }
 }
 
+  Future<bool> submitStudentGrade(int recordId, double marks) async {
+    _isSubmitting = true;
+    notifyListeners(); // Tells the UI to render the loading spinner immediately
+
+    try {
+
+      final String fullUrl = "${Api.pusatAdabAttendance}/grade/$recordId";
+      
+      final response = await http.post(
+        Uri.parse(fullUrl),
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: jsonEncode({
+          'marks': marks,
+        }),
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        _isSubmitting = false;
+        notifyListeners();
+        return true; // Operation successful
+      } else {
+        // Capture any custom verification error messages sent from Laravel validation rules
+        String errorMessage = responseData['error'] ?? responseData['message'] ?? 'Failed to save grade.';
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      _isSubmitting = false;
+      notifyListeners(); // Turn off loading spin state even if request fails
+      rethrow; // Pass error back to the UI view screen to handle the alert snackbar
+    }
+  }
+
   Future<Map<String, dynamic>?> fetchSingleAttendance(int attendanceId) async {
   try {
     final response = await http.get(
@@ -608,28 +646,4 @@ Future<bool> updateAttendanceDetails({
   }
 }
 
-List<AttendanceRecord> _getMockStudents() {
-  return [
-    AttendanceRecord(
-      id: 1,
-      studentName: "Sample Student A", // Matches your class field
-      name: "Sample Student A",        // Matches your class field
-      studentId: "ID123",             // Matches your class field
-      matricId: "M123",               // Matches your class field
-      status: "Present",
-      marks: 0.0,
-      gradeCategory: "Biasa",
-    ),
-    AttendanceRecord(
-      id: 2,
-      studentName: "Sample Student B",
-      name: "Sample Student B",
-      studentId: "ID456",
-      matricId: "M456",
-      status: "Absent",
-      marks: 0.0,
-      gradeCategory: "Biasa",
-    ),
-  ];
-}
 }

@@ -5,14 +5,14 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\AttendanceRecord; // Ensure models are imported
+use App\Models\AttendanceRecord; 
 use App\Models\Module;
 use App\Models\ModuleAttendance;
+use Illuminate\Validation\ValidationException;
 
 class AttendanceRecordController extends Controller
 {
-    
-//AININ
+    // AININ
 
     // 1. Fetch the list of published modules for the Pusat Adab attendance selection page.
     public function fetchPusatAdabModules()
@@ -24,7 +24,7 @@ class AttendanceRecordController extends Controller
         return response()->json(['data' => $modules], 200);
     }
 
-    //2. Fetch module details and the list of students who submitted attendance.
+    // 2. Fetch module details and the list of students who submitted attendance.
     public function getPresentStudents($moduleId)
     {
         try {
@@ -45,19 +45,21 @@ class AttendanceRecordController extends Controller
                 ->join('attendances', 'bookings.id', '=', 'attendances.booking_id') 
                 ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
                 
-                // FIX: Changed from students.student_id to students.id to match the numeric integer values!
+                // Joined matching the numeric integer values
                 ->join('students', 'attendance_records.student_id', '=', 'students.id')
                 ->join('users', 'students.id', '=', 'users.id')
                 
                 // Filter down to this specific module session
                 ->where('modules.id', $moduleId)
                 
-                // Select fields mapped perfectly to your Flutter string keys
                 ->select(
+                    'attendance_records.id as id', 
                     'users.name as student_name',
-                    'students.student_id as matrix_no', // This returns CA24000 as "matrix_no" for Flutter text fields
+                    'students.student_id as matrix_no', 
                     'attendance_records.status as attendance_status',
-                    'attendance_records.created_at as check_in_time'
+                    'attendance_records.created_at as check_in_time',
+                    'attendance_records.marks as marks',           // ◄ ADD THIS COLUMN
+                    'attendance_records.grade_category as grade_category' // ◄ ADD THIS COLUMN
                 )
                 ->get();
 
@@ -74,31 +76,72 @@ class AttendanceRecordController extends Controller
         }
     }
     
+
     /**
-     * 3. Update a student's grade from the Flutter "Grade" button.
-     * Matches Route: /attendance/update-grade
+     * Updates student marks and evaluation grade category.
+     * TARGET MODULE: PUSAT ADAB MODULE GRADING
      */
-    public function updateStudentGrade(Request $request)
+    public function updateStudentGrade(Request $request, $recordId)
     {
-        $request->validate([
-            'record_id' => 'required|integer',
-            'marks' => 'required|numeric|min:0|max:100',
-        ]);
+        try {
+            // 1. Strictly validate incoming score numeric boundaries
+            $request->validate([
+                'marks' => 'required|numeric|min:0|max:100',
+            ]);
 
-        $record = AttendanceRecord::find($request->record_id);
-        
-        if (!$record) {
-            return response()->json(['message' => 'Record not found'], 404);
+            $marks = $request->input('marks');
+            $gradeCategory = 'Fail';
+
+            // 2. Classify grade benchmarks text dynamically based on the percentage score
+            if ($marks >= 80) {
+                $gradeCategory = 'Excellent';
+            } elseif ($marks >= 60) {
+                $gradeCategory = 'Satisfactory';
+            } elseif ($marks >= 40) {
+                $gradeCategory = 'Pass';
+            }
+
+            // 3. Verify the targeted attendance record entry actually exists in the background
+            $record = DB::table('attendance_records')->where('id', $recordId)->first();
+            
+            if (!$record) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Targeted attendance record line item not found.'
+                ], 404);
+            }
+
+            // 4. Update your live columns matching your phpMyAdmin schema panel perfectly
+            DB::table('attendance_records')
+                ->where('id', $recordId)
+                ->update([
+                    'marks' => $marks,                  
+                    'grade_category' => $gradeCategory, 
+                    'updated_at' => now(),
+                ]);
+
+            // 5. Return clean confirmation back to your Flutter app layout
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Student records graded successfully!',
+                'data' => [
+                    'record_id' => (int)$recordId,
+                    'student_id' => $record->student_id,
+                    'marks' => $marks,
+                    'grade_category' => $gradeCategory
+                ]
+            ], 200);
+
+        } catch (ValidationException $ve) {
+            return response()->json([
+                'status' => 'validation_error',
+                'error' => $ve->errors()->first()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'error' => 'Database grading transaction failed: ' . $e->getMessage()
+            ], 500);
         }
-
-        $record->update([
-            'marks' => $request->marks,
-            'grade_category' => $request->marks >= 50 ? 'Pass' : 'Fail', 
-        ]);
-
-        return response()->json([
-            'message' => 'Grade updated successfully',
-            'record' => $record
-        ]);
     }
 }

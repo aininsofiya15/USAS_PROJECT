@@ -33,8 +33,7 @@ Route::get('/attendance/pusat-adab', [AttendanceRecordController::class, 'fetchP
 Route::get('/attendance/pusat-adab/{moduleId}/present', [AttendanceRecordController::class, 'getPresentStudents']);
 
 // 3. Route to save student grades (Grade Dialog)
-// This matches: Provider.updateStudentGrade()
-Route::post('/attendance/update-grade', [AttendanceRecordController::class, 'updateStudentGrade']);
+Route::post('/attendance/pusat-adab/grade/{recordId}', [AttendanceRecordController::class, 'updateStudentGrade']);
 //--------------------------------------------------------------------------------------------------------------------//
 
 

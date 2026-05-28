@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/attendance_provider.dart';
 import '../../domain/module.dart';
-import '../../widgets/header.dart'; // Verified mapping paths
+import '../../widgets/header.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
 import 'module_grading.dart';
@@ -40,7 +40,6 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   Widget build(BuildContext context) {
     return Consumer<AttendanceProvider>(
       builder: (context, provider, child) {
-        // FIX 1: Read directly from your custom Pusat ADAB data state array windows
         final students = provider.presentModuleStudent;
 
         return Scaffold(
@@ -88,14 +87,17 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
 
   // ── Module Info Card ──────────────────────────────────────────────────────
   Widget _buildModuleCard(Module module, AttendanceProvider provider) {
-    // FIX 2: Compute counts directly off the verified presentModuleStudent live data rows
     final presentCount = provider.presentModuleStudent.length;
-    
-    // Fallback to the dashboard model data if deep nested master module details aren't populated yet
-    final totalCapacity = provider.currentModuleDetails?['capacity'] ?? module.capacity ?? 0;
-    final venueText = provider.currentModuleDetails?['venue'] ?? module.venue ?? 'N/A';
-    final lecturerText = provider.currentModuleDetails?['lecturer_name'] ?? module.lecturerName ?? 'N/A';
-    final dateText = provider.currentModuleDetails?['date_time'] ?? module.dateTime ?? 'N/A';
+    final totalCapacity =
+        provider.currentModuleDetails?['capacity'] ?? module.capacity ?? 0;
+    final venueText =
+        provider.currentModuleDetails?['venue'] ?? module.venue ?? 'N/A';
+    final lecturerText =
+        provider.currentModuleDetails?['lecturer_name'] ??
+            module.lecturerName ??
+            'N/A';
+    final dateText =
+        provider.currentModuleDetails?['date_time'] ?? module.dateTime ?? 'N/A';
 
     return Container(
       width: double.infinity,
@@ -184,7 +186,8 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
           duration: const Duration(milliseconds: 200),
           margin: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFD1E3FF) : Colors.transparent,
+            color:
+                isSelected ? const Color(0xFFD1E3FF) : Colors.transparent,
             borderRadius: BorderRadius.circular(18),
           ),
           child: Center(
@@ -193,7 +196,8 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: isSelected ? const Color(0xFF1A3C7A) : Colors.grey,
+                color:
+                    isSelected ? const Color(0xFF1A3C7A) : Colors.grey,
               ),
             ),
           ),
@@ -205,8 +209,8 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   // ── Student List ──────────────────────────────────────────────────────────
   Widget _buildStudentList(List<dynamic> students) {
     final filtered = students.where((s) {
-      // FIX 3: Parse off map property string value variables safely
-      final statusStr = s['attendance_status']?.toString().toLowerCase() ?? 'present';
+      final statusStr =
+          s['attendance_status']?.toString().toLowerCase() ?? 'present';
       final statusMatch = showPresent
           ? statusStr == 'present'
           : statusStr != 'present';
@@ -214,7 +218,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
       final query = _searchController.text.toLowerCase();
       final nameStr = s['student_name']?.toString().toLowerCase() ?? '';
       final matricStr = s['matrix_no']?.toString().toLowerCase() ?? '';
-      
+
       final searchMatch = query.isEmpty ||
           nameStr.contains(query) ||
           matricStr.contains(query);
@@ -253,7 +257,8 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
                 decoration: const InputDecoration(
                   hintText: 'Search',
                   hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey, size: 20),
+                  prefixIcon:
+                      Icon(Icons.search, color: Colors.grey, size: 20),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(vertical: 11),
                 ),
@@ -263,7 +268,8 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
 
           // ── Table Header ──────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Row(
               children: const [
                 SizedBox(
@@ -279,7 +285,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
                 ),
                 SizedBox(width: 8),
                 SizedBox(
-                  width: 85, // Widened slightly to prevent matrix layout text wrapping cuts
+                  width: 85,
                   child: Text(
                     'Student ID',
                     style: TextStyle(
@@ -307,7 +313,6 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
           const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16),
 
           // ── Student Rows ──────────────────────────────────────────────
-          // If you want to use mock data for testing "Not Present" values locally, change to true!
           Expanded(
             child: filtered.isEmpty
                 ? Center(
@@ -347,9 +352,14 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   }
 
   Widget _buildStudentRow(int no, dynamic student) {
-    // FIX 4: Pull from the exact key labels mapped in your Laravel inner join statement selection
     final String matrixNo = student['matrix_no'] ?? 'N/A';
     final String studentName = student['student_name'] ?? 'Unknown';
+
+    // ── 🎨 NEW: Check if this student has already been graded ──
+    final bool isGraded = student['marks'] != null;
+    final int? displayMarks = isGraded
+        ? (double.tryParse(student['marks'].toString()) ?? 0).toInt()
+        : null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -380,35 +390,75 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
           ),
           const SizedBox(width: 8),
 
-          // Name
+          // ── 🎨 NEW: Name + optional marks badge ──
           Expanded(
-            child: Text(
-              studentName,
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    studentName,
+                    style: TextStyle(
+                      fontSize: 13,
+                      overflow: TextOverflow.ellipsis,
+                      // Green name when graded, default black otherwise
+                      color: isGraded
+                          ? const Color(0xFF1D9E75)
+                          : Colors.black87,
+                      fontWeight: isGraded
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                    ),
+                    maxLines: 1,
+                  ),
+                ),
+                // Small marks badge shown only when graded
+                if (isGraded) ...[
+                  const SizedBox(width: 5),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE1F5EE),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                          color: const Color(0xFF5DCAA5), width: 0.8),
+                    ),
+                    child: Text(
+                      '✓ $displayMarks',
+                      style: const TextStyle(
+                        fontSize: 9,
+                        color: Color(0xFF0F6E56),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
 
-          // Grade & Edit buttons
+          // Grade & Edit buttons — same style always
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               _actionBtn(
                 'Grade',
                 const Color(0xFF00CC66),
-                (){ 
-                  /* => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => GradeStudentPage(
-                      student: student,
-                      module: widget.module,
+                () async {
+                  final refreshed = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => GradeStudentPage(
+                        student: student,
+                        module: widget.module,
+                      ),
                     ),
-                  ),
-                ),
-              );
-                */
+                  );
+                  if (refreshed == true && mounted) {
+                    context
+                        .read<AttendanceProvider>()
+                        .fetchAttendanceDetails(widget.bookingId);
+                  }
                 },
               ),
               const SizedBox(width: 6),

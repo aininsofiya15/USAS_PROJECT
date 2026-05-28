@@ -247,8 +247,6 @@ Future<bool> dropModule({required int bookingId, required String studentId}) asy
   List<dynamic> _registeredStudents = [];
   List<dynamic> get registeredStudents => _registeredStudents;
 
-  // lib/provider/module_provider.dart
-
 Future<void> fetchRegisteredStudents(int moduleId) async {
     _isLoading = true;
     _registeredStudents = []; // Clear list for fresh start

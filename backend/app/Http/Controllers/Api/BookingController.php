@@ -134,19 +134,19 @@ class BookingController extends Controller
     /**
      * View registered students for a module (Pusat ADAB Attendance List)
      */
-    public function getRegisteredStudents($moduleId) 
+    public function getRegisteredStudents($moduleId)
     {
-        $students = DB::table('bookings')
-            ->join('students', 'bookings.student_id', '=', 'students.id') 
-            ->join('users', 'students.id', '=', 'users.id') 
+        $registeredStudents = DB::table('bookings')
+            ->join('students', 'bookings.student_id', '=', 'students.id')
+            ->join('users', 'students.id', '=', 'users.id')
             ->where('bookings.module_id', $moduleId)
             ->select(
-                'bookings.id as booking_id', 
-                'users.name as student_name',
-                'students.student_id as matric_id'
+                'bookings.id as booking_id',
+                'students.student_id as matric_id',    
+                'users.name as student_name' // ◄ 🎯 FORCE THIS EXACT ALIAS NAME
             )
             ->get();
 
-        return response()->json($students);
+        return response()->json($registeredStudents); // Or return wrapped in ['data' => ...]
     }
 }
