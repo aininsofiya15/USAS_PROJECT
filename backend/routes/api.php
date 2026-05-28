@@ -26,13 +26,11 @@ Route::post('/modules', [ModuleController::class, 'store']);
 Route::post('/modules/update-existing', [ModuleController::class, 'update']);
 Route::get('/modules/{id}/students', [BookingController::class, 'getRegisteredStudents']);
 
-// 1. Route to get the list of published modules (Selection Page)
-// This matches: Provider.fetchPusatAdabModules()
-Route::get('/modules', [AttendanceController::class, 'fetchPusatAdabModules']);
 
-// 2. Route to get students for a specific booking (Attendance List Page)
-// This matches: Provider.fetchAttendanceDetails(bookingId)
 Route::get('/attendance/pusat-adab', [AttendanceRecordController::class, 'fetchPusatAdabModules']);
+
+// Route to fetch the studentattendance list for a specific module
+Route::get('/attendance/pusat-adab/{moduleId}/present', [AttendanceRecordController::class, 'getPresentStudents']);
 
 // 3. Route to save student grades (Grade Dialog)
 // This matches: Provider.updateStudentGrade()

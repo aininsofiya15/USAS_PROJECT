@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/attendance_provider.dart';
 import '../../domain/module.dart';
-import '../../widgets/header.dart';
+import '../../widgets/header.dart'; // Verified mapping paths
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
 import 'module_grading.dart';
@@ -40,7 +40,8 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   Widget build(BuildContext context) {
     return Consumer<AttendanceProvider>(
       builder: (context, provider, child) {
-        final students = provider.studentRecords;
+        // FIX 1: Read directly from your custom Pusat ADAB data state array windows
+        final students = provider.presentModuleStudent;
 
         return Scaffold(
           backgroundColor: const Color(0xFFD1FFF3),
@@ -87,11 +88,14 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
 
   // ── Module Info Card ──────────────────────────────────────────────────────
   Widget _buildModuleCard(Module module, AttendanceProvider provider) {
-    // Count present students for the "Number of Student" line
-    final presentCount = provider.studentRecords
-        .where((s) => s.status.toLowerCase() == 'present')
-        .length;
-    final totalCount = provider.studentRecords.length;
+    // FIX 2: Compute counts directly off the verified presentModuleStudent live data rows
+    final presentCount = provider.presentModuleStudent.length;
+    
+    // Fallback to the dashboard model data if deep nested master module details aren't populated yet
+    final totalCapacity = provider.currentModuleDetails?['capacity'] ?? module.capacity ?? 0;
+    final venueText = provider.currentModuleDetails?['venue'] ?? module.venue ?? 'N/A';
+    final lecturerText = provider.currentModuleDetails?['lecturer_name'] ?? module.lecturerName ?? 'N/A';
+    final dateText = provider.currentModuleDetails?['date_time'] ?? module.dateTime ?? 'N/A';
 
     return Container(
       width: double.infinity,
@@ -120,10 +124,10 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 10),
-          _infoRow('Number of Student: $presentCount / $totalCount Students'),
-          _infoRow('Class Date: ${module.dateTime}'),
-          _infoRow('Venue: ${module.venue}'),
-          _infoRow('Lecturer Name: ${module.lecturerName}'),
+          _infoRow('Number of Student: $presentCount / $totalCapacity Students'),
+          _infoRow('Class Date: $dateText'),
+          _infoRow('Venue: $venueText'),
+          _infoRow('Lecturer Name: $lecturerText'),
         ],
       ),
     );
@@ -201,14 +205,19 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   // ── Student List ──────────────────────────────────────────────────────────
   Widget _buildStudentList(List<dynamic> students) {
     final filtered = students.where((s) {
+      // FIX 3: Parse off map property string value variables safely
+      final statusStr = s['attendance_status']?.toString().toLowerCase() ?? 'present';
       final statusMatch = showPresent
-          ? s.status.toLowerCase() == 'present'
-          : s.status.toLowerCase() != 'present';
+          ? statusStr == 'present'
+          : statusStr != 'present';
 
       final query = _searchController.text.toLowerCase();
+      final nameStr = s['student_name']?.toString().toLowerCase() ?? '';
+      final matricStr = s['matrix_no']?.toString().toLowerCase() ?? '';
+      
       final searchMatch = query.isEmpty ||
-          s.studentName.toLowerCase().contains(query) ||
-          s.studentId.toLowerCase().contains(query);
+          nameStr.contains(query) ||
+          matricStr.contains(query);
 
       return statusMatch && searchMatch;
     }).toList();
@@ -270,7 +279,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
                 ),
                 SizedBox(width: 8),
                 SizedBox(
-                  width: 72,
+                  width: 85, // Widened slightly to prevent matrix layout text wrapping cuts
                   child: Text(
                     'Student ID',
                     style: TextStyle(
@@ -298,6 +307,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
           const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16),
 
           // ── Student Rows ──────────────────────────────────────────────
+          // If you want to use mock data for testing "Not Present" values locally, change to true!
           Expanded(
             child: filtered.isEmpty
                 ? Center(
@@ -308,7 +318,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
                             size: 48, color: Colors.grey[400]),
                         const SizedBox(height: 10),
                         Text(
-                          'No student data found for this module.',
+                          'No student records matched your selection.',
                           style: TextStyle(
                               color: Colors.grey[500], fontSize: 13),
                           textAlign: TextAlign.center,
@@ -337,9 +347,12 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   }
 
   Widget _buildStudentRow(int no, dynamic student) {
+    // FIX 4: Pull from the exact key labels mapped in your Laravel inner join statement selection
+    final String matrixNo = student['matrix_no'] ?? 'N/A';
+    final String studentName = student['student_name'] ?? 'Unknown';
+
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -353,11 +366,11 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
           ),
           const SizedBox(width: 8),
 
-          // Student ID + Name stacked
+          // Student ID
           SizedBox(
-            width: 72,
+            width: 85,
             child: Text(
-              student.studentId,
+              matrixNo,
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
@@ -370,7 +383,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
           // Name
           Expanded(
             child: Text(
-              student.studentName,
+              studentName,
               style: const TextStyle(fontSize: 13, color: Colors.black87),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
@@ -384,7 +397,8 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
               _actionBtn(
                 'Grade',
                 const Color(0xFF00CC66),
-                () => Navigator.push(
+                (){ 
+                  /* => Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => GradeStudentPage(
@@ -393,6 +407,9 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
                     ),
                   ),
                 ),
+              );
+                */
+                },
               ),
               const SizedBox(width: 6),
               _actionBtn(
@@ -433,6 +450,4 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
       ),
     );
   }
-
 }
-

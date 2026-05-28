@@ -10,23 +10,32 @@ import 'dart:async'; // for TimeoutException
 
 class AttendanceProvider with ChangeNotifier {
 
-  // --- Academic Subjects  ---
-  List<Subject> _subjects = [];
-  List<Subject> get subjects => _subjects;
-
-  List<Lab> _availableLabs = []; // Store fetched labs
-  List<Lab> get availableLabs => _availableLabs;
-
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  // --- Pusat ADAB & Grading 
-  List<Module> _pusatAdabModules = [];
-  List<Module> get pusatAdabModules => _pusatAdabModules;
+    // --- Pusat ADAB & Grading - AININ ---------------------------
+    List<Module> _pusatAdabModules = [];
+    List<Module> get pusatAdabModules => _pusatAdabModules;
 
+    // ── Attendance Detail Screen State Variables ──
+    Map<String, dynamic>? _currentModuleDetails;
+    Map<String, dynamic>? get currentModuleDetails => _currentModuleDetails;
+
+    // FIX: Custom name applied to the state list array and its public getter window
+    List<dynamic> _presentModuleStudent = [];
+    List<dynamic> get presentModuleStudent => _presentModuleStudent;
+    
+    //------------------------------------------------------------
+
+  // --- Academic Subjects  ---
+  List<Subject> _subjects = [];
+  List<Subject> get subjects => _subjects;
+
+  List<Lab> _availableLabs = []; // Store fetched labs
+  List<Lab> get availableLabs => _availableLabs;
 
   List<AttendanceRecord> _studentRecords = []; 
   List<AttendanceRecord> get studentRecords => _studentRecords;
@@ -527,38 +536,34 @@ Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async
   }
 }
 
-  Future<void> fetchAttendanceDetails(int bookingId) async {
-  _isLoading = true;
-  _studentRecords = []; 
-  notifyListeners();
-
-  try {
-    final response = await http.get(
-      Uri.parse("${Api.baseUrl}/attendance/details/$bookingId")
-    );
-
-    if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      final List<dynamic> recordList = data['records'] ?? []; 
-
-      if (recordList.isNotEmpty) {
-        // CASE A: REAL DATA FOUND
-        _studentRecords = recordList.map((json) => AttendanceRecord.fromJson(json)).toList();
-      } else {
-        // CASE B: API WORKS BUT TABLE IS EMPTY -> SHOW MOCK DATA
-        _studentRecords = _getMockStudents();
-      }
-    } else {
-      // CASE C: SERVER ERROR -> SHOW MOCK DATA SO APP DOESN'T LOOK BROKEN
-      _studentRecords = _getMockStudents();
-    }
-  } catch (e) {
-    // CASE D: NO INTERNET/DATABASE DOWN -> SHOW MOCK DATA
-    _studentRecords = _getMockStudents();
-  } finally {
-    _isLoading = false;
+  Future<void> fetchAttendanceDetails(int moduleId) async {
+    _isLoading = true;
     notifyListeners();
-  }
+
+    try {
+      final String url = "${Api.baseUrl}/attendance/pusat-adab/$moduleId/present";
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        final Map<String, dynamic> coreData = responseData['data'] ?? {};
+        
+        _currentModuleDetails = coreData['module'];
+        
+        // FIX: Extract and save data directly to your presentModuleStudent list layout
+        _presentModuleStudent = coreData['students'] ?? [];
+      } else {
+        _presentModuleStudent = [];
+        _currentModuleDetails = null;
+      }
+    } catch (e) {
+      debugPrint("Details Fetch Error: $e");
+      _presentModuleStudent = [];
+      _currentModuleDetails = null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
 }
 
   Future<Map<String, dynamic>?> fetchSingleAttendance(int attendanceId) async {
@@ -600,46 +605,6 @@ Future<bool> updateAttendanceDetails({
     return response.statusCode == 200;
   } catch (e) {
     return false;
-  }
-}
-
-
-Future<void> updateStudentGrade(int recordId, double marks, String category) async {
-  _isLoading = true;
-  _errorMessage = null;
-  notifyListeners();
-
-  try {
-    final response = await http.post(
-      Uri.parse("${Api.baseUrl}/attendance/update-grade"),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        'record_id': recordId,
-        'marks': marks,
-        'grade_category': category,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final index = _studentRecords.indexWhere((s) => s.id == recordId);
-      if (index != -1) {
-        _studentRecords[index].marks = marks;
-        _studentRecords[index].gradeCategory = category;
-      }
-    } else {
-      _errorMessage = "Failed to update grade. Please try again.";
-      debugPrint("Failed to update grade: ${response.statusCode} — ${response.body}");
-    }
-  } on SocketException {
-    _errorMessage = "No internet connection.";
-  } on TimeoutException {
-    _errorMessage = "Request timed out. Please try again.";
-  } catch (e) {
-    _errorMessage = "Unexpected error: $e";
-    debugPrint("Error updating grade: $e");
-  } finally {
-    _isLoading = false;
-    notifyListeners();
   }
 }
 
