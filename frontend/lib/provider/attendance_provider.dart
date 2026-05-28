@@ -496,8 +496,8 @@ Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async
   notifyListeners();
 
   try {
-    // If selectedDate is provided, append it as a query parameter
-    String url = "${Api.baseUrl}/modules";
+    // FIX 1: Point to the exact backend endpoint that worked in your browser!
+    String url = "${Api.baseUrl}/attendance/pusat-adab";
     if (selectedDate != null) {
       url += "?date=$selectedDate";
     }
@@ -505,14 +505,21 @@ Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
-      final List<dynamic> data = jsonDecode(response.body);
-      // Since we changed the backend to return a flat list, we parse 'data' directly
-      _pusatAdabModules = data.map((json) => Module.fromJson(json)).toList();
+      // FIX 2: Decode the response body as a Map object first
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      
+      // FIX 3: Extract the actual inner array from the 'data' key wrapper safely
+      final List<dynamic> dataList = responseData['data'] ?? [];
+      
+      // Map the inner array rows to your Module model structure
+      _pusatAdabModules = dataList.map((json) => Module.fromJson(json)).toList();
     } else {
+      debugPrint("Server returned error code: ${response.statusCode}");
       _pusatAdabModules = [];
     }
   } catch (e) {
-    debugPrint("Module Fetch Error: $e");
+    // This will catch any missing field/parsing errors from your domain class
+    debugPrint("Module Fetch Error caught in pipeline: $e");
     _pusatAdabModules = [];
   } finally {
     _isLoading = false;
