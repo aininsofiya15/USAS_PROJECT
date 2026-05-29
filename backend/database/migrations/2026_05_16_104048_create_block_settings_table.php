@@ -8,18 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('block_settings', function (Blueprint $table) {
-            $table->id('block_id'); // Auto-incrementing Primary Key
-            $table->string('treasurer_id'); // String column matching treasurers.treasurer_id
-            $table->date('block_date'); // Date column for the selected block date
-            $table->timestamps();
+        if (!Schema::hasTable('block_settings')) {
 
-            // Setup the Foreign Key constraint pointing to the string column on treasurers
-            $table->foreign('treasurer_id')
-                  ->references('treasurer_id')
-                  ->on('treasurers')
-                  ->onDelete('cascade');
-        });
+            Schema::create('block_settings', function (Blueprint $table) {
+                $table->id('block_id');
+                $table->string('treasurer_id');
+                $table->date('block_date');
+                $table->timestamps();
+
+                $table->foreign('treasurer_id')
+                      ->references('treasurer_id')
+                      ->on('treasurers')
+                      ->onDelete('cascade');
+            });
+
+        }
     }
 
     public function down(): void
