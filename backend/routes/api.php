@@ -42,8 +42,7 @@ Route::post('/attendance/pusat-adab/grade/{recordId}', [AttendanceRecordControll
 Route::post('/modules/apply', [BookingController::class, 'applyToModule']);
 Route::get('/students/{studentId}/bookings', [BookingController::class, 'getStudentBookings']);
 Route::delete('/bookings/{id}', [BookingController::class, 'destroy']);
-Route::put('/bookings/{id}/claim', [BookingController::class, 'claimModule']);
-
+Route::post('/bookings/{id}/claim', [BookingController::class, 'claimModule']);
 
 //-----------------------------------------------------------------------------
 

@@ -21,9 +21,203 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId = Provider.of<UserProvider>(context, listen: false).userId;
-      Provider.of<ModuleProvider>(context, listen: false).fetchStudentBookings(userId.toString());
+      _refreshBookings();
     });
+  }
+
+  void _refreshBookings() {
+    final userId = Provider.of<UserProvider>(context, listen: false).userId;
+    Provider.of<ModuleProvider>(context, listen: false).fetchStudentBookings(userId.toString());
+  }
+
+  // ── 🎯 MASTER CLAIM CREDIT CONTROLLER (FIGMA VALIDATION FLOWS) ──
+  void _processFinalCreditSubmission() {
+    final moduleProvider = Provider.of<ModuleProvider>(context, listen: false);
+    final bookedActivities = moduleProvider.bookedModules;
+
+    int totalClaimedModules = bookedActivities.where((m) => m.isClaimed == 1).length;
+    const int totalRequired = 4;
+
+    if (totalClaimedModules < totalRequired) {
+      _showErrorDialog();
+    } else {
+      _showSuccessDialog();
+    }
+  }
+
+  // ── 🎯 INDIVIDUAL MODULE CLAIM PROCESSOR ──
+  void _processModuleClaim(int? bookingId) async {
+    if (bookingId == null || bookingId == 0) return;
+
+    final userId = Provider.of<UserProvider>(context, listen: false).userId;
+    final moduleProvider = Provider.of<ModuleProvider>(context, listen: false);
+
+    if (moduleProvider.bookedModules.length < 4) {
+      _showErrorDialog();
+      return;
+    }
+
+    bool isSuccess = await moduleProvider.claimModule(
+      bookingId: bookingId,
+      studentId: userId.toString(),
+    );
+
+    if (isSuccess && mounted) {
+      final updatedActivities = moduleProvider.bookedModules;
+      int realClaimedCount = updatedActivities.where((m) => m.isClaimed == 1).length;
+      const int totalRequired = 4;
+
+      if (realClaimedCount < totalRequired) {
+        _showProgressDialog(realClaimedCount, totalRequired);
+      } else {
+        _showSuccessDialog();
+      }
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Could not sync claim state with the database. Check connection."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // 🔵 DIALOG 1: PROGRESS TRACKER (Pure White Variant)
+  void _showProgressDialog(int claimed, int total) {
+    double percentage = claimed / total;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: 90,
+                  height: 90,
+                  child: CircularProgressIndicator(
+                    value: percentage,
+                    strokeWidth: 8,
+                    backgroundColor: Colors.grey.shade200,
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF007AFF)),
+                  ),
+                ),
+                Text(
+                  "${(percentage * 100).toInt()}%",
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF003366)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 25),
+            Text(
+              "$claimed/$total Required Module has been\nsubmitted",
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: 120,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00C853), 
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 🔴 DIALOG 2: INSUFFICIENT ERROR (Pure White Variant)
+  void _showErrorDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 75),
+            const SizedBox(height: 15),
+            const Text(
+              "Not Eligible to Claim\n(Insufficient Module)",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+            ),
+            const SizedBox(height: 25),
+            SizedBox(
+              width: 120,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF007AFF), 
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Back", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 🟢 DIALOG 3: SUCCESS SUBMISSION (Pure White Variant)
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.black87, width: 2),
+              ),
+              child: const Icon(Icons.done_all, color: Colors.black87, size: 45),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "Credit Claim Successfully\nSubmitted!",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black),
+            ),
+            const SizedBox(height: 25),
+            SizedBox(
+              width: 120,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00C853), 
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -84,14 +278,21 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   }
 
   Widget _buildBookingCard(int displayIndex, Module booking) {
-    _isExpanded.putIfAbsent(booking.id ?? displayIndex, () => false);
-    bool expanded = _isExpanded[booking.id ?? displayIndex]!;
+    final int trackingId = booking.bookingId ?? displayIndex;
+    _isExpanded.putIfAbsent(trackingId, () => false);
+    bool expanded = _isExpanded[trackingId]!;
 
-    String currentAttendance = booking.attendance ?? "-";
-    String currentMarks = booking.total_marks ?? "-";
+    String currentAttendance = booking.attendanceStatus ?? "-";
+    
+    String currentMarks = "-";
+    if (booking.totalMarks != null) {
+      currentMarks = booking.totalMarks! % 1 == 0 
+          ? "${booking.totalMarks!.toInt()}%" 
+          : "${booking.totalMarks}%";
+    }
     
     bool isPresent = currentAttendance.toLowerCase() == "present";
-    bool hasMarks = currentMarks != "-" && currentMarks.trim().isNotEmpty;
+    bool hasMarks = booking.totalMarks != null;
     bool isModuleClaimed = booking.isClaimed == 1; 
 
     return Container(
@@ -113,7 +314,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
           initiallyExpanded: false,
           onExpansionChanged: (bool value) {
             setState(() {
-              _isExpanded[booking.id ?? displayIndex] = value;
+              _isExpanded[trackingId] = value;
             });
           },
           title: Text(
@@ -146,13 +347,41 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       if (isModuleClaimed) ...[
+                        // STATE 1: Already Claimed Successfully
                         const Text(
-                          "Module Claimed",
+                          "Module Claimed ✓",
                           style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
+                      ] else if (currentAttendance.toLowerCase() == "absent") ...[
+                        // STATE 2: Absent -> Show Disabled Unclickable Claim Button
+                        ElevatedButton(
+                          onPressed: null, 
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey.shade300,
+                            disabledBackgroundColor: Colors.grey.shade300,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            "Claim Module",
+                            style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ] else if (isPresent && !hasMarks) ...[
+                        // 🎯 STATE 3 (NEW FIXED RULE): Present but NO MARKS yet -> Lock Drop, Hide Claim! Only show Attendance badge info!
+                        _buildActionButton("Attendance Verified", const Color(0xFF007AFF), () {}),
                       ] else if (isPresent && hasMarks) ...[
-                        _buildActionButton("Claim Module", const Color(0xFF00C853), () {}),
+                        // STATE 4: Present AND Has Marks -> Active Green Claim Button Ready!
+                        _buildActionButton(
+                          "Claim Module", 
+                          const Color(0xFF00C853), 
+                          () => _processModuleClaim(booking.bookingId),
+                        ),
                       ] else ...[
+                        // STATE 5: Default Fresh Booking State -> Present is false/empty -> Drop allowed!
                         _buildActionButton("Drop", Colors.red, () => _confirmDrop(booking)),
                         const SizedBox(width: 10),
                         _buildActionButton("Attendance", const Color(0xFF007AFF), () {}),
@@ -169,11 +398,20 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   }
 
   void _confirmDrop(Module booking) async {
+    if (booking.bookingId == null || booking.bookingId == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error: Booking reference ID not found.")),
+      );
+      return;
+    }
+
     bool? confirm = await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         contentPadding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -189,9 +427,8 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // Back Button
                 SizedBox(
-                  width: 115, // Increased width to prevent text wrap
+                  width: 115, 
                   height: 45,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
@@ -202,9 +439,8 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                     child: const Text("Back", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ),
-                // Confirm Button
                 SizedBox(
-                  width: 115, // Increased width to prevent text wrap
+                  width: 115, 
                   height: 45,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
@@ -225,18 +461,18 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
       ),
     );
 
-    if (confirm == true && booking.id != null) {
+    if (confirm == true && mounted) {
       final userId = Provider.of<UserProvider>(context, listen: false).userId;
       final provider = Provider.of<ModuleProvider>(context, listen: false);
 
       bool success = await provider.dropModule(
-        bookingId: booking.id!, 
+        bookingId: booking.bookingId!, 
         studentId: userId.toString(),
       );
       
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Module dropped successfully!")),
+          const SnackBar(content: Text("Module dropped successfully!"), backgroundColor: Colors.green),
         );
       }
     }
@@ -266,8 +502,8 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
           TextSpan(
             text: value,
             style: TextStyle(
-              color: isPresent ? Colors.green : Colors.black87, 
-              fontWeight: isPresent ? FontWeight.bold : FontWeight.normal,
+              color: isPresent ? Colors.green : (value.toLowerCase() == "absent" ? Colors.red : Colors.black87), 
+              fontWeight: (isPresent || value.toLowerCase() == "absent") ? FontWeight.bold : FontWeight.normal,
             ),
           ),
         ],
@@ -300,7 +536,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           elevation: 0,
         ),
-        onPressed: () {},
+        onPressed: _processFinalCreditSubmission, 
         child: const Text(
           "Claim Credit",
           style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),

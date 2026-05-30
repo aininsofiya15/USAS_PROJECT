@@ -161,19 +161,15 @@ class ModuleProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         await fetchModules(); 
         await fetchStudentBookings(studentId); 
-        // notifyListeners is usually called inside the fetch methods above, 
-        // so we just return true here.
         return true;
       } 
       else {
-        // 🔥 NEW: Parse the error message from Laravel (e.g., "Already registered!")
         try {
           final data = jsonDecode(response.body);
-            _errorMessage = data['message']; 
-          } catch (_) {
-            // If Laravel sends back something that isn't JSON, we use this fallback
-            _errorMessage = "You are already registered for this module.";
-          }
+          _errorMessage = data['message']; 
+        } catch (_) {
+          _errorMessage = "You are already registered for this module.";
+        }
         
         notifyListeners(); 
         return false;
@@ -191,28 +187,54 @@ class ModuleProvider with ChangeNotifier {
   /// Fetches all modules successfully booked by a specific student ID
   Future<void> fetchStudentBookings(String studentId) async {
     _isLoading = true;
+    _bookedModules = []; // Reset the array list for a clean layout refresh
     notifyListeners();
 
     try {
       final response = await http.get(Uri.parse("${Api.baseUrl}/students/$studentId/bookings"));
 
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        _bookedModules = data.map((json) => Module.fromJson(json)).toList();
+        final dynamic decodedResponse = jsonDecode(response.body);
+
+        // Extract the raw list matrix safely out of your Laravel data wrapper
+        List<dynamic> rawList = [];
+        if (decodedResponse is Map && decodedResponse.containsKey('data')) {
+          rawList = decodedResponse['data'] as List<dynamic>;
+        } else if (decodedResponse is List) {
+          rawList = decodedResponse as List<dynamic>;
+        }
+
+        // 🎯 FIXED OBJECT FACTORY MAPPING: Map fields directly to satisfy List<Module> type constraints
+        _bookedModules = rawList.map((json) {
+          Module moduleObj = Module.fromJson(json);
+          
+          // Inject our custom database join data on the fly!
+          moduleObj.totalMarks = json['total_marks'] != null 
+              ? double.tryParse(json['total_marks'].toString()) 
+              : null;
+          moduleObj.attendanceStatus = json['attendance_status'] ?? '-';
+          moduleObj.isClaimed = json['is_claimed'] ?? 0;
+          moduleObj.bookingId = json['booking_id'] ?? 0; 
+          
+          return moduleObj;
+        }).toList();
+
+        print("Successfully synchronized ${_bookedModules.length} active curriculum student bookings.");
+      } else {
+        print("Backend synchronization failed with response code status: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error fetching student bookings: $e");
+      print("Error fetching student bookings execution pipeline: $e");
     } finally {
       _isLoading = false;
-      notifyListeners();
+      notifyListeners(); 
     }
   }
 
-//DROP MODULE
-
-Future<bool> dropModule({required int bookingId, required String studentId}) async {
+  /// Drop/Unregister a module
+  Future<bool> dropModule({required int bookingId, required String studentId}) async {
     _isLoading = true;
-    notifyListeners();
+    notifyListeners(); // Turns on the spinner spinner framework loaders
 
     try {
       final response = await http.delete(
@@ -220,15 +242,15 @@ Future<bool> dropModule({required int bookingId, required String studentId}) asy
       );
 
       if (response.statusCode == 200) {
-        // 1. Physically remove it from the local list as a backup
-        _bookedModules.removeWhere((item) => item.id == bookingId);
+        // 1. 🎯 THE LOCAL CLEANUP: Physically eject the item from our active application memory array
+        _bookedModules.removeWhere((item) => item.bookingId == bookingId || item.id == bookingId);
         
-        // 2. 🔥 THE ULTIMATE FIX: Force a fresh pull from MySQL
-        // This ensures the UI matches the database 100%
-        await fetchStudentBookings(studentId); 
-        
+        // 2. 🔥 THE CRITICAL FIX: Explicitly notify the Flutter layout trees to repaint right away!
         _isLoading = false;
         notifyListeners(); 
+        
+        // 3. BACKGROUND SYNC: Re-fetch from MySQL to guarantee everything aligns completely
+        await fetchStudentBookings(studentId); 
         return true;
       }
       
@@ -236,57 +258,92 @@ Future<bool> dropModule({required int bookingId, required String studentId}) asy
       notifyListeners();
       return false;
     } catch (e) {
-      print("Error dropping module: $e");
+      print("Error dropping module execution pipeline: $e");
       _isLoading = false;
       notifyListeners();
       return false;
     }
   }
 
-  //VIEW ALL REGISTERED STUDENTS FOR A MODULE (PUSAT ADAB)
-  List<dynamic> _registeredStudents = [];
-  List<dynamic> get registeredStudents => _registeredStudents;
-
-Future<void> fetchRegisteredStudents(int moduleId) async {
+  /// Real-Time Network Trigger: Updates a specific module row state to claimed=1
+  Future<bool> claimModule({required int bookingId, required String studentId}) async {
     _isLoading = true;
-    _registeredStudents = []; // Clear list for fresh start
     notifyListeners();
 
     try {
-        final response = await http.get(Uri.parse("${Api.baseUrl}/modules/$moduleId/students"));
-        
-        if (response.statusCode == 200) {
-            final data = jsonDecode(response.body);
-            if (data is List) {
-                _registeredStudents = data;
-            }
-            print("Fetched ${_registeredStudents.length} students");
-        }
-    } catch (e) {
-        print("Error: $e");
-    } finally {
-        _isLoading = false;
-        notifyListeners();
-    }
-}
+      // 🎯 TARGET ENDPOINT: Adjust this string path pattern to match your Laravel routing setup
+      final response = await http.post(
+        Uri.parse("${Api.baseUrl}/bookings/$bookingId/claim"),
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+      );
 
-Future<bool> removeStudentFromModule({required int bookingId, required int moduleId}) async {
-    try {
-        final response = await http.delete(Uri.parse("${Api.baseUrl}/bookings/$bookingId"));
-        if (response.statusCode == 200) {
-            await fetchRegisteredStudents(moduleId); // Refresh list
-            return true;
-        }
+      if (response.statusCode == 200) {
+        // 🔥 THE REAL SYNC: Instantly pull down fresh, real-time metrics directly from MySQL
+        await fetchStudentBookings(studentId);
+        return true;
+      }
+      
+      print("Claim submission rejected by backend server. Status: ${response.statusCode}");
+      return false;
     } catch (e) {
-        print("Delete error: $e");
+      print("Network pipeline error during module claim transaction execution: $e");
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // VIEW ALL REGISTERED STUDENTS FOR A MODULE (PUSAT ADAB)
+  List<dynamic> _registeredStudents = [];
+  List<dynamic> get registeredStudents => _registeredStudents;
+
+  Future<void> fetchRegisteredStudents(int moduleId) async {
+    _isLoading = true;
+    _registeredStudents = []; 
+    notifyListeners();
+
+    try {
+      final response = await http.get(Uri.parse("${Api.baseUrl}/modules/$moduleId/students"));
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        
+        if (data is Map && data.containsKey('data')) {
+          _registeredStudents = data['data'];
+        } else if (data is List) {
+          _registeredStudents = data;
+        }
+        print("Fetched ${_registeredStudents.length} students");
+      }
+    } catch (e) {
+      print("Error: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> removeStudentFromModule({required int bookingId, required int moduleId}) async {
+    try {
+      final response = await http.delete(Uri.parse("${Api.baseUrl}/bookings/$bookingId"));
+      if (response.statusCode == 200) {
+        await fetchRegisteredStudents(moduleId); 
+        return true;
+      }
+    } catch (e) {
+      print("Delete error: $e");
     }
     return false;
-}
+  }
 
   List<AttendanceRecord> _attendanceRecords = [];
   List<AttendanceRecord> get attendanceRecords => _attendanceRecords;
 
-  // 1. Fetch the list for the Attendance Records screen
+  // Fetch the list for the Attendance Records screen
   Future<void> fetchAttendanceRecords(int attendanceId) async {
     _isLoading = true;
     notifyListeners();
@@ -305,7 +362,7 @@ Future<bool> removeStudentFromModule({required int bookingId, required int modul
     notifyListeners();
   }
 
-  // 2. Submit marks to Laravel (Your Grading Task)
+  // Submit marks to Laravel (Your Grading Task)
   Future<bool> updateStudentGrade(int recordId, double marks) async {
     try {
       final response = await http.patch(
@@ -315,7 +372,6 @@ Future<bool> removeStudentFromModule({required int bookingId, required int modul
       );
 
       if (response.statusCode == 200) {
-        // Refresh local data so the UI updates immediately
         int index = _attendanceRecords.indexWhere((r) => r.id == recordId);
         if (index != -1) {
           _attendanceRecords[index].marks = marks;

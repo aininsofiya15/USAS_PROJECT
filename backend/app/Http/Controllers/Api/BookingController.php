@@ -13,27 +13,42 @@ class BookingController extends Controller
      * Fetch modules booked by a specific student for "My Curriculum"
      */
     public function getStudentBookings($studentId)
-    {
-        $bookings = DB::table('bookings')
-            ->join('modules', 'bookings.module_id', '=', 'modules.id')
-            // Join attendance_records to get live marks and status
-            ->leftJoin('attendance_records', function($join) {
-                $join->on('bookings.student_id', '=', 'attendance_records.student_id');
-            })
-            ->where('bookings.student_id', $studentId)
-            ->select(
-                'bookings.id as id',
-                'modules.activity_name',
-                'modules.date_time',
-                'modules.venue',
-                'attendance_records.status as attendance_status', // From attendance table
-                'attendance_records.marks',              // From attendance table
-                'bookings.is_claimed'
-            )
-            ->get();
+        {
+            try {
+                // Query the bookings table by linking it safely to the specific module session records
+                $bookings = DB::table('bookings')
+                    ->join('modules', 'bookings.module_id', '=', 'modules.id')
+                    
+                    // 🎯 FIXED CHAIN: Link bookings to their respective module attendance record row entries
+                    ->leftJoin('attendances', 'bookings.id', '=', 'attendances.booking_id')
+                    ->leftJoin('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
+                    
+                    // Filter down to pull only this specific student's rows
+                    ->where('bookings.student_id', $studentId)
+                    ->select(
+                        'bookings.id as booking_id', // Changed to avoid collisions on your front-end model mapping
+                        'modules.activity_name',
+                        'modules.date_time',
+                        'modules.venue',
+                        'bookings.is_claimed',
+                        'attendance_records.status as attendance_status', // Captures active status strings cleanly
+                        'attendance_records.marks as total_marks'         // Aliased explicitly to prevent front-end drop nulls
+                    )
+                    ->get();
 
-        return response()->json($bookings, 200);
-    }
+                // Return the structured payload list wrapper straight back up the pipeline
+                return response()->json([
+                    'status' => 'success',
+                    'data' => $bookings
+                ], 200);
+
+            } catch (\Exception $e) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Database operation failed to compile: ' . $e->getMessage()
+                ], 500);
+            }
+        }
 
     /**
      * Register a student for a module (Atomic Transaction)
@@ -85,19 +100,40 @@ class BookingController extends Controller
     /**
      * Individual Module Claim Logic
      */
-    public function claimModule(Request $request)
+    public function claimModule($id)
     {
-        $bookingId = $request->input('booking_id');
+        try {
+            // Find the specific booking row entry
+            $booking = DB::table('bookings')->where('id', $id)->first();
 
-        DB::table('bookings')
-            ->where('id', $bookingId)
-            ->update([
-                'is_claimed' => 1,
-                'updated_at' => now()
-            ]);
+            if (!$booking) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Booking record row reference target not found.'
+                ], 404);
+            }
 
-        return response()->json(['message' => 'Module claimed successfully!']);
+            // Update column flag to true (1)
+            DB::table('bookings')
+                ->where('id', $id)
+                ->update([
+                    'is_claimed' => 1,
+                    'updated_at' => now()
+                ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Module tracking token claimed successfully in MySQL database matrix!'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Server script configuration fault: ' . $e->getMessage()
+            ], 500);
+        }
     }
+
 
     /**
      * Check if student has 4/4 modules for Credit Claim
@@ -120,11 +156,16 @@ class BookingController extends Controller
      */
     public function destroy($id)
     {
+        // 1. Look up the booking row target
         $booking = DB::table('bookings')->where('id', $id)->first();
 
         if ($booking) {
+            // 2. Decrement your module registration capacity counter
             DB::table('modules')->where('id', $booking->module_id)->decrement('current_registration', 1);
+
+            // 3. Directly delete the target booking row out of MySQL
             DB::table('bookings')->where('id', $id)->delete();
+
             return response()->json(['message' => 'Successfully deleted'], 200);
         }
 
