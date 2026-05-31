@@ -43,10 +43,10 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
       bottomNavigationBar: const UsasBottomNav(),
       body: Column(
         children: [
-          const SizedBox(height: 50),
+          const SizedBox(height: 24),
           const Text(
             "Module Attendance Records",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 15),
           _buildDateFilter(),

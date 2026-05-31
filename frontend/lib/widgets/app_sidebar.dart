@@ -133,7 +133,7 @@ class AppSidebar extends StatelessWidget {
                   else if (role == 'pusat_adab') ...[
                     _buildMenuItem(context, Icons.home_outlined, "Home", role, destination: DashboardPage()),
 
-                    const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
+                    const Divider(color: Colors.black12, height: 10),
 
                     _buildMenuItem(context, Icons.list_alt, "Module List", role),
                     _buildSubMenuItem(context, "View Module", role, destination:  ViewModulesPage()), //contoh tulis route dia
@@ -147,7 +147,7 @@ class AppSidebar extends StatelessWidget {
                     const Divider(color: Colors.black12, height: 10),
 
                     _buildMenuItem(context, Icons.description_outlined, "Attendance", role),
-                    _buildSubMenuItem(context, "Module Attendance", role),
+                    _buildSubMenuItem(context, "Module Attendance", role, destination: const AddModuleAttendancePage()),
                     _buildSubMenuItem(context, "Attendance Records", role, destination:const ModuleAttendanceSelectionPage()),
                     _buildSubMenuItem(context, "Wahidah Cuba", role, destination: const AddModuleAttendancePage()),
 
