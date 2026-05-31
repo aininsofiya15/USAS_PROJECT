@@ -73,57 +73,62 @@ class AttendanceRecordSeeder extends Seeder
         DB::table('bookings')->delete();
         Schema::enableForeignKeyConstraints();
 
-        // ── MODULE 2 DATA (Asas Memanah: Sharmila[1], Aqilah[8], Dilla[9]) ──
-        $b1 = DB::table('bookings')->insertGetId(['student_id' => 1, 'module_id' => 2, 'is_claimed' => 0, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
-        $b2 = DB::table('bookings')->insertGetId(['student_id' => 8, 'module_id' => 2, 'is_claimed' => 0, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
+// ── 1. BOOKINGS SEEDING MATRIX FOR USER ID 9 (Dilla) ──
+        // 🎯 TARGET A: Kayaking Adventure (Unclaimed, has marks, present -> Shows active Green "Claim Module" Button)
+        $b0 = DB::table('bookings')->insertGetId(['student_id' => 9, 'module_id' => 1, 'is_claimed' => 0, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
+        
+        // Target B: Asas Memanah (Absent)
         $b3 = DB::table('bookings')->insertGetId(['student_id' => 9, 'module_id' => 2, 'is_claimed' => 0, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
-
-        // ── SEEDING MULTIPLE BOOKINGS SPECIFICALLY FOR USER ID 9 (Dilla) ──
-        // Module 3: Mobile Phone Photography
-        $b4 = DB::table('bookings')->insertGetId(['student_id' => 9, 'module_id' => 3, 'is_claimed' => 0, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
-        // Module 4: Basic Arduino
-        $b5 = DB::table('bookings')->insertGetId(['student_id' => 9, 'module_id' => 4, 'is_claimed' => 0, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
-        // Module 5: Public Speaking 101 (Already Claimed State Test)
+        
+        // Target C: Mobile Phone Photography (Already Claimed)
+        $b4 = DB::table('bookings')->insertGetId(['student_id' => 9, 'module_id' => 3, 'is_claimed' => 1, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
+        
+        // Target D: Basic Arduino (Already Claimed)
+        $b5 = DB::table('bookings')->insertGetId(['student_id' => 9, 'module_id' => 4, 'is_claimed' => 1, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
+        
+        // Target E: Public Speaking 101 (Already Claimed)
         $b6 = DB::table('bookings')->insertGetId(['student_id' => 9, 'module_id' => 5, 'is_claimed' => 1, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
 
-        // 3. Populate Module Attendances bridge connection table
-        $allBookingIds = [$b1, $b2, $b3, $b4, $b5, $b6];
+        // ── 2. SEED OTHER TEST STUDENTS AS PLACEHOLDERS ──
+        $b1 = DB::table('bookings')->insertGetId(['student_id' => 1, 'module_id' => 2, 'is_claimed' => 0, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
+        $b2 = DB::table('bookings')->insertGetId(['student_id' => 8, 'module_id' => 2, 'is_claimed' => 0, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
+
+        // ── 3. BRIDGE TABLE LINKS (module_attendances) ──
+        $allBookingIds = [$b0, $b1, $b2, $b3, $b4, $b5, $b6];
         foreach ($allBookingIds as $bid) {
             DB::table('module_attendances')->insert([
                 'booking_id' => $bid, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()
             ]);
         }
 
-        // 4. Setup Parent Attendance Sheet References
+        // ── 4. SHEET SHEET PARENTS (attendances) ──
+        $attId0 = DB::table('attendances')->insertGetId(['booking_id' => $b0, 'section_id' => 1, 'attendance_code' => 'KAYAK1', 'date' => '2026-05-18', 'time' => '08:00:00', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
         $attId1 = DB::table('attendances')->insertGetId(['booking_id' => $b1, 'section_id' => 1, 'attendance_code' => 'ARCH1', 'date' => '2026-05-20', 'time' => '08:00:00', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
         $attId2 = DB::table('attendances')->insertGetId(['booking_id' => $b2, 'section_id' => 1, 'attendance_code' => 'ARCH2', 'date' => '2026-05-20', 'time' => '08:00:00', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
         $attId3 = DB::table('attendances')->insertGetId(['booking_id' => $b3, 'section_id' => 1, 'attendance_code' => 'ARCH3', 'date' => '2026-05-20', 'time' => '08:00:00', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
-        
         $attId4 = DB::table('attendances')->insertGetId(['booking_id' => $b4, 'section_id' => 1, 'attendance_code' => 'PHOTO1', 'date' => '2026-06-01', 'time' => '09:00:00', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
         $attId5 = DB::table('attendances')->insertGetId(['booking_id' => $b5, 'section_id' => 1, 'attendance_code' => 'ARDU1', 'date' => '2026-06-05', 'time' => '14:00:00', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
         $attId6 = DB::table('attendances')->insertGetId(['booking_id' => $b6, 'section_id' => 1, 'attendance_code' => 'SPEAK1', 'date' => '2026-06-10', 'time' => '10:00:00', 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
 
-        // 5. Inject the final checkout marks metrics matching the scenarios for User ID 9
+        // ── 5. PERFORMANCE METRICS (attendance_records) ──
         DB::table('attendance_records')->insert([
-            // Module 2 Row - Sharmila (Present, 90%)
+            // 🎯 KAYAKING ADVENTURE: Present with 85% marks, ready to claim!
+            ['attendance_id' => $attId0, 'student_id' => 9, 'status' => 'Present', 'marks' => 85.0, 'submitted_time' => Carbon::now(), 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
+            
+            // Other Students
             ['attendance_id' => $attId1, 'student_id' => 1, 'status' => 'Present', 'marks' => 90.0, 'submitted_time' => Carbon::now(), 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
-            // Module 2 Row - Aqilah (Present, 85%)
             ['attendance_id' => $attId2, 'student_id' => 8, 'status' => 'Present', 'marks' => 85.0, 'submitted_time' => Carbon::now(), 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
             
-            // 🎯 USER ID 9 SCENARIO TARGETS:
-            // Module 2: Asas Memanah -> ABSENT (Triggers Disabled Grey Button)
+            // Asas Memanah (Absent)
             ['attendance_id' => $attId3, 'student_id' => 9, 'status' => 'Absent', 'marks' => 0.0, 'submitted_time' => Carbon::now(), 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
-            
-            // Module 3: Mobile Phone Photography -> PRESENT BUT NO MARKS YET (Triggers Drop / Attendance Buttons)
-            ['attendance_id' => $attId4, 'student_id' => 9, 'status' => 'Present', 'marks' => null, 'submitted_time' => Carbon::now(), 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
-            
-            // Module 4: Basic Arduino -> PRESENT WITH MARKS (Triggers Active Green "Claim Module" Button)
+            // Mobile Phone Photography (Present, 60%)
+            ['attendance_id' => $attId4, 'student_id' => 9, 'status' => 'Present', 'marks' => 60.0, 'submitted_time' => Carbon::now(), 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
+            // Basic Arduino (Present, 100%)
             ['attendance_id' => $attId5, 'student_id' => 9, 'status' => 'Present', 'marks' => 100.0, 'submitted_time' => Carbon::now(), 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
-            
-            // Module 5: Public Speaking 101 -> PRESENT + MARKS + CLAIMED=1 (Triggers "Module Claimed ✓" Text)
+            // Public Speaking 101 (Present, 95%)
             ['attendance_id' => $attId6, 'student_id' => 9, 'status' => 'Present', 'marks' => 95.0, 'submitted_time' => Carbon::now(), 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()],
         ]);
-
+        
         $this->command->info('USAS Curriculum Master Testing Matrix Seeded Cleanly!');
     }
 }

@@ -13,6 +13,8 @@ import '../screens/pusatAdab/module_attendance.dart';
 import '../screens/pusatAdab/attendance_for_module.dart';
 import '../screens/student/student_dashboard.dart';
 import '../screens/student/subject_registration.dart';
+import '../screens/student/credit_claim_status.dart';
+import '../screens/pusatAdab/credit_application.dart';
 
 
 import 'package:USAS/screens/faculty/subject_form_page.dart';
@@ -140,7 +142,7 @@ class AppSidebar extends StatelessWidget {
                     const Divider(color: Colors.black12, height: 10),
 
                     _buildMenuItem(context, Icons.description_outlined, "Credit Claim Application", role),
-                    _buildSubMenuItem(context, "View Student Application", role),
+                    _buildSubMenuItem(context, "View Student Application", role, destination: AdminCreditStatusPage()),
 
                     const Divider(color: Colors.black12, height: 10),
 
@@ -170,7 +172,7 @@ class AppSidebar extends StatelessWidget {
                     _buildMenuItem(context, Icons.menu_book, "Curriculum Activity", role),
                     _buildSubMenuItem(context, "View My Module", role, destination: MyBookingsPage()),
                     _buildSubMenuItem(context, "Module Booking", role, destination: StudentActivitiesPage()),
-                    _buildSubMenuItem(context, "Claim Credit", role),
+                    _buildSubMenuItem(context, "Claim Credit Status", role, destination: CreditClaimStatusPage()),
                     const Divider(color: Colors.white24, height: 10),
                     _buildMenuItem(context, Icons.assignment_turned_in, "Attendance", role),
                     _buildSubMenuItem(context, "Attendance", role),

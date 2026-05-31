@@ -30,6 +30,16 @@ class SubjectSeeder extends Seeder
                 'created_at'     => now(),
                 'updated_at'     => now(),
             ],
+            [
+                'subject_code'   => 'UQA2002',
+                'subject_name'   => 'KO-KURIKULUM',
+                'credit_hours'   => 2,
+                'total_section'  => 0,
+                'total_lab'      => 0,
+                'subject_status' => 'active',
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ],
         ]);
     }
 }

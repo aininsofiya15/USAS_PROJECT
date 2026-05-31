@@ -9,8 +9,9 @@ class Api {
   // Pusat Adab Module
   static  String modules = "$baseUrl/modules";
   static String pusatAdabAttendance = "$baseUrl/attendance/pusat-adab";
-  
-  
+  static String getAdminClaims(String filter) => "$baseUrl/pusat-adab/credit-claims?filter=$filter";
+  static String approveAdminClaim(int claimId) => "$baseUrl/pusat-adab/credit-claims/$claimId/approve";
+  static String rejectAdminClaim(int claimId) => "$baseUrl/pusat-adab/credit-claims/$claimId/reject";
   // Faculty Registrar
   static String registerSubject ="$baseUrl/register-subject";
   static String subjects ="$baseUrl/subjects";
@@ -21,6 +22,8 @@ class Api {
   static String moduleStudents(int moduleId) => "$baseUrl/modules/$moduleId/students";
   static String studentBookings(String studentId) => "$baseUrl/students/$studentId/bookings";
 
+  static const String submitCreditClaim = "$baseUrl/credit-claims/submit";
+  static String checkCreditStatus(String studentId) => "$baseUrl/credit-claims/status/$studentId";
   // Attendance 
   static const String lecturerSubjects = "$baseUrl/lecturer/subjects";
   static const String generateAttendance = "$baseUrl/attendance/store";

@@ -134,23 +134,6 @@ class BookingController extends Controller
         }
     }
 
-
-    /**
-     * Check if student has 4/4 modules for Credit Claim
-     */
-    public function checkCreditEligibility($studentId)
-    {
-        $count = DB::table('bookings')
-            ->where('student_id', $studentId)
-            ->where('is_claimed', 1)
-            ->count();
-
-        return response()->json([
-            'claimed_count' => $count,
-            'is_eligible' => $count >= 4
-        ]);
-    }
-
     /**
      * Drop/Delete a booking
      */

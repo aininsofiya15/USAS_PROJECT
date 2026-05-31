@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/module_provider.dart';
 import '../../provider/user_provider.dart';
+import '../../provider/credit_provider.dart'; // 🌟 Linked new state provider
 import '../../domain/module.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
@@ -28,20 +29,48 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   void _refreshBookings() {
     final userId = Provider.of<UserProvider>(context, listen: false).userId;
     Provider.of<ModuleProvider>(context, listen: false).fetchStudentBookings(userId.toString());
+    // 🌟 Sync live data row on initialization to see if user already applied
+    Provider.of<CreditProvider>(context, listen: false).fetchLiveClaimStatus(userId.toString());
   }
 
-  // ── 🎯 MASTER CLAIM CREDIT CONTROLLER (FIGMA VALIDATION FLOWS) ──
-  void _processFinalCreditSubmission() {
+  // ── 🎯 MASTER CLAIM CREDIT CONTROLLER (INTEGRATED LIVE LARAVEL ROUTE) ──
+  void _processFinalCreditSubmission() async {
     final moduleProvider = Provider.of<ModuleProvider>(context, listen: false);
     final bookedActivities = moduleProvider.bookedModules;
 
     int totalClaimedModules = bookedActivities.where((m) => m.isClaimed == 1).length;
     const int totalRequired = 4;
 
+    // 1. Guard check: Stop if modules are insufficient
     if (totalClaimedModules < totalRequired) {
       _showErrorDialog();
-    } else {
+      return;
+    }
+
+    final userId = Provider.of<UserProvider>(context, listen: false).userId;
+    final creditProvider = Provider.of<CreditProvider>(context, listen: false);
+
+    // 2. Dispatch network thread payload to database
+    String result = await creditProvider.submitFinalCredit(studentId: userId.toString());
+
+    if (!mounted) return;
+
+    if (result == "success") {
       _showSuccessDialog();
+    } else if (result == "duplicate") {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Submission Blocked: Claim record already exists in database!"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Failed to submit claim request. Check backend configurations."),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -223,6 +252,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   @override
   Widget build(BuildContext context) {
     final moduleProvider = Provider.of<ModuleProvider>(context);
+    final creditProvider = Provider.of<CreditProvider>(context); // 🌟 Subscribed to Claim Monitor
     final bookedActivities = moduleProvider.bookedModules;
 
     return Scaffold(
@@ -267,7 +297,8 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                               ),
                             ),
                             const SizedBox(height: 15),
-                            _buildClaimCreditButton(),
+                            // 🌟 Pass live constraint boolean into button constructor
+                            _buildClaimCreditButton(creditProvider.hasClaim),
                           ],
                         ),
             ),
@@ -347,13 +378,11 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       if (isModuleClaimed) ...[
-                        // STATE 1: Already Claimed Successfully
                         const Text(
                           "Module Claimed ✓",
                           style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ] else if (currentAttendance.toLowerCase() == "absent") ...[
-                        // STATE 2: Absent -> Show Disabled Unclickable Claim Button
                         ElevatedButton(
                           onPressed: null, 
                           style: ElevatedButton.styleFrom(
@@ -371,17 +400,14 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                           ),
                         ),
                       ] else if (isPresent && !hasMarks) ...[
-                        // 🎯 STATE 3 (NEW FIXED RULE): Present but NO MARKS yet -> Lock Drop, Hide Claim! Only show Attendance badge info!
                         _buildActionButton("Attendance Verified", const Color(0xFF007AFF), () {}),
                       ] else if (isPresent && hasMarks) ...[
-                        // STATE 4: Present AND Has Marks -> Active Green Claim Button Ready!
                         _buildActionButton(
                           "Claim Module", 
                           const Color(0xFF00C853), 
                           () => _processModuleClaim(booking.bookingId),
                         ),
                       ] else ...[
-                        // STATE 5: Default Fresh Booking State -> Present is false/empty -> Drop allowed!
                         _buildActionButton("Drop", Colors.red, () => _confirmDrop(booking)),
                         const SizedBox(width: 10),
                         _buildActionButton("Attendance", const Color(0xFF007AFF), () {}),
@@ -526,20 +552,23 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
     );
   }
 
-  Widget _buildClaimCreditButton() {
+  // 🌟 UPDATED BUTTON VIEW MAPPING LAYER
+  Widget _buildClaimCreditButton(bool hasAlreadyClaimed) {
     return SizedBox(
       width: double.infinity,
       height: 50,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF00C853),
+          backgroundColor: hasAlreadyClaimed ? Colors.grey.shade400 : const Color(0xFF00C853),
+          disabledBackgroundColor: Colors.grey.shade400,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           elevation: 0,
         ),
-        onPressed: _processFinalCreditSubmission, 
-        child: const Text(
-          "Claim Credit",
-          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+        // If claimed, set onPressed to null to completely disable user clicks
+        onPressed: hasAlreadyClaimed ? null : _processFinalCreditSubmission, 
+        child: Text(
+          hasAlreadyClaimed ? "Credit Claimed (Pending Approval)" : "Claim Credit",
+          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
         ),
       ),
     );

@@ -1,66 +1,181 @@
 <?php
-//not yet implemente
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\AttendanceRecord;
 use App\Models\CreditClaim;
 
-class CreditClaimController extends Controller
+class CreditController extends Controller
 {
-    /**
-     * METHOD 1: Claim Individual Module
-     * This marks a single activity (e.g., Kayaking) as "Used" for credit.
-     */
-    public function claimModule(Request $request)
+    public function submitFinalCredit(Request $request)
     {
-        $request->validate(['id' => 'required|integer']);
+        // 1. Only require the student ID from the Flutter app
+        $request->validate([
+            'student_id' => 'required|integer',
+        ]);
 
-        $record = AttendanceRecord::findOrFail($request->id);
+        $studentId = $request->input('student_id');
 
-        // Security check: Student must be Present and have marks to claim
-        if ($record->status !== 'present' || $record->marks < 50) {
-            return response()->json(['message' => 'Module not eligible for claim.'], 403);
+        // 2. AUTOMATIC LOOKUP: Find your Co-Curriculum subject row automatically
+        $subject = DB::table('subjects')
+            ->where('subject_code', 'UQA2002')
+            ->first();
+
+        // Safe fallback in case the database seeder hasn't run yet
+        if (!$subject) {
+            return response()->json(['message' => 'UQA2002 Co-Curriculum subject row not found in database.'], 404);
         }
 
-        $record->is_claimed = 1; // Mark this specific booking as used
-        $record->save();
+        // 3. STRICT ONE-TIME CONSTRAINT: Check if they already submitted an application
+        $existingClaim = DB::table('credit_claims')
+            ->where('student_id', $studentId)
+            ->where('subject_id', $subject->subject_id)
+            ->first();
 
-        return response()->json(['message' => 'Module claimed successfully!']);
+        if ($existingClaim) {
+            return response()->json([
+                'message' => 'You have already submitted a claim for this credit hour.',
+                'status' => $existingClaim->status
+            ], 409); // Blocks duplicate records immediately
+        }
+
+        // 4. THE TRANSACTION: Create the pending row entry in MySQL
+        DB::table('credit_claims')->insert([
+            'student_id' => $studentId,
+            'subject_id' => $subject->subject_id,
+            'status'     => 'pending', // Starts as pending for your Status View Page to read
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json(['message' => 'Credit claim submitted successfully!'], 201);
+    }
+
+    public function checkCreditStatus($studentId)
+    {
+        // Query the claim row and join the subject metrics cleanly
+        $claim = DB::table('credit_claims')
+            ->join('subjects', 'credit_claims.subject_id', '=', 'subjects.subject_id')
+            ->where('credit_claims.student_id', $studentId)
+            ->select('subjects.subject_code', 'subjects.subject_name', 'credit_claims.status')
+            ->first();
+
+        if ($claim) {
+            return response()->json([
+                'status' => 'exists',
+                'data' => [
+                    'subject_code' => $claim->subject_code,
+                    'subject_name' => $claim->subject_name,
+                    'status'       => $claim->status, // 'pending' or 'approved'
+                ]
+            ], 200);
+        }
+
+        return response()->json([
+            'status' => 'none',
+            'data' => null
+        ], 200);
     }
 
     /**
-     * METHOD 2: Final Subject Credit Submission
-     * Only works if the user has completed Method 1 four times.
+     * 📋 GET ALL CLAIMS FOR PUSAT ADAB
      */
-    public function submitFinalCredit(Request $request)
+public function getAllClaims(Request $request)
     {
-        $request->validate([
-            'student_id' => 'required|integer',
-            'subject_id' => 'required|integer'
-        ]);
+        $filter = $request->query('filter', 'all');
 
-        // COUNT logic: Check how many individual modules have been "Claimed"
-        $claimedCount = AttendanceRecord::where('student_id', $request->student_id)
-            ->where('is_claimed', 1)
-            ->count();
+        // 1. Fetch primary claims by linking users and matching student records
+        $query = DB::table('credit_claims')
+            ->join('users', 'credit_claims.student_id', '=', 'users.id')
+            // 🎯 MAP FIX: Joins the user account ID directly to the student profile record ID
+            ->leftJoin('students', 'users.id', '=', 'students.id') 
+            ->select(
+                'credit_claims.id as claim_id',
+                'credit_claims.student_id',
+                'users.name as student_name',
+                // 🎯 Maps the true alphanumeric string column from image_87b783.png
+                DB::raw('COALESCE(students.student_id, users.id) as matric_id'), 
+                'credit_claims.status as claim_status'
+            );
 
-        // 4-Module Rule Validation
-        if ($claimedCount < 4) {
-            return response()->json([
-                'message' => 'Not Eligible to Claim (Insufficient Module)',
-                'current_count' => $claimedCount
-            ], 403);
+        if ($filter === 'pending') {
+            $query->where('credit_claims.status', 'pending');
         }
 
-        // Create the final application for Pusat Adab approval
-        $claim = CreditClaim::create([
-            'student_id' => $request->student_id,
-            'subject_id' => $request->subject_id,
-            'status' => 'pending',
-        ]);
+        $claims = $query->get();
 
-        return response()->json(['message' => 'Credit Claim Successfully Submitted!'], 201);
+        // 2. Attach the completed modules dynamically for each student card row
+        foreach ($claims as $claim) {
+            // 🎯 FIX: Added a strict condition to only pull modules tied directly to this claim activation
+            $completedModules = DB::table('bookings')
+                ->join('modules', 'bookings.module_id', '=', 'modules.id')
+                ->where('bookings.student_id', $claim->student_id)
+                ->where('bookings.is_claimed', 1) // 🌟 Only fetch modules explicitly tagged for the claim!
+                ->pluck('modules.activity_name');
+
+            $claim->completed_modules = $completedModules;
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'count' => $claims->count(),
+            'data' => $claims
+        ], 200);
+    }
+
+    /**
+     * ✅ APPROVE CREDIT CLAIM
+     */
+   
+    public function approveClaim($id)
+    {
+        // 1. Verify that the claim record exists
+        $claim = DB::table('credit_claims')->where('id', $id)->first();
+
+        if (!$claim) {
+            return response()->json(['message' => 'Claim record not found.'], 404);
+        }
+
+        // Guardrail: Avoid duplicate insertions if already approved
+        if ($claim->status === 'approved') {
+            return response()->json(['message' => 'This claim has already been approved.'], 200);
+        }
+
+        // 2. Run operations inside a secure database transaction
+        DB::transaction(function () use ($claim, $id) {
+            
+            // A. Update the credit claim status to approved
+            DB::table('credit_claims')
+                ->where('id', $id)
+                ->update([
+                    'status' => 'approved',
+                    'updated_at' => now()
+                ]);
+
+            // B. Find a matching section for this subject or fall back to section_id 1
+            $section = DB::table('sections')
+                ->where('subject_id', $claim->subject_id)
+                ->first();
+                
+            $sectionId = $section ? $section->id : 1;
+
+            // C. 🎯 INSERT ROW INTO REGISTRATION TABLE (Matching your image columns!)
+            DB::table('registration')->insert([
+                'student_id'    => $claim->student_id, // e.g., 9
+                'subject_id'    => $claim->subject_id, // e.g., matching Ko-Kurikulum
+                'section_id'    => $sectionId,
+                'lab_id'        => null,               // Left null since it's a co-curriculum module
+                'status'        => 'active',
+                'registered_at' => now(),
+            ]);
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Application approved and student auto-registered into the course successfully.'
+        ], 200);
     }
 }

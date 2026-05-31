@@ -7,12 +7,10 @@ use App\Http\Controllers\Api\ModuleController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AttendanceRecordController;
-use App\Models\Section;
-use Illuminate\Http\Request;
-use App\Models\Attendance;
 use App\Models\Subject; 
 use App\Http\Controllers\Api\RegistrarSubjectController;
 use App\Http\Controllers\Api\StudentSubjectController;
+use App\Http\Controllers\Api\CreditController;
 
 // This is the "door" the Flutter app is knocking on
 Route::post('/login', [AuthController::class, 'login']);
@@ -34,6 +32,10 @@ Route::get('/attendance/pusat-adab/{moduleId}/present', [AttendanceRecordControl
 
 // 3. Route to save student grades (Grade Dialog)
 Route::post('/attendance/pusat-adab/grade/{recordId}', [AttendanceRecordController::class, 'updateStudentGrade']);
+
+Route::get('/pusat-adab/credit-claims', [CreditController::class, 'getAllClaims']);
+Route::post('/pusat-adab/credit-claims/{id}/approve', [CreditController::class, 'approveClaim']);
+Route::post('/pusat-adab/credit-claims/{id}/reject', [CreditController::class, 'rejectClaim']);
 //--------------------------------------------------------------------------------------------------------------------//
 
 
@@ -43,7 +45,8 @@ Route::post('/modules/apply', [BookingController::class, 'applyToModule']);
 Route::get('/students/{studentId}/bookings', [BookingController::class, 'getStudentBookings']);
 Route::delete('/bookings/{id}', [BookingController::class, 'destroy']);
 Route::post('/bookings/{id}/claim', [BookingController::class, 'claimModule']);
-
+Route::post('/credit-claims/submit', [CreditController::class, 'submitFinalCredit']);
+Route::get('/credit-claims/status/{studentId}', [CreditController::class, 'checkCreditStatus']);
 //-----------------------------------------------------------------------------
 
 

@@ -8,19 +8,19 @@ import 'provider/treasurer_provider.dart';
 import 'provider/module_provider.dart'; 
 import 'provider/attendance_provider.dart';
 import 'provider/manage_fees_provider.dart';
+import 'provider/credit_provider.dart'; 
 import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   runApp(
-    
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => UserProvider()),
-        ChangeNotifierProvider(create: (_) => ModuleProvider()), // 3. Register ModuleProvider
-        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => ModuleProvider()), 
         ChangeNotifierProvider(create: (_) => TreasuryProvider()),
         ChangeNotifierProvider(create: (_) => AttendanceProvider()),
         ChangeNotifierProvider(create: (_) => FeesManagementProvider()),
+        ChangeNotifierProvider(create: (_) => CreditProvider()), 
       ],
       child: const MyApp(),
     ),
