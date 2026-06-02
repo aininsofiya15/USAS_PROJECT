@@ -231,6 +231,7 @@ public function getClassNotPresentStudents($attendanceId)
     ]);
 }
 
+
 //PUSATADAB
 public function getAdabModules(Request $request)
 {
@@ -259,37 +260,44 @@ public function getAdabModules(Request $request)
     }
 }
 
+    /**
+     * Create a new module attendance session
+     */
     public function storeModuleAttendance(Request $request)
     {
-        // 1. Validate the incoming data from Flutter (now requires module_id)
         $request->validate([
-            'module_id'  => 'required',
+            'module_id'  => 'required|integer',
             'geo_lat'    => 'required',
             'geo_long'   => 'required',
+            // Made date and time optional in validation to prevent 500 errors 
+            // if your Flutter app doesn't send them for modules.
+            'date'       => 'nullable|date',
+            'time'       => 'nullable',
         ]);
 
         return DB::transaction(function () use ($request) {
-            // 2. Create the General Attendance (Code & GPS)
+            // 1. Create the General Attendance (Code & GPS)
             $code = strtoupper(Str::random(6));
             
             $attendance = Attendance::create([
                 'attendance_code' => $code,
                 'geo_lat'         => $request->geo_lat,
                 'geo_long'        => $request->geo_long,
-                'geo_radius'      => 500, 
+                'geo_radius'      => 500,
             ]);
 
-            // 3. Create the Specific Module Attendance
+            // 2. Create the Specific Module Attendance
+            // This links the module to the generated attendance
             DB::table('module_attendances')->insert([
                 'attendance_id' => $attendance->id,
-                'module_id'     => $request->module_id, // Grabs from Flutter's JSON body
-                'date'          => now()->toDateString(), 
-                'time'          => now()->toTimeString(), 
+                'module_id'     => $request->module_id,
+                // If Flutter sends the date/time, use it. Otherwise, default to exactly now.
+                'date'          => $request->date ?? now()->toDateString(),
+                'time'          => $request->time ? date('H:i:s', strtotime($request->time)) : now()->toTimeString(),
                 'created_at'    => now(),
                 'updated_at'    => now(),
             ]);
-
-            // 4. Return the standard response
+    
             return response()->json([
                 'success'       => true,
                 'code'          => $code,
@@ -297,7 +305,6 @@ public function getAdabModules(Request $request)
             ], 201);
         });
     }
-
 
 
 //STUDENT

@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../provider/attendance_provider.dart';
-import '../../domain/module.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
+import '../../domain/module.dart';
 
-class ReleaseModuleAttendanceCodePage extends StatefulWidget {
+class ReleaseModuleAttendanceCodePage extends StatelessWidget {
   final Module module;
-  final String code; 
+  final String code;
 
   const ReleaseModuleAttendanceCodePage({
     super.key,
@@ -17,56 +15,9 @@ class ReleaseModuleAttendanceCodePage extends StatefulWidget {
   });
 
   @override
-  State<ReleaseModuleAttendanceCodePage> createState() => _ReleaseModuleAttendanceCodePageState();
-}
-
-class _ReleaseModuleAttendanceCodePageState extends State<ReleaseModuleAttendanceCodePage> {
-  bool _isReleasing = false;
-
-  Future<void> _releaseCode() async {
-    setState(() => _isReleasing = true);
-
-    final provider = Provider.of<AttendanceProvider>(context, listen: false);
-    
-    // Uses the code passed from the previous page
-    final success = await provider.storeModuleAttendance(
-      moduleId: widget.module.id ?? 0,
-      code: widget.code,
-    );
-
-    setState(() => _isReleasing = false);
-
-    if (success) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Attendance Released to Students!"),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.popUntil(context, (route) => route.isFirst);
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Failed to release code. Please try again."),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final dateString = widget.module.dateTime.contains(' ') 
-        ? widget.module.dateTime.split(' ').first 
-        : widget.module.dateTime;
-    final timeString = widget.module.dateTime.contains(' ') 
-        ? widget.module.dateTime.split(' ').last 
-        : 'N/A';
-
     return Scaffold(
-      backgroundColor: const Color(0xFFD1FFF3), // Green theme
+      backgroundColor: const Color(0xFFD1FFF3), // Matching Mint Theme
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
@@ -74,10 +25,7 @@ class _ReleaseModuleAttendanceCodePageState extends State<ReleaseModuleAttendanc
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            const Text(
-              "Release Attendance",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
+            const Text("Release Code", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
             
             Container(
@@ -85,96 +33,58 @@ class _ReleaseModuleAttendanceCodePageState extends State<ReleaseModuleAttendanc
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
               ),
               child: Column(
                 children: [
-                  _buildDisplayRow("Activity:", widget.module.activityName),
-                  _buildDisplayRow("Venue:", widget.module.venue),
-                  _buildDisplayRow("Date:", dateString),
-                  _buildDisplayRow("Time:", timeString),
+                  _buildSummaryRow("Module:", module.activityName),
+                  _buildSummaryRow("Venue:", module.venue),
+                  _buildSummaryRow("Date:", module.dateTime),
                   
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
-                  ),
+                  const Divider(height: 40, thickness: 1),
                   
-                  const Text(
-                    "STUDENT ATTENDANCE CODE",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold, 
-                      color: Colors.black54,
-                      fontSize: 12,
-                    ),
-                  ),
+                  const Text("STUDENT ACCESS CODE", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black45, fontSize: 12)),
                   const SizedBox(height: 15),
                   
-                  // Display the code generated on the previous page
+                  // Big Code Display
                   Container(
                     width: double.infinity,
-                    height: 110, 
-                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(vertical: 30),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8F9FA),
                       borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: const Color(0xFF007BFF).withOpacity(0.1)),
+                      border: Border.all(color: Colors.blue.withOpacity(0.1)),
                     ),
                     child: Text(
-                      widget.code,
+                      code,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontSize: 42,
+                        fontSize: 48,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF007BFF), 
-                        letterSpacing: 10,
+                        color: Color(0xFF007BFF),
+                        letterSpacing: 8,
                       ),
                     ),
                   ),
                   
-                  const SizedBox(height: 35),
+                  const SizedBox(height: 30),
                   
+                  // Finalize Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isReleasing ? null : _releaseCode,
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Module Attendance is now LIVE")));
+                        Navigator.popUntil(context, (route) => route.isFirst);
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF28A745),
-                        disabledBackgroundColor: Colors.grey.shade300,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: _isReleasing
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                            )
-                          : const Text(
-                              "RELEASE CODE",
-                              style: TextStyle(
-                                color: Colors.white, 
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
+                      child: const Text("RELEASE TO STUDENTS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
-                  
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      "Back to Edit",
-                      style: TextStyle(color: Colors.black38, fontSize: 13),
-                    ),
-                  )
                 ],
               ),
             ),
@@ -184,23 +94,14 @@ class _ReleaseModuleAttendanceCodePageState extends State<ReleaseModuleAttendanc
     );
   }
 
-  Widget _buildDisplayRow(String label, String value) {
+  Widget _buildSummaryRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold, 
-                color: Color(0xFF3F51B5), 
-              ),
-            ),
-          ),
+          Text(label, style: const TextStyle(color: Colors.black54)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );

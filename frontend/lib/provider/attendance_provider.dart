@@ -284,75 +284,48 @@ class AttendanceProvider with ChangeNotifier {
     }
   }
 
- Future<String?> generateModuleAttendance({
+ /// Generates the 6-digit code for a module session
+  Future<String?> generateModuleAttendance({
     required int moduleId,
     required double lat,
     required double lng,
+    String? date, // Optional: your Laravel controller handles it if missing
+    String? time, // Optional: your Laravel controller handles it if missing
   }) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      // Consistent URI parsing using the Api class constant
-      final url = Uri.parse(Api.generateModuleAttendance);
-      
       final response = await http.post(
-        url,
+        Uri.parse(Api.generateModuleAttendance), // Make sure this is in your Api class!
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json", 
+          "Accept": "application/json",
         },
         body: jsonEncode({
           'module_id': moduleId,
           'geo_lat': lat,
           'geo_long': lng,
+          // Only send date and time if they are provided
+          if (date != null) 'date': date,
+          if (time != null) 'time': time,
         }),
       );
 
+      // 201 is Created, 200 is OK (standard Laravel success codes)
       if (response.statusCode == 201 || response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['code']?.toString();
+        final resData = jsonDecode(response.body);
+        return resData['code']?.toString();
       } else {
-        debugPrint("Pusat Adab Error: ${response.statusCode} - ${response.body}");
+        debugPrint("Server Error [${response.statusCode}]: ${response.body}");
       }
     } catch (e) {
-      debugPrint("Connection Error: $e");
+      debugPrint("Error generating module attendance: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
     }
     return null;
-  }
-
-  Future<bool> storeModuleAttendance({
-    required int moduleId,
-    required String code,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse(Api.releaseAdabCode(moduleId)),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          // 'Authorization': 'Bearer $_token', // Uncomment if using tokens
-        },
-        body: json.encode({
-          'code': code,
-          'status': 'released', // Tell the backend the code is now active
-        }),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return true; // Success!
-      } else {
-        debugPrint("Failed to release code. Status: ${response.statusCode}");
-        debugPrint("Response: ${response.body}");
-        return false;
-      }
-    } catch (e) {
-      debugPrint("Error releasing attendance code: $e");
-      return false;
-    }
   }
 
 

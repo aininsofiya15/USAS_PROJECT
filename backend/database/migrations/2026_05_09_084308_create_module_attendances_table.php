@@ -9,14 +9,19 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::create('module_attendances', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('booking_id')->references('id')->on('bookings');
-            $table->timestamps();
-        });
-    }
+    public function up()
+{
+    Schema::create('module_attendances', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('attendance_id')->constrained('attendances')->onDelete('cascade'); 
+        
+        $table->unsignedBigInteger('module_id');  // Tracks the ID from modules table
+        $table->date('date')->nullable();
+        $table->time('time')->nullable();
+        $table->timestamps();
+        
+    });
+}
 
     /**
      * Reverse the migrations.
