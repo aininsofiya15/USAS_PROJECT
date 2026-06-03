@@ -28,6 +28,7 @@ class RegistrarSubjectController extends Controller
             'total_lab' => 0,
             'subject_status' => 'active',
         ]);
+        $totalLab = 0;
 
         foreach ($request->sections as $sectionData) {
 
@@ -56,10 +57,17 @@ class RegistrarSubjectController extends Controller
 
                     'schedule_time' => $labData['schedule_time'],
                 ]);
+                $totalLab++;
             }
         }
 
-        DB::commit();
+
+        $subject->update([
+    'total_lab' => $totalLab
+]);
+
+DB::commit();
+       
 
         return response()->json([
 
