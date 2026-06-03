@@ -10,6 +10,7 @@ use App\Models\Attendance;
 use App\Models\Module;
 use App\Models\AttendanceRecord;
 use App\Models\ModuleAttendance;
+use Illuminate\Support\Facades\Log;
 
 class AttendanceController extends Controller
 {
@@ -120,55 +121,84 @@ class AttendanceController extends Controller
 }
 
 public function getDetails($id) {
-    $attendance = DB::table('class_attendances')
-        ->join('attendances', 'class_attendances.attendance_id', '=', 'attendances.id')
-        ->join('sections', 'class_attendances.section_id', '=', 'sections.section_id')
-        ->join('subjects', 'sections.subject_id', '=', 'subjects.subject_id')
-        ->where('attendances.id', $id)
-        ->select(
-            'attendances.*', 
-            'class_attendances.*', 
-            'subjects.subject_name', 
-            'sections.section_no'
-        )
-        ->first();
+        // Try to find in Academic Attendances first
+        $attendance = DB::table('class_attendances')
+            ->join('attendances', 'class_attendances.attendance_id', '=', 'attendances.id')
+            ->leftJoin('sections', 'class_attendances.section_id', '=', 'sections.section_id')
+            ->leftJoin('subjects', 'sections.subject_id', '=', 'subjects.subject_id')
+            ->where('attendances.id', $id)
+            ->select(
+                'attendances.id as attendance_id',
+                'attendances.geo_lat',
+                'attendances.geo_long',
+                'class_attendances.class_type',
+                'class_attendances.date',
+                'class_attendances.time',
+                'subjects.subject_name',
+                'sections.section_no'
+            )
+            ->first();
 
-    if (!$attendance) {
-        return response()->json(['message' => 'Not found'], 404);
+        // Fallback for Module Attendances if not found in academic
+        if (!$attendance) {
+            $attendance = DB::table('module_attendances')
+                ->join('attendances', 'module_attendances.attendance_id', '=', 'attendances.id')
+                ->leftJoin('modules', 'module_attendances.module_id', '=', 'modules.id')
+                ->where('attendances.id', $id)
+                ->select(
+                    'attendances.id as attendance_id',
+                    'attendances.geo_lat',
+                    'attendances.geo_long',
+                    DB::raw("'Module' as class_type"), 
+                    'module_attendances.date',
+                    'module_attendances.time',
+                    'modules.activity_name as subject_name',
+                    'modules.venue as section_no'
+                )
+                ->first();
+        }
+
+        if (!$attendance) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        return response()->json($attendance);
     }
 
-    return response()->json($attendance);
-}
-
-public function updateAttendanceDetails(Request $request, $id) {
-    // Validate to prevent nulls hitting the DB
-    $request->validate([
-        'geo_lat' => 'required',
-        'geo_long' => 'required',
-        'lab_name' => 'required',
-        'date' => 'required',
-        'time' => 'required',
-    ]);
-
-    return DB::transaction(function () use ($request, $id) {
-        // Update General GPS info
-        DB::table('attendances')->where('id', $id)->update([
-            'geo_lat' => $request->geo_lat,
-            'geo_long' => $request->geo_long,
-            'updated_at' => now(),
+    // POST: Update details
+    public function updateAttendanceDetails(Request $request) {
+        $request->validate([
+            'attendance_id' => 'required',
+            'lab_name'      => 'required',
+            'date'          => 'required',
+            'time'          => 'required',
         ]);
 
-        // Update Class details
-        DB::table('class_attendances')->where('attendance_id', $id)->update([
-            'class_type' => $request->lab_name,
-            'date' => $request->date,
-            'time' => $request->time,
-            'updated_at' => now(),
-        ]);
+        try {
+            DB::transaction(function () use ($request) {
+                // Update the specialized table
+                DB::table('class_attendances')
+                    ->where('attendance_id', $request->attendance_id)
+                    ->update([
+                        'class_type' => $request->lab_name,
+                        'date'       => $request->date,
+                        'time'       => date('H:i:s', strtotime($request->time)),
+                    ]);
 
-        return response()->json(['success' => true]);
-    });
-}
+                // Update the main attendance table (GPS)
+                DB::table('attendances')
+                    ->where('id', $request->attendance_id)
+                    ->update([
+                        'geo_lat'  => $request->lat ?? 0.0,
+                        'geo_long' => $request->lng ?? 0.0,
+                    ]);
+            });
+
+            return response()->json(['success' => true, 'message' => 'Updated!']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
 
 /**
  * Function 1: Fetch students who ARE present (have an attendance record)

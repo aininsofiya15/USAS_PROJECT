@@ -208,6 +208,49 @@ class AttendanceProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> updateAttendanceDetails({
+  required int attendanceId,
+  required String date,
+  required String time,
+  required String classType,
+  required double lat, 
+  required double lng,
+}) async {
+  try {
+    // Using the URL we set up in Step 1
+    final url = Uri.parse(Api.updateAttendance);
+    
+    final response = await http.post(
+      url,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'attendance_id': attendanceId,
+        'date': date,
+        'time': time,
+        'class_type': classType, // Keep this for your database
+        'lab_name': classType,   // ADD THIS: Send it as lab_name to satisfy Laravel's validation
+      }),
+    );
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print("Update Successful!");
+      return true;
+    } else {
+      print("Failed to update. Status: ${response.statusCode}");
+      print("Response: ${response.body}");
+      return false;
+    }
+  } catch (e) {
+    print("Error during update: $e");
+    return false;
+  }
+}
+
+  
+
   //PusatAdab
 
   Future<void> getAdabModules({String? selectedDate}) async {
@@ -593,30 +636,5 @@ Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async
   return null;
 }
 
-Future<bool> updateAttendanceDetails({
-  required int attendanceId,
-  required String labName,
-  required String date,
-  required String time,
-  required double lat,
-  required double lng,
-}) async {
-  try {
-    final response = await http.post(
-      Uri.parse("${Api.baseUrl}/attendance/update/$attendanceId"),
-      headers: {"Content-Type": "application/json", "Accept": "application/json"},
-      body: jsonEncode({
-        'lab_name': labName, // <--- MUST MATCH LARAVEL VALIDATION
-        'date': date,
-        'time': time,
-        'geo_lat': lat,
-        'geo_long': lng,
-      }),
-    );
-    return response.statusCode == 200;
-  } catch (e) {
-    return false;
-  }
-}
 
 }
