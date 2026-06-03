@@ -70,7 +70,7 @@ Route::get('/sections/{sectionId}/labs', [App\Http\Controllers\Api\AttendanceCon
 Route::post('/attendance/store', [AttendanceController::class, 'store']);
 Route::get('/lecturer/{lecturerId}/attendance-history', [AttendanceController::class, 'getAttendanceHistory']);
 Route::get('/attendance/{id}', [AttendanceController::class, 'getDetails']);
-Route::post('/attendance/update/{id}', [AttendanceController::class, 'updateAttendanceDetails']);
+Route::post('/update-attendance', [AttendanceController::class, 'updateAttendanceDetails']);
 Route::get('/attendance/present/{id}', [AttendanceController::class, 'getClassStudentAttendance']);
 Route::get('/attendance/not-present/{id}', [AttendanceController::class, 'getClassNotPresentStudents']);
 

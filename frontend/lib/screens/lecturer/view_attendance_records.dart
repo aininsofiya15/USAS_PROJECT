@@ -51,7 +51,6 @@ class _ViewAttendanceRecordsState extends State<ViewAttendanceRecords> {
                       _buildSearchField(),
                       const SizedBox(height: 10),
                       
-                      // THE TABLE
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
@@ -65,10 +64,15 @@ class _ViewAttendanceRecordsState extends State<ViewAttendanceRecords> {
                           ],
                           rows: provider.attendanceHistory.map((item) {
                             return DataRow(cells: [
-                              DataCell(Text(item['subject_code'])),
-                              DataCell(Text(item['lecture_lab'])),
-                              DataCell(Text(item['date'])),
-                              DataCell(Text(item['time'])),
+                              // Safe Subject Code
+                              DataCell(Text(item['subject_code']?.toString() ?? 'N/A')),
+                              
+                              // Check both class_type (from DB) and lecture_lab (from previous code)
+                              DataCell(Text((item['class_type'] ?? item['lecture_lab'])?.toString() ?? 'N/A')),
+                              
+                              DataCell(Text(item['date']?.toString() ?? 'N/A')),
+                              DataCell(Text(item['time']?.toString() ?? 'N/A')),
+                              
                               DataCell(Row(
                                 children: [
                                   _actionButton("Edit", Colors.green, () {
@@ -76,12 +80,17 @@ class _ViewAttendanceRecordsState extends State<ViewAttendanceRecords> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) => EditAttendanceDetails(
-                                          attendanceId: item['attendance_id'],
-                                          subjectName: item['subject_name'],
-                                          sectionNo: item['section_no'],
-                                          sectionId: item['section_id'],
-                                        ),
-                                      ),
+                                          // SAFE PARSING: Prevents the red screen crash if the ID is missing
+                                          attendanceId: int.tryParse(item['attendance_id']?.toString() ?? '0') ?? 0,
+                                          
+                                          // Safely pass the subject name and section
+                                          subjectName: item['subject_name']?.toString() ?? "Unknown",
+                                          sectionNo: item['section_no']?.toString() ?? "N/A",
+                                          
+                                          // SAFE PARSING: Prevents the red screen crash
+                                          sectionId: int.tryParse(item['section_id']?.toString() ?? '0') ?? 0,
+                                        ), // EditAttendanceDetails
+                                      ), // MaterialPageRoute
                                     );
                                   }),
                                   const SizedBox(width: 5),
@@ -90,11 +99,11 @@ class _ViewAttendanceRecordsState extends State<ViewAttendanceRecords> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) => ViewStudentAttendance(
-                                          attendanceId: item['attendance_id'],
-                                          subjectName: item['subject_code'], // or item['subject_name']
-                                          date: item['date'],
-                                          time: item['time'],
-                                          code: item['attendance_code'],
+                                          attendanceId: int.tryParse(item['attendance_id']?.toString() ?? '0') ?? 0,
+                                          subjectName: item['subject_code']?.toString() ?? 'N/A',
+                                          date: item['date']?.toString() ?? 'N/A',
+                                          time: item['time']?.toString() ?? 'N/A',
+                                          code: item['attendance_code']?.toString() ?? '---',
                                         ),
                                       ),
                                     );
