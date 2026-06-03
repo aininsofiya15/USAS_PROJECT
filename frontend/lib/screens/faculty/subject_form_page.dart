@@ -872,17 +872,28 @@ class _SubjectFormPageState extends State<SubjectFormPage> {
                     });
                   }
 
-                  var response = await RegistrarSubjectProvider()
-                      .registerSubject(
-                    subjectName: nameController.text,
-                    subjectCode: codeController.text,
-                    creditHours: creditController.text,
-                    totalSection: sectionController.text,
-                    sections: formattedSections,
-                  );
+                 var response = await RegistrarSubjectProvider()
+    .registerSubject(
+  subjectName: nameController.text,
+  subjectCode: codeController.text,
+  creditHours: creditController.text,
+  totalSection: sectionController.text,
+  sections: formattedSections,
+);
 
-                  print(response);
-                  _showSuccessDialog();
+print(response);
+
+if (response["success"] == true) {
+  _showSuccessDialog();
+} else {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(response["message"] ?? "Registration failed"),
+    ),
+  );
+}
+                 
+                  
                 },
               ),
             ),

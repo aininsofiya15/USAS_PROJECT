@@ -18,7 +18,7 @@ class Section extends Model
         'lecturer_id',
         'subject_id',
         'section_no',
-        'capacity',
+        
     ];
 
     /// LECTURER

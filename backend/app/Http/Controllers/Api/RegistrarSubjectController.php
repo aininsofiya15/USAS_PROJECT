@@ -39,7 +39,7 @@ class RegistrarSubjectController extends Controller
 
                 'section_no' => $sectionData['section_name'],
 
-                'capacity' => 0,
+                
             ]);
 
             foreach ($sectionData['labs'] as $labData) {
