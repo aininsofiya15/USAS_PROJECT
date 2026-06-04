@@ -50,10 +50,25 @@ class RegistrarSubjectProvider {
       );
 
       print("========== STATUS CODE ==========");
-      print(response.statusCode);
+print(response.statusCode);
 
-      print("========== RESPONSE BODY ==========");
-      print(response.body);
+print("========== RESPONSE BODY ==========");
+print(response.body);
+
+try {
+  var decoded = jsonDecode(response.body);
+
+  print("========== FULL RESPONSE ==========");
+  print(decoded);
+
+  print("========== ERROR ==========");
+  print(decoded["error"]);
+
+  print("========== MESSAGE ==========");
+  print(decoded["message"]);
+} catch (e) {
+  print("JSON DECODE ERROR: $e");
+}
 
       // Prevent crash if backend returns HTML
       if (response.body.startsWith("<!DOCTYPE html>")) {

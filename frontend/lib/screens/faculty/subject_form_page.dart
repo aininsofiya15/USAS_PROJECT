@@ -886,10 +886,17 @@ print(response);
 if (response["success"] == true) {
   _showSuccessDialog();
 } else {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(response["message"] ?? "Registration failed"),
-    ),
+
+  print("FULL RESPONSE = $response");
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text("Error"),
+        content: Text(response.toString()),
+      );
+    },
   );
 }
                  
