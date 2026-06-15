@@ -70,10 +70,36 @@ class BookingController extends Controller
                 ->where('modules.activity_name', function($query) use ($moduleId) {
                     $query->select('activity_name')->from('modules')->where('id', $moduleId);
                 })
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('attendances')
+                        ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
+                        ->whereColumn('attendances.booking_id', 'bookings.id')
+                        ->whereColumn('attendance_records.student_id', 'bookings.student_id')
+                        ->whereRaw('LOWER(attendance_records.status) = ?', ['absent']);
+                })
                 ->exists();
 
             if ($alreadyBooked) {
                 return response()->json(['message' => 'Already registered for this module type!'], 400);
+            }
+
+            $activeBookingCount = DB::table('bookings')
+                ->where('bookings.student_id', $studentId)
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('attendances')
+                        ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
+                        ->whereColumn('attendances.booking_id', 'bookings.id')
+                        ->whereColumn('attendance_records.student_id', 'bookings.student_id')
+                        ->whereRaw('LOWER(attendance_records.status) = ?', ['absent']);
+                })
+                ->count();
+
+            if ($activeBookingCount >= 4) {
+                return response()->json([
+                    'message' => 'You can only register up to 4 modules. If one module is marked absent, you may register another module.'
+                ], 400);
             }
 
             $module = DB::table('modules')->where('id', $moduleId)->lockForUpdate()->first();
