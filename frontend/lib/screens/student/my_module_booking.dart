@@ -74,17 +74,15 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
     }
   }
 
-  // ── 🎯 INDIVIDUAL MODULE CLAIM PROCESSOR ──
+  // ── 🎯 INDIVIDUAL MODULE CLAIM PROCESSOR (FIXED) ──
   void _processModuleClaim(int? bookingId) async {
     if (bookingId == null || bookingId == 0) return;
 
     final userId = Provider.of<UserProvider>(context, listen: false).userId;
     final moduleProvider = Provider.of<ModuleProvider>(context, listen: false);
 
-    if (moduleProvider.bookedModules.length < 4) {
-      _showErrorDialog();
-      return;
-    }
+    // 🟢 Fix: Removed the preemptive check that mistakenly popped up the error dialog here.
+    // This allows the step-by-step module claiming process to show incremental circular progress.
 
     bool isSuccess = await moduleProvider.claimModule(
       bookingId: bookingId,

@@ -139,7 +139,7 @@ class CreditController extends Controller
                 ->first();
                 
             // 🎯 FIXED: Defends against inner joins by defaulting to 1 if no section entry exists yet
-            $sectionId = $section ? $section->section_id : null; 
+            $sectionId = $section ? $section->section_id : 1; 
 
             $alreadyRegistered = DB::table('registration')
                 ->where('student_id', $claim->student_id)

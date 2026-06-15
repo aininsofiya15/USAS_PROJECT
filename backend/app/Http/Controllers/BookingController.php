@@ -128,6 +128,8 @@ class BookingController extends Controller
     public function claimModule($id)
     {
         try {
+            $totalRequired = 4;
+
             // Find the specific booking row entry
             $booking = DB::table('bookings')->where('id', $id)->first();
 
@@ -138,6 +140,30 @@ class BookingController extends Controller
                 ], 404);
             }
 
+            $activeBookingCount = DB::table('bookings')
+                ->where('bookings.student_id', $booking->student_id)
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('attendances')
+                        ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
+                        ->whereColumn('attendances.booking_id', 'bookings.id')
+                        ->whereColumn('attendance_records.student_id', 'bookings.student_id')
+                        ->whereRaw('LOWER(attendance_records.status) = ?', ['absent']);
+                })
+                ->count();
+
+            if ($activeBookingCount < $totalRequired) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Not eligible to claim. Insufficient module.',
+                    'claimed_count' => DB::table('bookings')
+                        ->where('student_id', $booking->student_id)
+                        ->where('is_claimed', 1)
+                        ->count(),
+                    'total_required' => $totalRequired,
+                ], 400);
+            }
+
             // Update column flag to true (1)
             DB::table('bookings')
                 ->where('id', $id)
@@ -146,9 +172,16 @@ class BookingController extends Controller
                     'updated_at' => now()
                 ]);
 
+            $claimedCount = DB::table('bookings')
+                ->where('student_id', $booking->student_id)
+                ->where('is_claimed', 1)
+                ->count();
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Module tracking token claimed successfully in MySQL database matrix!'
+                'message' => 'Module claimed successfully.',
+                'claimed_count' => $claimedCount,
+                'total_required' => $totalRequired,
             ], 200);
 
         } catch (\Exception $e) {

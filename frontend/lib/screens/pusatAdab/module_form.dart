@@ -4,12 +4,12 @@ import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../provider/module_provider.dart';
-import '../../domain/module.dart'; 
+import '../../domain/module.dart';
 
 class ModuleFormPage extends StatefulWidget {
   final Module? existingModuleData;
 
-   const ModuleFormPage({super.key, this.existingModuleData});
+  const ModuleFormPage({super.key, this.existingModuleData});
 
   @override
   State<ModuleFormPage> createState() => ModuleFormPageState();
@@ -23,6 +23,7 @@ class ModuleFormPageState extends State<ModuleFormPage> {
   final lecturerController = TextEditingController();
   final descController = TextEditingController();
   final linkController = TextEditingController();
+  final picController = TextEditingController();
 
   bool get isEditMode => widget.existingModuleData != null;
 
@@ -36,7 +37,7 @@ class ModuleFormPageState extends State<ModuleFormPage> {
       capacityController.text = data.capacity.toString();
       venueController.text = data.venue;
       lecturerController.text = data.lecturerName;
-      descController.text = data.description ?? ''; 
+      descController.text = data.description ?? '';
       linkController.text = data.whatsappLink ?? '';
     }
   }
@@ -50,6 +51,7 @@ class ModuleFormPageState extends State<ModuleFormPage> {
     lecturerController.dispose();
     descController.dispose();
     linkController.dispose();
+    picController.dispose();
     super.dispose();
   }
 
@@ -70,8 +72,10 @@ class ModuleFormPageState extends State<ModuleFormPage> {
 
       if (pickedTime != null) {
         setState(() {
-          String datePart = "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
-          String timePart = "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
+          String datePart =
+              "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+          String timePart =
+              "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
           dateController.text = "$datePart $timePart";
         });
       }
@@ -83,7 +87,9 @@ class ModuleFormPageState extends State<ModuleFormPage> {
 
     if (nameController.text.isEmpty || capacityController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in Activity Name and Capacity!")),
+        const SnackBar(
+          content: Text("Please fill in Activity Name and Capacity!"),
+        ),
       );
       return;
     }
@@ -92,7 +98,7 @@ class ModuleFormPageState extends State<ModuleFormPage> {
 
     if (isEditMode) {
       success = await moduleProvider.updateModule(
-        id: widget.existingModuleData!.id.toString(), 
+        id: widget.existingModuleData!.id.toString(),
         activityName: nameController.text,
         dateTime: dateController.text,
         capacity: int.tryParse(capacityController.text) ?? 0,
@@ -119,13 +125,13 @@ class ModuleFormPageState extends State<ModuleFormPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Successfully saved as $status!")),
       );
-      
-      // Pops screen back to ViewModulesPage after successful save
+
       if (mounted) Navigator.pop(context);
-      
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error: Check Laravel CORS or Server status.")),
+        const SnackBar(
+          content: Text("Error: Check Laravel CORS or Server status."),
+        ),
       );
     }
   }
@@ -133,74 +139,143 @@ class ModuleFormPageState extends State<ModuleFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFD5FFF7), 
+      backgroundColor: const Color(0xFFD5FFF7),
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: Column(
           children: [
             Text(
-              isEditMode ? "Edit Module" : "Add Module", 
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
+              isEditMode ? "Edit Module" : "Add Module",
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
             Container(
-              padding: const EdgeInsets.all(20),
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(26, 26, 26, 24),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.14),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Default Fields", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
-                  const SizedBox(height: 15),
-                  _buildInput(Icons.edit_note, "Activity Name*", nameController),
+                  const Text(
+                    "Default Fields",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildInput(Icons.card_travel, "Activity Name*", nameController),
                   GestureDetector(
                     onTap: () => selectDateTime(context),
                     child: AbsorbPointer(
-                      child: _buildInput(Icons.calendar_today, "Select Date & Time*", dateController),
+                      child: _buildInput(
+                        Icons.calendar_month,
+                        "Date & Time*",
+                        dateController,
+                        trailingIcon: Icons.calendar_month,
+                      ),
                     ),
                   ),
-                  _buildInput(Icons.people_outline, "Capacity*", capacityController, isNumber: true),
+                  _buildInput(
+                    Icons.groups,
+                    "Capacity*",
+                    capacityController,
+                    isNumber: true,
+                  ),
                   _buildInput(Icons.location_on_outlined, "Venue*", venueController),
-                  _buildInput(Icons.person_outline, "Lecturer's Name*", lecturerController),
+                  _buildInput(
+                    Icons.person_outline,
+                    "Lecturer's Name*",
+                    lecturerController,
+                  ),
                   const SizedBox(height: 20),
-                  const Text("Additional Fields", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54)),
-                  const SizedBox(height: 15),
-                  _buildInput(Icons.description_outlined, "Add Description", descController),
-                  _buildInput(Icons.link, "WhatsApp Group Link", linkController),
-                  const SizedBox(height: 30),
+                  const Text(
+                    "Additional Fields",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _buildInput(
+                    Icons.description_outlined,
+                    "Add Description",
+                    descController,
+                  ),
+                  _buildInput(Icons.link, "Whatsapp Link", linkController),
+                  _buildInput(
+                    Icons.badge_outlined,
+                    "PIC Contact",
+                    picController,
+                  ),
+                  const SizedBox(height: 24),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => handleSave(context, 'draft'),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.blue),
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      ElevatedButton(
+                        onPressed: () => handleSave(context, 'draft'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF007AFF),
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(0, 38),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Text("Save as Draft"),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          "Save as Draft",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => handleSave(context, 'published'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF4CAF50),
-                            padding: const EdgeInsets.symmetric(vertical: 15),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: () => handleSave(context, 'published'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF22C55E),
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(0, 38),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: const EdgeInsets.symmetric(horizontal: 22),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Text("Publish", style: TextStyle(color: Colors.white)),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          "Publish",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),
@@ -210,18 +285,48 @@ class ModuleFormPageState extends State<ModuleFormPage> {
     );
   }
 
-  Widget _buildInput(IconData icon, String hint, TextEditingController? controller, {bool isNumber = false}) {
+  Widget _buildInput(
+    IconData icon,
+    String hint,
+    TextEditingController controller, {
+    bool isNumber = false,
+    IconData trailingIcon = Icons.edit_square,
+  }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(12)),
+      height: 40,
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEDEDED),
+        borderRadius: BorderRadius.circular(3),
+      ),
       child: TextField(
         controller: controller,
         keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        style: const TextStyle(
+          fontSize: 13,
+          color: Colors.black87,
+          fontWeight: FontWeight.w500,
+        ),
         decoration: InputDecoration(
           border: InputBorder.none,
-          prefixIcon: Icon(icon, color: Colors.black45),
+          prefixIcon: Icon(icon, color: Colors.black87, size: 19),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 38,
+            minHeight: 40,
+          ),
+          suffixIcon: Icon(trailingIcon, color: Colors.black87, size: 15),
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 32,
+            minHeight: 40,
+          ),
           hintText: hint,
-          contentPadding: const EdgeInsets.symmetric(vertical: 15),
+          hintStyle: TextStyle(
+            color: Colors.grey.shade500,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
       ),
     );
