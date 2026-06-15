@@ -156,11 +156,12 @@ class AppSidebar extends StatelessWidget {
 
 
                   else ...[ //student
-                    _buildMenuItem(context, Icons.home_outlined, "Home", role,
-                      destination:
-                          const StudentDashboard(
-                        name: "Sharmila",
-                      ),
+                    _buildMenuItem(
+                      context,
+                      Icons.home_outlined,
+                      "Home",
+                      role,
+                      destination: const DashboardPage(),
                     ),
                     const Divider(color: Color.fromARGB(184, 255, 255, 255), height: 10),
                     _buildMenuItem(context, Icons.grid_view, "Subject Registration", role,

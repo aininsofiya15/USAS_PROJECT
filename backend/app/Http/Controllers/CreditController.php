@@ -138,38 +138,43 @@ public function getAllClaims(Request $request)
             return response()->json(['message' => 'Claim record not found.'], 404);
         }
 
-        // Guardrail: Avoid duplicate insertions if already approved
-        if ($claim->status === 'approved') {
-            return response()->json(['message' => 'This claim has already been approved.'], 200);
-        }
-
         // 2. Run operations inside a secure database transaction
         DB::transaction(function () use ($claim, $id) {
             
             // A. Update the credit claim status to approved
-            DB::table('credit_claims')
-                ->where('id', $id)
-                ->update([
-                    'status' => 'approved',
-                    'updated_at' => now()
-                ]);
+            if ($claim->status !== 'approved') {
+                DB::table('credit_claims')
+                    ->where('id', $id)
+                    ->update([
+                        'status' => 'approved',
+                        'updated_at' => now()
+                    ]);
+            }
 
-            // B. Find a matching section for this subject or fall back to section_id 1
+            // B. Find a matching section for this subject. Koko subjects may not have labs.
             $section = DB::table('sections')
                 ->where('subject_id', $claim->subject_id)
                 ->first();
                 
-            $sectionId = $section ? $section->id : 1;
+            $sectionId = $section ? $section->section_id : null;
 
-            // C. 🎯 INSERT ROW INTO REGISTRATION TABLE (Matching your image columns!)
-            DB::table('registration')->insert([
-                'student_id'    => $claim->student_id, // e.g., 9
-                'subject_id'    => $claim->subject_id, // e.g., matching Ko-Kurikulum
-                'section_id'    => $sectionId,
-                'lab_id'        => null,               // Left null since it's a co-curriculum module
-                'status'        => 'active',
-                'registered_at' => now(),
-            ]);
+            $alreadyRegistered = DB::table('registration')
+                ->where('student_id', $claim->student_id)
+                ->where('subject_id', $claim->subject_id)
+                ->where('status', 'active')
+                ->exists();
+
+            // C. Insert row into registration table without a lab for co-curriculum subject.
+            if (!$alreadyRegistered) {
+                DB::table('registration')->insert([
+                    'student_id'    => $claim->student_id,
+                    'subject_id'    => $claim->subject_id,
+                    'section_id'    => $sectionId,
+                    'lab_id'        => null,
+                    'status'        => 'active',
+                    'registered_at' => now(),
+                ]);
+            }
         });
 
         return response()->json([

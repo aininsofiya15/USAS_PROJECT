@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../domain/registration.dart';
 import '../../provider/student_subject_provider.dart';
+import '../../provider/user_provider.dart';
 
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
@@ -23,7 +25,8 @@ class _ListRegisteredSubjectsPageState
   @override
   void initState() {
     super.initState();
-    registeredSubjectsFuture = provider.fetchRegisteredSubjects(1);
+    final userId = Provider.of<UserProvider>(context, listen: false).userId;
+    registeredSubjectsFuture = provider.fetchRegisteredSubjects(userId);
   }
 
   void _showSuccessDialog() {
@@ -92,8 +95,11 @@ class _ListRegisteredSubjectsPageState
                     onPressed: () {
                       Navigator.of(context).pop();
                       setState(() {
+                        final userId =
+                            Provider.of<UserProvider>(context, listen: false)
+                                .userId;
                         registeredSubjectsFuture =
-                            provider.fetchRegisteredSubjects(1);
+                            provider.fetchRegisteredSubjects(userId);
                       });
                     },
                     child: const Text(

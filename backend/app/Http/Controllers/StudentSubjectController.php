@@ -60,14 +60,14 @@ class StudentSubjectController extends Controller
                 'subjects.subject_id'
             )
 
-            ->join(
+            ->leftJoin(
                 'sections',
                 'registration.section_id',
                 '=',
                 'sections.section_id'
             )
 
-            ->join(
+            ->leftJoin(
                 'labs',
                 'registration.lab_id',
                 '=',
@@ -87,7 +87,7 @@ class StudentSubjectController extends Controller
                 'labs.lab_name',
 
                 'labs.schedule_day',
-
+                
                 'labs.schedule_time'
             )
 

@@ -6,6 +6,7 @@ import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
 import 'financial_info.dart';
 import '../../provider/manage_fees_provider.dart'; // Ensure this matches your directory structures
+import '../../provider/user_provider.dart';
 import 'attendance_records.dart'; // IMPORT YOUR NEW HISTORICAL PAGE HERE
 import 'subject_registration.dart';
 
@@ -22,8 +23,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId = Provider.of<UserProvider>(context, listen: false).userId;
       Provider.of<FeesManagementProvider>(context, listen: false)
-          .fetchStudentPortalDashboardData("STUDENT_ID_HERE");
+          .fetchStudentPortalDashboardData(userId.toString());
     });
   }
 
