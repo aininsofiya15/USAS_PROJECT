@@ -1,16 +1,16 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TuitionFeesController;
-use App\Http\Controllers\Api\ModuleController;
-use App\Http\Controllers\Api\BookingController;
-use App\Http\Controllers\Api\AttendanceController;
-use App\Http\Controllers\Api\AttendanceRecordController;
+use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\BookingController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceRecordController;
 use App\Models\Subject; 
-use App\Http\Controllers\Api\RegistrarSubjectController;
-use App\Http\Controllers\Api\StudentSubjectController;
-use App\Http\Controllers\Api\CreditController;
+use App\Http\Controllers\RegistrarSubjectController;
+use App\Http\Controllers\StudentSubjectController;
+use App\Http\Controllers\CreditController;
 
 // This is the "door" the Flutter app is knocking on
 Route::post('/login', [AuthController::class, 'login']);
@@ -37,7 +37,6 @@ Route::get('/pusat-adab/credit-claims', [CreditController::class, 'getAllClaims'
 Route::post('/pusat-adab/credit-claims/{id}/approve', [CreditController::class, 'approveClaim']);
 Route::post('/pusat-adab/credit-claims/{id}/reject', [CreditController::class, 'rejectClaim']);
 //--------------------------------------------------------------------------------------------------------------------//
-
 
 // STUDENT ROUTES
 //AININ 
@@ -66,7 +65,7 @@ Route::get('/total-subjects', function () { return response()->json(['totalSubje
 //WIDA
 //LECTURER ROUTES
 Route::get('/lecturer/subjects', [AttendanceController::class, 'getLecturerSubjects']);
-Route::get('/sections/{sectionId}/labs', [App\Http\Controllers\Api\AttendanceController::class, 'getSectionLabs']);
+Route::get('/sections/{sectionId}/labs', [AttendanceController::class, 'getSectionLabs']);
 Route::post('/attendance/store', [AttendanceController::class, 'store']);
 Route::get('/lecturer/{lecturerId}/attendance-history', [AttendanceController::class, 'getAttendanceHistory']);
 Route::get('/attendance/{id}', [AttendanceController::class, 'getDetails']);
