@@ -51,6 +51,8 @@ class StudentSubjectController extends Controller
     /// GET REGISTERED SUBJECTS
     public function getRegisteredSubjects($student_id)
     {
+        $this->syncApprovedCreditClaims($student_id);
+
         $registrations = DB::table('registration')
 
             ->join(
@@ -109,6 +111,41 @@ class StudentSubjectController extends Controller
 
             'data' => $registrations
         ]);
+    }
+
+    // AININ CREDIT CLAIM DISPLAY
+    
+    private function syncApprovedCreditClaims($studentId)
+    {
+        $approvedClaims = DB::table('credit_claims')
+            ->where('student_id', $studentId)
+            ->where('status', 'approved')
+            ->get();
+
+        foreach ($approvedClaims as $claim) {
+            $alreadyRegistered = DB::table('registration')
+                ->where('student_id', $claim->student_id)
+                ->where('subject_id', $claim->subject_id)
+                ->where('status', 'active')
+                ->exists();
+
+            if ($alreadyRegistered) {
+                continue;
+            }
+
+            $section = DB::table('sections')
+                ->where('subject_id', $claim->subject_id)
+                ->first();
+
+            DB::table('registration')->insert([
+                'student_id'    => $claim->student_id,
+                'subject_id'    => $claim->subject_id,
+                'section_id'    => $section ? $section->section_id : null,
+                'lab_id'        => null,
+                'status'        => 'active',
+                'registered_at' => now(),
+            ]);
+        }
     }
 
     /// REGISTER SUBJECT

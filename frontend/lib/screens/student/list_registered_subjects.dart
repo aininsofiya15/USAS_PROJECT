@@ -530,31 +530,42 @@ class _ListRegisteredSubjectsPageState
                                 Expanded(
                                   flex: 2,
                                   child: Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 14),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 7,
-                                            vertical: 3,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFE8F5E9),
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                          ),
-                                          child: Text(
-                                            subject.labName ?? '',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 11,
-                                              color: Color(0xFF16A34A),
+                                        if (subject.labName != null && subject.labName!.isNotEmpty && subject.labName != "null")
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFE8F5E9),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              subject.labName!,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11,
+                                                color: Color(0xFF16A34A),
+                                              ),
+                                            ),
+                                          )
+                                        else
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade100,
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: const Text(
+                                              "No Lab",
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11,
+                                                color: Colors.black38,
+                                              ),
                                             ),
                                           ),
-                                        ),
                                         const SizedBox(height: 4),
                                         Row(
                                           children: [
@@ -566,7 +577,7 @@ class _ListRegisteredSubjectsPageState
                                             const SizedBox(width: 3),
                                             Flexible(
                                               child: Text(
-                                                subject.scheduleDay ?? '',
+                                                subject.scheduleDay == null || subject.scheduleDay == "null" || subject.scheduleDay!.isEmpty ? '-' : subject.scheduleDay!,
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   color: Colors.grey.shade600,
@@ -586,7 +597,7 @@ class _ListRegisteredSubjectsPageState
                                             const SizedBox(width: 3),
                                             Flexible(
                                               child: Text(
-                                                subject.scheduleTime ?? '',
+                                                subject.scheduleTime == null || subject.scheduleTime == "null" || subject.scheduleTime!.isEmpty ? '-' : subject.scheduleTime!,
                                                 style: TextStyle(
                                                   fontSize: 11,
                                                   color: Colors.grey.shade600,
