@@ -4,94 +4,90 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\AttendanceRecord; 
 use App\Models\Module;
-use App\Models\ModuleAttendance;
 use Illuminate\Validation\ValidationException;
 
 class AttendanceRecordController extends Controller
 {
-    // AININ
 
-    // 1. Fetch the list of published modules for the Pusat Adab attendance selection page.
+    // 1. Fetch published modules 
     public function fetchPusatAdabModules()
     {
+        // Retrieve modules with published status
         $modules = Module::where('status', 'published')
+            // Select module attributes to display
             ->select('id', 'activity_name', 'date_time', 'venue', 'lecturer_name', 'status')
             ->get();
         
+        // Return JSON payload response
         return response()->json(['data' => $modules], 200);
     }
 
-    // 2. Fetch module details and the list of students who submitted attendance.
+    // 2. Fetch student attendance list for a specific module
     public function getPresentStudents($moduleId)
     {
         try {
-            // 1. Fetch the master module header info using its 'id' column
+            // Retrieve module details by module ID
             $moduleInfo = DB::table('modules')
+            // Filter by module ID and select moduleattributes 
                 ->where('id', $moduleId)
                 ->select('id', 'activity_name', 'date_time', 'venue', 'lecturer_name', 'capacity', 'current_registration')
                 ->first();
 
+            // Message when module ID does not exist in database
             if (!$moduleInfo) {
                 return response()->json(['message' => 'Module session not found'], 404);
             }
 
-            // 2. Query matching your EXACT database column structures
+            // Query database relations to compile attendance records
             $students = DB::table('module_attendances')
                 ->join('bookings', 'module_attendances.booking_id', '=', 'bookings.id')
                 ->join('modules', 'bookings.module_id', '=', 'modules.id')
                 ->join('attendances', 'bookings.id', '=', 'attendances.booking_id') 
                 ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
-                
-                // Joined matching the numeric integer values
                 ->join('students', 'attendance_records.student_id', '=', 'students.id')
                 ->join('users', 'students.id', '=', 'users.id')
-                
-                // Filter down to this specific module session
+                // Filter records by choosen module ID
                 ->where('modules.id', $moduleId)
-                
+                // Select attributes for the attendance record
                 ->select(
                     'attendance_records.id as id', 
                     'users.name as student_name',
                     'students.student_id as matrix_no', 
                     'attendance_records.status as attendance_status',
                     'attendance_records.created_at as check_in_time',
-                    'attendance_records.marks as marks',           // ◄ ADD THIS COLUMN
-                    'attendance_records.grade_category as grade_category' // ◄ ADD THIS COLUMN
+                    'attendance_records.marks as marks',           
+                    'attendance_records.grade_category as grade_category' 
                 )
                 ->get();
 
-            // 3. Package it together with the 'data' key wrapper for Flutter
+            // Return JSON payload response with module info and student attendance records
             return response()->json([
                 'data' => [
                     'module' => $moduleInfo,
                     'students' => $students
                 ]
             ], 200);
-
+        // Catch exceptions that occur during database query execution 
         } catch (\Exception $e) {
+            // Return an error response
             return response()->json(['error' => 'Database query failed: ' . $e->getMessage()], 500);
         }
     }
     
-
-    /**
-     * Updates student marks and evaluation grade category.
-     * TARGET MODULE: PUSAT ADAB MODULE GRADING
-     */
+    // 3. Update student module marks
     public function updateStudentGrade(Request $request, $recordId)
     {
         try {
-            // 1. Strictly validate incoming score numeric boundaries
+            // Validate the entered marks format
             $request->validate([
                 'marks' => 'required|numeric|min:0|max:100',
             ]);
-
+            // Retrieve the marks input and determine the grade category
             $marks = $request->input('marks');
             $gradeCategory = 'Fail';
 
-            // 2. Classify grade benchmarks text dynamically based on the percentage score
+            // Determine grade category based on marks entered
             if ($marks >= 80) {
                 $gradeCategory = 'Excellent';
             } elseif ($marks >= 60) {
@@ -100,7 +96,7 @@ class AttendanceRecordController extends Controller
                 $gradeCategory = 'Pass';
             }
 
-            // 3. Verify the targeted attendance record entry actually exists in the background
+            // Check if the attendance record line item exists for the provided record ID
             $record = DB::table('attendance_records')->where('id', $recordId)->first();
             
             if (!$record) {
@@ -110,7 +106,7 @@ class AttendanceRecordController extends Controller
                 ], 404);
             }
 
-            // 4. Update your live columns matching your phpMyAdmin schema panel perfectly
+            // Execute database columns update execution statement
             DB::table('attendance_records')
                 ->where('id', $recordId)
                 ->update([
@@ -119,7 +115,7 @@ class AttendanceRecordController extends Controller
                     'updated_at' => now(),
                 ]);
 
-            // 5. Return clean confirmation back to your Flutter app layout
+            // Return success configuration status array data
             return response()->json([
                 'status' => 'success',
                 'message' => 'Student records graded successfully!',
@@ -132,11 +128,13 @@ class AttendanceRecordController extends Controller
             ], 200);
 
         } catch (ValidationException $ve) {
+            // Handle validation error exceptions
             return response()->json([
                 'status' => 'validation_error',
                 'error' => $ve->errors()->first()
             ], 422);
         } catch (\Exception $e) {
+            // Handle execution fallback error exceptions
             return response()->json([
                 'status' => 'error',
                 'error' => 'Database grading transaction failed: ' . $e->getMessage()

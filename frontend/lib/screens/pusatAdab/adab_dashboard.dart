@@ -95,7 +95,7 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
           ),
           const SizedBox(height: 14),
 
-          // ── Categories Grid INSIDE teal rounded container ──
+          // ── Categories Grid ──
           Container(
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
             decoration: BoxDecoration(
@@ -106,34 +106,34 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
               crossAxisCount: 2,
               crossAxisSpacing: 14,
               mainAxisSpacing: 14,
-              childAspectRatio: 1.45, // slightly taller cards for bigger icons
+              childAspectRatio: 1.45,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 _buildMenuCard(
                   context,
-                  icon: _moduleListIcon(),
+                  iconPath: "assets/icons/module.png",
                   title: "Module List",
                   onTap: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const ViewModulesPage())),
                 ),
                 _buildMenuCard(
                   context,
-                  icon: _creditClaimIcon(),
+                  iconPath: "assets/icons/claim.png",
                   title: "Credit Claim\nApplication",
                   onTap: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const AdminCreditStatusPage())),
                 ),
                 _buildMenuCard(
                   context,
-                  icon: _moduleAttendanceIcon(),
+                  iconPath: "assets/icons/moduleattendance.png",
                   title: "Module Attendance",
                   onTap: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const AddModuleAttendancePage())),
                 ),
                 _buildMenuCard(
                   context,
-                  icon: _attendanceRecordsIcon(),
+                  iconPath: "assets/icons/attendance.png",
                   title: "Attendance Records",
                   onTap: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const ModuleAttendanceSelectionPage())),
@@ -186,12 +186,10 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
     );
   }
 
-  // ─────────────────────────────────────────
-  //  MENU CARD — compact with BIG icon
-  // ─────────────────────────────────────────
+  // ── Menu Card ──
   Widget _buildMenuCard(
     BuildContext context, {
-    required Widget icon,
+    required String iconPath,
     required String title,
     required VoidCallback onTap,
   }) {
@@ -213,8 +211,15 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icon sized for compact card
-            SizedBox(width: 52, height: 52, child: icon),
+            Image.asset(
+              iconPath,
+              width: 70,
+              height: 70,
+              errorBuilder: (_, error, ___) {
+                debugPrint('Failed to load icon: $iconPath — $error');
+                return const Icon(Icons.apps, size: 40, color: Color(0xFF3F51B5));
+              },
+            ),
             const SizedBox(height: 5),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -235,9 +240,7 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
     );
   }
 
-  // ─────────────────────────────────────────
-  //  OVERVIEW STAT CARD — very big numbers
-  // ─────────────────────────────────────────
+  // ── Overview Stat Card ──
   Widget _buildOverviewStatCard({
     required String title,
     required String value,
@@ -261,7 +264,6 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Accent top bar
           Container(
             height: 5,
             decoration: BoxDecoration(
@@ -286,7 +288,6 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
                   ),
                 ),
                 const SizedBox(height: 2),
-                // Huge number
                 Text(
                   value,
                   style: TextStyle(
@@ -314,9 +315,7 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
     );
   }
 
-  // ─────────────────────────────────────────
-  //  EMPTY PLACEHOLDER CARD
-  // ─────────────────────────────────────────
+  // ── Empty Placeholder Card ──
   Widget _buildEmptyOverviewCard() {
     return Container(
       width: 170,
@@ -336,225 +335,6 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
       child: const Center(
         child: Icon(Icons.add_chart_outlined, color: Colors.black12, size: 32),
       ),
-    );
-  }
-
-  // ─────────────────────────────────────────
-  //  ILLUSTRATED ICONS  (all scaled up)
-  // ─────────────────────────────────────────
-  Widget _moduleListIcon() {
-    return Stack(
-      alignment: Alignment.bottomRight,
-      children: [
-        Container(
-          width: 54,
-          height: 64,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: const Color(0xFFBDBDBD), width: 1.4),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: List.generate(
-              4,
-              (_) => Container(
-                height: 4.5,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF9E9E9E),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          bottom: 0, right: 0,
-          child: Container(
-            width: 22, height: 22,
-            decoration: const BoxDecoration(color: Color(0xFFFFF9C4), shape: BoxShape.circle),
-            child: const Icon(Icons.edit, size: 13, color: Color(0xFFF9A825)),
-          ),
-        ),
-        Positioned(
-          top: 0, left: 0,
-          child: Container(
-            width: 22, height: 22,
-            decoration: const BoxDecoration(color: Color(0xFFE3F2FD), shape: BoxShape.circle),
-            child: const Icon(Icons.school, size: 13, color: Color(0xFF1565C0)),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _creditClaimIcon() {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        Container(
-          width: 54,
-          height: 64,
-          decoration: BoxDecoration(
-            color: const Color(0xFFFCE4EC),
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: const Color(0xFFEF9A9A), width: 1.4),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text(
-                "CLAIM",
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFC62828),
-                  letterSpacing: 1,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _smallDot(const Color(0xFF66BB6A)),
-                  const SizedBox(width: 4),
-                  _smallDot(const Color(0xFFFFA726)),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Positioned(
-          bottom: 0, right: 0,
-          child: Container(
-            width: 22, height: 22,
-            decoration: const BoxDecoration(color: Color(0xFF66BB6A), shape: BoxShape.circle),
-            child: const Icon(Icons.check, size: 13, color: Colors.white),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _smallDot(Color color) => Container(
-        width: 10, height: 10,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
-
-  Widget _moduleAttendanceIcon() {
-    return Stack(
-      alignment: Alignment.bottomRight,
-      children: [
-        Container(
-          width: 58,
-          height: 62,
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF3E0),
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: const Color(0xFFFFCC80), width: 1.4),
-          ),
-          padding: const EdgeInsets.all(6),
-          child: Column(
-            children: [
-              Container(
-                height: 11,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF7043),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Expanded(
-                child: GridView.count(
-                  crossAxisCount: 4,
-                  crossAxisSpacing: 2,
-                  mainAxisSpacing: 2,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    _calDot(const Color(0xFF66BB6A)),
-                    _calDot(const Color(0xFF66BB6A)),
-                    _calDot(const Color(0xFFEF5350)),
-                    _calDot(const Color(0xFF66BB6A)),
-                    _calDot(const Color(0xFF66BB6A)),
-                    _calDot(const Color(0xFF66BB6A)),
-                    _calDot(const Color(0xFFEF5350)),
-                    _calDot(const Color(0xFF66BB6A)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Positioned(
-          bottom: 0, right: 0,
-          child: Container(
-            width: 22, height: 22,
-            decoration: const BoxDecoration(color: Color(0xFF66BB6A), shape: BoxShape.circle),
-            child: const Icon(Icons.check, size: 13, color: Colors.white),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _calDot(Color color) => Container(
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2)),
-      );
-
-  Widget _attendanceRecordsIcon() {
-    return Stack(
-      alignment: Alignment.bottomRight,
-      children: [
-        Container(
-          width: 54,
-          height: 64,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8EAF6),
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: const Color(0xFF9FA8DA), width: 1.4),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _checkRow(const Color(0xFF66BB6A)),
-              _checkRow(const Color(0xFF66BB6A)),
-              _checkRow(const Color(0xFFEF5350)),
-            ],
-          ),
-        ),
-        Positioned(
-          bottom: 0, right: 0,
-          child: Container(
-            width: 22, height: 22,
-            decoration: const BoxDecoration(color: Color(0xFFFF7043), shape: BoxShape.circle),
-            child: const Icon(Icons.edit, size: 13, color: Colors.white),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _checkRow(Color dotColor) {
-    return Row(
-      children: [
-        Container(
-          width: 9, height: 9,
-          decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 5),
-        Expanded(
-          child: Container(
-            height: 3.5,
-            decoration: BoxDecoration(
-              color: const Color(0xFFBDBDBD),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
