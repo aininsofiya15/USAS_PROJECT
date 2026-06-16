@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/attendance_provider.dart';
@@ -354,12 +355,19 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   Widget _buildStudentRow(int no, dynamic student) {
     final String matrixNo = student['matrix_no'] ?? 'N/A';
     final String studentName = student['student_name'] ?? 'Unknown';
+    final String status =
+        student['attendance_status']?.toString().toLowerCase().trim() ?? '';
+    final bool isNotPresent = status != 'present';
 
     // ── 🎨 NEW: Check if this student has already been graded ──
     final bool isGraded = student['marks'] != null;
-    final int? displayMarks = isGraded
-        ? (double.tryParse(student['marks'].toString()) ?? 0).toInt()
-        : null;
+    final Color rowTextColor = isNotPresent
+        ? Colors.red
+        : isGraded
+            ? const Color(0xFF1D9E75)
+            : Colors.black87;
+    final FontWeight rowFontWeight =
+        (isNotPresent || isGraded) ? FontWeight.w600 : FontWeight.normal;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -371,7 +379,11 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
             width: 32,
             child: Text(
               '$no',
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
+              style: TextStyle(
+                fontSize: 13,
+                color: rowTextColor,
+                fontWeight: rowFontWeight,
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -381,10 +393,10 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
             width: 85,
             child: Text(
               matrixNo,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
+              style: TextStyle(
+                fontWeight: rowFontWeight,
                 fontSize: 13,
-                color: Colors.black87,
+                color: rowTextColor,
               ),
             ),
           ),
@@ -400,39 +412,12 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
                     style: TextStyle(
                       fontSize: 13,
                       overflow: TextOverflow.ellipsis,
-                      // Green name when graded, default black otherwise
-                      color: isGraded
-                          ? const Color(0xFF1D9E75)
-                          : Colors.black87,
-                      fontWeight: isGraded
-                          ? FontWeight.w600
-                          : FontWeight.normal,
+                      color: rowTextColor,
+                      fontWeight: rowFontWeight,
                     ),
                     maxLines: 1,
                   ),
                 ),
-                // Small marks badge shown only when graded
-                if (isGraded) ...[
-                  const SizedBox(width: 5),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 5, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE1F5EE),
-                      borderRadius: BorderRadius.circular(4),
-                      border: Border.all(
-                          color: const Color(0xFF5DCAA5), width: 0.8),
-                    ),
-                    child: Text(
-                      '✓ $displayMarks',
-                      style: const TextStyle(
-                        fontSize: 9,
-                        color: Color(0xFF0F6E56),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),

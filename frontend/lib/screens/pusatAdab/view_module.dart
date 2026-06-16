@@ -204,13 +204,16 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
               if (!isDraft) ...[
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => StudentListPage(module: module),
                       ),
                     );
+                    if (context.mounted) {
+                      context.read<ModuleProvider>().fetchModules();
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E88E5),

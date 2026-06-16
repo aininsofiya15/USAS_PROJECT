@@ -201,13 +201,26 @@ class BookingController extends Controller
         $booking = DB::table('bookings')->where('id', $id)->first();
 
         if ($booking) {
-            // 2. Decrement your module registration capacity counter
-            DB::table('modules')->where('id', $booking->module_id)->decrement('current_registration', 1);
-
-            // 3. Directly delete the target booking row out of MySQL
+            // 2. Directly delete the target booking row out of MySQL
             DB::table('bookings')->where('id', $id)->delete();
 
-            return response()->json(['message' => 'Successfully deleted'], 200);
+            // 3. Re-sync the cached module counter with the real bookings table.
+            $remainingRegistration = DB::table('bookings')
+                ->where('module_id', $booking->module_id)
+                ->count();
+
+            DB::table('modules')
+                ->where('id', $booking->module_id)
+                ->update([
+                    'current_registration' => $remainingRegistration,
+                    'updated_at' => now(),
+                ]);
+
+            return response()->json([
+                'message' => 'Successfully deleted',
+                'module_id' => $booking->module_id,
+                'current_registration' => $remainingRegistration,
+            ], 200);
         }
 
         return response()->json(['message' => 'Booking not found'], 404);

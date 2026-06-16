@@ -237,6 +237,47 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
     );
   }
 
+  Widget _buildStatusRow(String label, String value) {
+    final normalizedStatus = value.toLowerCase().trim();
+    final bool isPresent = normalizedStatus == 'present';
+    final bool isNotPresent =
+        normalizedStatus == 'absent' || normalizedStatus == 'not present';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 115,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                color: isPresent
+                    ? Colors.green
+                    : isNotPresent
+                        ? Colors.red
+                        : Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRadioItem(String category) {
     bool isSelected = _selectedGradeCategory == category;
     return InkWell(
@@ -315,7 +356,7 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
                   _buildDetailRow('Module:', widget.module.activityName.toUpperCase()),
                   _buildDetailRow('Date:', widget.module.dateTime?.split(' ')[0] ?? '2026-05-20'),
                   _buildDetailRow('Time:', '08:00AM - 05:00PM'),
-                  _buildDetailRow('Current Status:', currentStatus),
+                  _buildStatusRow('Current Status:', currentStatus),
                 ],
               ),
             ),

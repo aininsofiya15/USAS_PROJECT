@@ -14,7 +14,28 @@ class ModuleController extends Controller
     public function index()
     {
         try {
-            $modules = DB::table('modules')->get();
+            $modules = DB::table('modules')
+                ->select(
+                    'modules.id',
+                    'modules.activity_name',
+                    'modules.date_time',
+                    'modules.capacity',
+                    'modules.venue',
+                    'modules.lecturer_name',
+                    'modules.description',
+                    'modules.whatsapp_link',
+                    'modules.pic_contact',
+                    'modules.status',
+                    'modules.created_at',
+                    'modules.updated_at'
+                )
+                ->selectSub(function ($query) {
+                    $query->from('bookings')
+                        ->selectRaw('COUNT(*)')
+                        ->whereColumn('bookings.module_id', 'modules.id');
+                }, 'current_registration')
+                ->get();
+
             return response()->json(['data' => $modules], 200);
         } catch (\Exception $e) {
             Log::error("Fetch Modules Error: " . $e->getMessage());

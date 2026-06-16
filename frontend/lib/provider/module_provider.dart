@@ -336,7 +336,8 @@ class ModuleProvider with ChangeNotifier {
     try {
       final response = await http.delete(Uri.parse("${Api.baseUrl}/bookings/$bookingId"));
       if (response.statusCode == 200) {
-        await fetchRegisteredStudents(moduleId); 
+        await fetchRegisteredStudents(moduleId);
+        await fetchModules();
         return true;
       }
     } catch (e) {
