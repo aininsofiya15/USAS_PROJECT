@@ -206,9 +206,19 @@ class AttendanceProvider with ChangeNotifier {
     try {
       final response = await http.get(Uri.parse('${Api.baseUrl}/attendance/not-present/$attendanceId'));
       if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body)['data'];
-        // Map JSON to AttendanceRecord objects
-        _notPresentStudents = data.map((json) => AttendanceRecord.fromJson(json)).toList();
+  final List<dynamic> data = json.decode(response.body)['data'];
+  
+  _notPresentStudents = data.map((json) {
+    return AttendanceRecord(
+      // Ensure IDs map safely to 0 for fallback records
+      id: int.tryParse(json['id']?.toString() ?? json['record_id']?.toString() ?? '0') ?? 0,
+      studentName: json['student_name']?.toString() ?? "Unknown",
+      studentId: json['matric_no']?.toString() ?? "N/A",
+      name: json['student_name']?.toString() ?? "Unknown",
+      matricId: json['matric_no']?.toString() ?? "N/A",
+      status: json['status'] ?? "absent",
+    );
+  }).toList();
       }
     } catch (e) {
       debugPrint("Error fetching not present students: $e");
@@ -278,6 +288,75 @@ class AttendanceProvider with ChangeNotifier {
     }
   } catch (e) {
     print("Error during update: $e");
+    return false;
+  }
+}
+
+Future<bool> syncStatusToBackend({
+  required int attendanceId,
+  required String matricNo,
+  required String status,
+  required int recordId,
+}) async {
+  try {
+    final response = await http.post(
+      Uri.parse('${Api.baseUrl}/attendance/update-status'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: json.encode({
+        'attendance_id': attendanceId,
+        'matric_no': matricNo,   // Pass the student's matric number string
+        'status': status,        // 'present', 'late', 'absent', 'medical'
+        'record_id': recordId,    // Will be 0 for students who haven't checked in yet
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      return responseData['success'] == true;
+    }
+    return false;
+  } catch (e) {
+    debugPrint("Network synchronization error: $e");
+    return false;
+  }
+}
+
+
+Future<bool> updateStudentAttendance({
+  required int attendanceId,
+  required String matricNo,
+  required String status,
+  required int recordId,
+}) async {
+  try {
+    // Make sure your Api.baseUrl maps correctly to http://127.0.0.1:8000/api or your local device IP
+    final response = await http.post(
+      Uri.parse('${Api.baseUrl}/attendance/update-status'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: json.encode({
+        'attendance_id': attendanceId, // 🔑 Must match backend: $request->input('attendance_id')
+        'matric_no': matricNo,         // 🔑 Must match backend: $request->input('matric_no')
+        'status': status,              // 🔑 Must match backend: $request->input('status')
+        'record_id': recordId,          // 🔑 Must match backend: $request->input('record_id')
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      return responseData['success'] == true;
+    }
+    
+    debugPrint("Server returned error status code: ${response.statusCode}");
+    debugPrint("Response body: ${response.body}");
+    return false;
+  } catch (e) {
+    debugPrint("Exception caught during sync: $e");
     return false;
   }
 }

@@ -70,8 +70,9 @@ Route::post('/attendance/store', [AttendanceController::class, 'store']);
 Route::get('/lecturer/{lecturerId}/attendance-history', [AttendanceController::class, 'getAttendanceHistory']);
 Route::get('/attendance/{id}', [AttendanceController::class, 'getDetails']);
 Route::post('/update-attendance', [AttendanceController::class, 'updateAttendanceDetails']);
-Route::get('/attendance/present/{id}', [AttendanceController::class, 'getClassStudentAttendance']);
+Route::get('/attendance/present/{id}', [AttendanceController::class, 'getClassPresentStudents']);
 Route::get('/attendance/not-present/{id}', [AttendanceController::class, 'getClassNotPresentStudents']);
+Route::post('/attendance/update-status', [AttendanceController::class, 'updateStudentStatus']);
 Route::post('/attendance/update/{id}', [AttendanceController::class, 'updateStudentAttendanceStatus']);
 
 //PUSAT ADAB ROUTES

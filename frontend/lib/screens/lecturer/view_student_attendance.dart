@@ -7,7 +7,6 @@ import '../../provider/attendance_provider.dart';
 import 'edit_student_attendance.dart';
 import '../../domain/attendance_record.dart';
 
-
 class ViewStudentAttendance extends StatefulWidget {
   final int attendanceId;
   final String subjectName;
@@ -159,7 +158,7 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
         ],
         rows: students.asMap().entries.map((entry) {
           int idx = entry.key + 1;
-          var student = entry.value; // Your AttendanceRecord object
+          var student = entry.value; 
 
           return DataRow(cells: [
             DataCell(Text(idx.toString(), style: const TextStyle(fontSize: 11))),
@@ -168,8 +167,6 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
               width: 110,
               child: Text(student.studentName, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
             )),
-            
-            // 🔑 THE FIX IS RIGHT HERE: Pass 'student' object, NOT 'student.id'
             DataCell(_editButton(student)), 
           ]);
         }).toList(),
@@ -201,41 +198,38 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
     );
   }
 
-  // Still inside view_student_attendance.dart:
+  Widget _editButton(AttendanceRecord student) {
+    return SizedBox(
+      height: 25,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
+        ),
+        onPressed: () {
+          debugPrint("Navigate to edit record ID: ${student.id}");
 
-Widget _editButton(AttendanceRecord student) {
-  return SizedBox(
-    height: 25,
-    child: ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue,
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-      ),
-      onPressed: () {
-        // Log to console so you can prove the button was clicked
-        debugPrint("Navigate to edit record ID: ${student.id}");
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EditStudentAttendance(
-              recordId: student.id,
-              matricNo: student.studentId,
-              studentName: student.studentName,
-              // These come from the current dashboard widget's context
-              subjectName: widget.subjectName,
-              date: widget.date,
-              time: widget.time,
-              currentStatus: student.status,
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EditStudentAttendance(
+                attendanceId: widget.attendanceId, // 🔑 Fixed: Passed parent session state ID forward
+                recordId: student.id,
+                matricNo: student.studentId,
+                studentName: student.studentName,
+                subjectName: widget.subjectName,
+                date: widget.date,
+                time: widget.time,
+                currentStatus: student.status,
+              ),
             ),
-          ),
-        );
-      },
-      child: const Text("Edit", style: TextStyle(color: Colors.white, fontSize: 10)),
-    ),
-  );
-}
+          );
+        },
+        child: const Text("Edit", style: TextStyle(color: Colors.white, fontSize: 10)),
+      ),
+    );
+  }
 
   Widget _buildSearchField() {
     return Container(

@@ -6,6 +6,7 @@ import '../../widgets/app_sidebar.dart';
 import '../../provider/attendance_provider.dart'; 
 
 class EditStudentAttendance extends StatefulWidget {
+  final int attendanceId; // 🔑 Fixed: Received tracking constraint from parent view context
   final int recordId;
   final String matricNo;
   final String studentName;
@@ -16,6 +17,7 @@ class EditStudentAttendance extends StatefulWidget {
 
   const EditStudentAttendance({
     super.key,
+    required this.attendanceId, // 🔑 Fixed: Added to class instance properties
     required this.recordId,
     required this.matricNo,
     required this.studentName,
@@ -49,7 +51,6 @@ class _EditStudentAttendanceState extends State<EditStudentAttendance> {
     super.dispose();
   }
 
-  // 🔑 Save mechanism invoking your exact provider function name
   Future<void> _handleSaveChanges() async {
     setState(() {
       _isSaving = true;
@@ -58,27 +59,36 @@ class _EditStudentAttendanceState extends State<EditStudentAttendance> {
     try {
       final provider = Provider.of<AttendanceProvider>(context, listen: false);
       
-      // 🎯 Calling your specific provider action method
-      await provider.fetchModuleSingleAttendance(
-        recordId: widget.recordId,
+      // 🔑 Fixed: Invoked your correct update method using the Postman verified keys!
+      bool success = await provider.updateStudentAttendance(
+        attendanceId: widget.attendanceId,
+        matricNo: widget.matricNo,
         status: _selectedStatus,
-        remark: _remarkController.text,
+        recordId: widget.recordId,
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Attendance updated successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context); // Return back to the updated data list view
+      if (success) {
+        // 🔄 Force refresh both database layout streams inside your app interface!
+        await provider.fetchClassPresentStudent(widget.attendanceId);
+        await provider.fetchClassNotPresentStudent(widget.attendanceId);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Attendance updated successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context); // Safe routing escape back to updated dashboard
+        }
+      } else {
+        throw Exception("Failed to synchronize status update to backend controller.");
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to update: $e'),
+            content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
             backgroundColor: Colors.red,
           ),
         );
