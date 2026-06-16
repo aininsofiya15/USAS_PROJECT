@@ -300,10 +300,13 @@ class ModuleProvider with ChangeNotifier {
   // VIEW ALL REGISTERED STUDENTS FOR A MODULE (PUSAT ADAB)
   List<dynamic> _registeredStudents = [];
   List<dynamic> get registeredStudents => _registeredStudents;
+  int? _registeredStudentsModuleId;
+  int? get registeredStudentsModuleId => _registeredStudentsModuleId;
 
   Future<void> fetchRegisteredStudents(int moduleId) async {
     _isLoading = true;
-    _registeredStudents = []; 
+    _registeredStudentsModuleId = moduleId;
+    _registeredStudents = [];
     notifyListeners();
 
     try {
@@ -311,6 +314,8 @@ class ModuleProvider with ChangeNotifier {
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
+        if (_registeredStudentsModuleId != moduleId) return;
         
         if (data is Map && data.containsKey('data')) {
           _registeredStudents = data['data'];
@@ -331,7 +336,8 @@ class ModuleProvider with ChangeNotifier {
     try {
       final response = await http.delete(Uri.parse("${Api.baseUrl}/bookings/$bookingId"));
       if (response.statusCode == 200) {
-        await fetchRegisteredStudents(moduleId); 
+        await fetchRegisteredStudents(moduleId);
+        await fetchModules();
         return true;
       }
     } catch (e) {

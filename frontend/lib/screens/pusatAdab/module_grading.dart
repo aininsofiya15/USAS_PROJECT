@@ -237,6 +237,47 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
     );
   }
 
+  Widget _buildStatusRow(String label, String value) {
+    final normalizedStatus = value.toLowerCase().trim();
+    final bool isPresent = normalizedStatus == 'present';
+    final bool isNotPresent =
+        normalizedStatus == 'absent' || normalizedStatus == 'not present';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 115,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                color: isPresent
+                    ? Colors.green
+                    : isNotPresent
+                        ? Colors.red
+                        : Colors.black87,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRadioItem(String category) {
     bool isSelected = _selectedGradeCategory == category;
     return InkWell(
@@ -284,8 +325,16 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
+        padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFB9F6F0),
+            borderRadius: BorderRadius.circular(34),
+          ),
+          child: Column(
+            children: [
             // Header Page Title
             const Padding(
               padding: EdgeInsets.only(top: 16, bottom: 8),
@@ -298,7 +347,6 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
             // Profile Container Info Box
             Container(
               width: double.infinity,
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -315,7 +363,7 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
                   _buildDetailRow('Module:', widget.module.activityName.toUpperCase()),
                   _buildDetailRow('Date:', widget.module.dateTime?.split(' ')[0] ?? '2026-05-20'),
                   _buildDetailRow('Time:', '08:00AM - 05:00PM'),
-                  _buildDetailRow('Current Status:', currentStatus),
+                  _buildStatusRow('Current Status:', currentStatus),
                 ],
               ),
             ),
@@ -325,7 +373,6 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
             // Assessment Container Layout Form Box
             Container(
               width: double.infinity,
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -427,7 +474,8 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
               ),
             ),
             const SizedBox(height: 24),
-          ],
+            ],
+          ),
         ),
       ),
     );

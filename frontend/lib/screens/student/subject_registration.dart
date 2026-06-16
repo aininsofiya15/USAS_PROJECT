@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../domain/subject.dart';
 import '../../provider/student_subject_provider.dart';
+import '../../provider/user_provider.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
 
@@ -124,6 +126,8 @@ class _SubjectRegistrationPageState
 
   @override
   Widget build(BuildContext context) {
+    final userId = Provider.of<UserProvider>(context, listen: false).userId;
+
     return Scaffold(
       drawer: const AppSidebar(),
       backgroundColor: const Color(0xFFF0F7FF),
@@ -228,7 +232,7 @@ class _SubjectRegistrationPageState
                       onRegister: (section, lab) async {
                         try {
                           await provider.registerSubject(
-                            studentId: 1,
+                            studentId: userId,
                             subjectId: subject.subjectId,
                             sectionId: section.sectionId,
                             labId: lab.labId,

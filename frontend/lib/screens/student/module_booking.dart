@@ -37,48 +37,43 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const SizedBox(height: 10),
-              Container(
-                decoration: BoxDecoration(
-                  color: isSuccess ? const Color(0xE8EAF6F1) : const Color(0xFFFFEBEE),
-                  shape: BoxShape.circle,
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Icon(
-                  isSuccess ? Icons.check_circle_outline_rounded : Icons.error_outline_rounded,
-                  color: isSuccess ? const Color(0xFF00C853) : Colors.redAccent,
-                  size: 64,
-                ),
+              const SizedBox(height: 8),
+              Icon(
+                isSuccess ? Icons.check_circle_outline_rounded : Icons.error_outline_rounded,
+                color: isSuccess ? Colors.black87 : Colors.redAccent,
+                size: 52,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 22),
               Text(
                 title,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold, 
-                  fontSize: 18,
+                  fontSize: 16,
                   color: Colors.black87,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
               SizedBox(
-                width: double.infinity,
-                height: 48,
+                width: isSuccess ? 78 : 120,
+                height: 34,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isSuccess ? const Color(0xFF00C853) : Colors.redAccent,
+                    backgroundColor: isSuccess ? const Color(0xFF22C55E) : Colors.redAccent,
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(7),
                     ),
                   ),
                   onPressed: () => Navigator.pop(context),
                   child: const Text(
                     "OK", 
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                   ),
                 ),
               )
@@ -297,7 +292,7 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
                       if (success) {
                         showResultDialog(
                           context: context,
-                          title: "Module added successfully!",
+                          title: "Module added successfully",
                           isSuccess: true,
                         );
                       } else {

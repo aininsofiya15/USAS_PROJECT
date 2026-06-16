@@ -20,16 +20,20 @@ class _StudentListPageState extends State<StudentListPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() =>
-        Provider.of<ModuleProvider>(context, listen: false)
-            .fetchRegisteredStudents(widget.module.id!));
+    Future.microtask(
+      () => Provider.of<ModuleProvider>(context, listen: false)
+          .fetchRegisteredStudents(widget.module.id!),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final moduleProvider = Provider.of<ModuleProvider>(context);
 
-    final dynamic rawData = moduleProvider.registeredStudents;
+    final bool isCurrentModule =
+        moduleProvider.registeredStudentsModuleId == widget.module.id;
+    final dynamic rawData =
+        isCurrentModule ? moduleProvider.registeredStudents : [];
     final List<dynamic> studentList = (rawData is List) ? rawData : [];
 
     final List<dynamic> filteredList = searchQuery.isEmpty
@@ -39,8 +43,8 @@ class _StudentListPageState extends State<StudentListPage> {
                 (s['matric_id'] ?? "").toString().toLowerCase();
             final String name =
                 (s['student_name'] ?? "").toString().toLowerCase();
-            return matricId.contains(searchQuery.toLowerCase()) ||
-                name.contains(searchQuery.toLowerCase());
+            final query = searchQuery.toLowerCase();
+            return matricId.contains(query) || name.contains(query);
           }).toList();
 
     return Scaffold(
@@ -48,184 +52,194 @@ class _StudentListPageState extends State<StudentListPage> {
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(24, 18, 24, 20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFB9F6F0),
+            borderRadius: BorderRadius.circular(34),
+          ),
+          child: Column(
+            children: [
+              _buildModuleInfoCard(studentList.length),
+              const SizedBox(height: 28),
+              Expanded(
+                child: _buildStudentPanel(moduleProvider, filteredList),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-          // ── MODULE INFO CARD ──────────────────────────────────────────
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                )
-              ],
+  Widget _buildModuleInfoCard(int studentCount) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 9,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            widget.module.activityName.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: Colors.black87,
             ),
-            child: Column(
+          ),
+          const SizedBox(height: 14),
+          _infoText(
+              "Current Registration: $studentCount / ${widget.module.capacity} Students"),
+          _infoText("Class Date: ${widget.module.dateTime}"),
+          _infoText("Venue: ${widget.module.venue}"),
+          _infoText("Lecturer Name: ${widget.module.lecturerName}"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudentPanel(
+    ModuleProvider moduleProvider,
+    List<dynamic> filteredList,
+  ) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 9,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 26),
+            child: SizedBox(
+              height: 32,
+              child: TextField(
+                onChanged: (val) => setState(() => searchQuery = val),
+                style: const TextStyle(fontSize: 12),
+                decoration: InputDecoration(
+                  hintText: "Matric ID",
+                  hintStyle: const TextStyle(
+                    color: Colors.black45,
+                    fontSize: 12,
+                  ),
+                  suffixIcon: const Icon(
+                    Icons.search,
+                    color: Colors.black54,
+                    size: 18,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 7,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: const BorderSide(
+                      color: Colors.black54,
+                      width: 1.5,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: const BorderSide(
+                      color: Colors.black87,
+                      width: 1.6,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 18),
+            child: Row(
               children: [
-                Text(
-                  widget.module.activityName.toUpperCase(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.black87,
+                SizedBox(width: 42),
+                Expanded(
+                  child: Text(
+                    "Student Name",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.black87,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                _infoText(
-                    "Current Registration: ${studentList.length} / ${widget.module.capacity} Students"),
-                _infoText("Class Date: ${widget.module.dateTime}"),
-                _infoText("Venue: ${widget.module.venue}"),
-                _infoText("Lecturer Name: ${widget.module.lecturerName}"),
+                SizedBox(
+                  width: 72,
+                  child: Text(
+                    "Matric ID",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 32),
               ],
             ),
           ),
-
-          const SizedBox(height: 14),
-
-          // ── STUDENT LIST PANEL ────────────────────────────────────────
+          const SizedBox(height: 8),
           Expanded(
-            child: Container(
-              width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                  )
-                ],
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 14),
-
-                  // 🔍 Search Bar
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: SizedBox(
-                      height: 40,
-                      child: TextField(
-                        onChanged: (val) => setState(() => searchQuery = val),
-                        style: const TextStyle(fontSize: 13),
-                        decoration: InputDecoration(
-                          hintText: "Search name or matric ID",
-                          hintStyle: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            color: Colors.grey,
-                            size: 18,
-                          ),
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 10),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: Colors.grey.shade300,
-                              width: 1,
+            child: moduleProvider.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : filteredList.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.person_off_outlined,
+                              size: 40,
+                              color: Colors.grey[400],
                             ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: Colors.teal.shade300,
-                              width: 1.2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: const Color(0xFFF8F8F8),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // 📋 Column Headers
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: const [
-                        SizedBox(width: 36), // avatar space
-                        SizedBox(width: 10),
-                        Text(
-                          "Student Name",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        Spacer(),
-                        Text(
-                          "Matric ID",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        SizedBox(width: 36), // delete icon space
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 6),
-                  const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16),
-
-                  // 📝 Student List
-                  Expanded(
-                    child: moduleProvider.isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : filteredList.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.person_off_outlined,
-                                        size: 40, color: Colors.grey[400]),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      "No students found",
-                                      style: TextStyle(
-                                          color: Colors.grey[500],
-                                          fontSize: 13),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : ListView.separated(
-                                padding:
-                                    const EdgeInsets.only(top: 4, bottom: 12),
-                                itemCount: filteredList.length,
-                                separatorBuilder: (_, __) => const Divider(
-                                  height: 1,
-                                  thickness: 0.8,
-                                  indent: 16,
-                                  endIndent: 16,
-                                ),
-                                itemBuilder: (context, index) {
-                                  final student = filteredList[index];
-                                  return _buildStudentRow(student);
-                                },
+                            const SizedBox(height: 8),
+                            Text(
+                              "No students found",
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 13,
                               ),
-                  ),
-                ],
-              ),
-            ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.only(bottom: 18),
+                        itemCount: filteredList.length,
+                        itemBuilder: (context, index) {
+                          final student = filteredList[index];
+                          return _buildStudentRow(student);
+                        },
+                      ),
           ),
         ],
       ),
@@ -233,60 +247,63 @@ class _StudentListPageState extends State<StudentListPage> {
   }
 
   Widget _buildStudentRow(dynamic student) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+    return Container(
+      height: 58,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      color: Colors.white,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Avatar
           Container(
-            width: 36,
-            height: 36,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFF0F0F0),
-              border: Border.all(color: Colors.grey.shade300, width: 1),
+              color: Colors.white,
+              border: Border.all(color: Colors.black54, width: 1.5),
             ),
             child: const Icon(
               Icons.person_outline,
-              size: 20,
-              color: Colors.grey,
+              size: 22,
+              color: Colors.black87,
             ),
           ),
-          const SizedBox(width: 10),
-
-          // Student Name
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               student['student_name'] ?? "Unknown",
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
               ),
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: 8),
-
-          // Matric ID
-          Text(
-            student['matric_id'] ?? "-",
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.black54,
+          SizedBox(
+            width: 72,
+            child: Text(
+              student['matric_id'] ?? "-",
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-
-          // Delete button
           SizedBox(
-            width: 36,
-            height: 36,
+            width: 32,
+            height: 32,
             child: IconButton(
               icon: const Icon(
                 Icons.delete_outline,
-                color: Colors.redAccent,
-                size: 20,
+                color: Color(0xFFFF6B81),
+                size: 19,
               ),
               padding: EdgeInsets.zero,
               onPressed: () => _confirmDelete(student),
@@ -299,11 +316,15 @@ class _StudentListPageState extends State<StudentListPage> {
 
   Widget _infoText(String text) {
     return Padding(
-      padding: const EdgeInsets.only(top: 3),
+      padding: const EdgeInsets.only(top: 5),
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 13, color: Colors.black54),
+        style: const TextStyle(
+          fontSize: 13,
+          color: Colors.black87,
+          height: 1.15,
+        ),
       ),
     );
   }
@@ -312,21 +333,31 @@ class _StudentListPageState extends State<StudentListPage> {
     bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning_amber_rounded,
-                  color: Colors.red, size: 64),
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.red,
+                size: 64,
+              ),
               const SizedBox(height: 16),
               const Text(
                 "Are you sure to remove this student?",
                 textAlign: TextAlign.center,
-                style:
-                    TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.black87,
+                ),
               ),
               const SizedBox(height: 24),
               Row(
@@ -337,15 +368,18 @@ class _StudentListPageState extends State<StudentListPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         elevation: 0,
                       ),
-                      child: const Text("Back",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        "Back",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -355,15 +389,18 @@ class _StudentListPageState extends State<StudentListPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         elevation: 0,
                       ),
-                      child: const Text("Confirm",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        "Confirm",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ],

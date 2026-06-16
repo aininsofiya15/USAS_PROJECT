@@ -55,22 +55,27 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
       body: Column(
         children: [
           const SizedBox(height: 15),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 25),
-            child: Container(
-              height: 40, 
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: const InputDecoration(
-                  hintText: "Search module",
-                  hintStyle: TextStyle(color: Colors.black38, fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: Colors.black45, size: 20),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 10),
+          Center(
+            child: FractionallySizedBox(
+              widthFactor: 0.88,
+              child: Container(
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  decoration: const InputDecoration(
+                    hintText: "Search module",
+                    hintStyle: TextStyle(color: Colors.black38, fontSize: 13),
+                    suffixIcon: Icon(Icons.search, color: Colors.black87, size: 22),
+                    suffixIconConstraints: BoxConstraints(minWidth: 44, minHeight: 36),
+                    isDense: true,
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.fromLTRB(24, 10, 0, 10),
+                  ),
                 ),
               ),
             ),
@@ -108,9 +113,19 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
                           MaterialPageRoute(builder: (context) =>  ModuleFormPage())
                         ),
                         child: Column(
-                          children: const [
-                            Icon(Icons.add_circle, color: Colors.black87, size: 28),
-                            Text("Add Module", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                          children: [
+                            Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.black87, width: 3),
+                              ),
+                              child: const Icon(Icons.add, color: Colors.black87, size: 22),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text("Add Module", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -183,8 +198,10 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isDraft ? const Color(0xFF2196F3) : const Color(0xFF8BC34A),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  minimumSize: const Size(0, 32),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   elevation: 0,
                 ),
                 child: Text(isDraft ? "Continue Edit →" : "Edit", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
@@ -192,21 +209,26 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
               if (!isDraft) ...[
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => StudentListPage(module: module),
                       ),
                     );
+                    if (context.mounted) {
+                      context.read<ModuleProvider>().fetchModules();
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E88E5),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    minimumSize: const Size(0, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     elevation: 0,
                   ),
-                  child: const Text("View student", style: TextStyle(color: Colors.white, fontSize: 12)),
+                  child: const Text("View student", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                 ),
               ],
             ],

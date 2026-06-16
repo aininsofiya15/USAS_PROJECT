@@ -54,9 +54,17 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFB9F6F0),
+            borderRadius: BorderRadius.circular(34),
+          ),
+          child: Column(
+            children: [
 
           // ── PAGE TITLE ──
           const Text(
@@ -83,7 +91,7 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
                 : creditProvider.adminClaims.isEmpty
                     ? _buildEmptyState()
                     : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: EdgeInsets.zero,
                         itemCount: creditProvider.adminClaims.length,
                         itemBuilder: (context, index) {
                           final claim = creditProvider.adminClaims[index];
@@ -98,8 +106,10 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
 
           // ── PAGINATION ──
           _buildPaginationFooter(),
-          const SizedBox(height: 12),
-        ],
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -156,7 +166,7 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: FontWeight.w700,
             color: isSelected
                 ? (isPending ? const Color(0xFFE53935) : Colors.black87)
@@ -184,9 +194,9 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 9,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -215,8 +225,8 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
                       child: Text(
                         '$displayIndex. ${claim.studentName}',
                         style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13,
                           color: Colors.black87,
                         ),
                       ),
@@ -264,7 +274,11 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
           // ── Matric ID ──
           Text(
             'Matric ID: ${claim.matricId}',
-            style: const TextStyle(fontSize: 13, color: Colors.black87),
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.black87,
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 8),
 
@@ -276,7 +290,7 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
                 'Completed Module: ',
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w900,
                   color: Colors.black87,
                 ),
               ),
@@ -287,7 +301,7 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
                     return Text(
                       '${entry.key + 1}. ${entry.value}',
                       style:
-                          const TextStyle(fontSize: 13, color: Colors.black87),
+                          const TextStyle(fontSize: 12, color: Colors.black87),
                     );
                   }).toList(),
                 ),
@@ -303,14 +317,14 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
                 'Status: ',
                 style: TextStyle(
                   fontSize: 13,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w900,
                   color: Colors.black87,
                 ),
               ),
               Text(
                 statusLabel,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: _getStatusColor(claim.claimStatus),
                 ),
@@ -344,7 +358,7 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
                   child: const Text(
                     'Reject Application',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -370,7 +384,7 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
                   child: const Text(
                     'Approve Credit',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -423,7 +437,7 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
               child: Text(
                 '$page',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: isActive ? Colors.black87 : Colors.black45,
                 ),
@@ -444,7 +458,7 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
         'No claims found for this filter.',
         style: TextStyle(
           color: Colors.black45,
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
       ),

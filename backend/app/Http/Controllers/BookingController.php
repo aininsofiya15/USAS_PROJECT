@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -71,10 +70,36 @@ class BookingController extends Controller
                 ->where('modules.activity_name', function($query) use ($moduleId) {
                     $query->select('activity_name')->from('modules')->where('id', $moduleId);
                 })
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('attendances')
+                        ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
+                        ->whereColumn('attendances.booking_id', 'bookings.id')
+                        ->whereColumn('attendance_records.student_id', 'bookings.student_id')
+                        ->whereRaw('LOWER(attendance_records.status) = ?', ['absent']);
+                })
                 ->exists();
 
             if ($alreadyBooked) {
                 return response()->json(['message' => 'Already registered for this module type!'], 400);
+            }
+
+            $activeBookingCount = DB::table('bookings')
+                ->where('bookings.student_id', $studentId)
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('attendances')
+                        ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
+                        ->whereColumn('attendances.booking_id', 'bookings.id')
+                        ->whereColumn('attendance_records.student_id', 'bookings.student_id')
+                        ->whereRaw('LOWER(attendance_records.status) = ?', ['absent']);
+                })
+                ->count();
+
+            if ($activeBookingCount >= 4) {
+                return response()->json([
+                    'message' => 'You can only register up to 4 modules. If one module is marked absent, you may register another module.'
+                ], 400);
             }
 
             $module = DB::table('modules')->where('id', $moduleId)->lockForUpdate()->first();
@@ -103,6 +128,8 @@ class BookingController extends Controller
     public function claimModule($id)
     {
         try {
+            $totalRequired = 4;
+
             // Find the specific booking row entry
             $booking = DB::table('bookings')->where('id', $id)->first();
 
@@ -113,6 +140,30 @@ class BookingController extends Controller
                 ], 404);
             }
 
+            $activeBookingCount = DB::table('bookings')
+                ->where('bookings.student_id', $booking->student_id)
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('attendances')
+                        ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
+                        ->whereColumn('attendances.booking_id', 'bookings.id')
+                        ->whereColumn('attendance_records.student_id', 'bookings.student_id')
+                        ->whereRaw('LOWER(attendance_records.status) = ?', ['absent']);
+                })
+                ->count();
+
+            if ($activeBookingCount < $totalRequired) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Not eligible to claim. Insufficient module.',
+                    'claimed_count' => DB::table('bookings')
+                        ->where('student_id', $booking->student_id)
+                        ->where('is_claimed', 1)
+                        ->count(),
+                    'total_required' => $totalRequired,
+                ], 400);
+            }
+
             // Update column flag to true (1)
             DB::table('bookings')
                 ->where('id', $id)
@@ -121,9 +172,16 @@ class BookingController extends Controller
                     'updated_at' => now()
                 ]);
 
+            $claimedCount = DB::table('bookings')
+                ->where('student_id', $booking->student_id)
+                ->where('is_claimed', 1)
+                ->count();
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Module tracking token claimed successfully in MySQL database matrix!'
+                'message' => 'Module claimed successfully.',
+                'claimed_count' => $claimedCount,
+                'total_required' => $totalRequired,
             ], 200);
 
         } catch (\Exception $e) {
@@ -143,13 +201,26 @@ class BookingController extends Controller
         $booking = DB::table('bookings')->where('id', $id)->first();
 
         if ($booking) {
-            // 2. Decrement your module registration capacity counter
-            DB::table('modules')->where('id', $booking->module_id)->decrement('current_registration', 1);
-
-            // 3. Directly delete the target booking row out of MySQL
+            // 2. Directly delete the target booking row out of MySQL
             DB::table('bookings')->where('id', $id)->delete();
 
-            return response()->json(['message' => 'Successfully deleted'], 200);
+            // 3. Re-sync the cached module counter with the real bookings table.
+            $remainingRegistration = DB::table('bookings')
+                ->where('module_id', $booking->module_id)
+                ->count();
+
+            DB::table('modules')
+                ->where('id', $booking->module_id)
+                ->update([
+                    'current_registration' => $remainingRegistration,
+                    'updated_at' => now(),
+                ]);
+
+            return response()->json([
+                'message' => 'Successfully deleted',
+                'module_id' => $booking->module_id,
+                'current_registration' => $remainingRegistration,
+            ], 200);
         }
 
         return response()->json(['message' => 'Booking not found'], 404);
@@ -162,13 +233,15 @@ class BookingController extends Controller
     {
         $registeredStudents = DB::table('bookings')
             ->join('students', 'bookings.student_id', '=', 'students.id')
-            ->join('users', 'students.id', '=', 'users.id')
+            ->leftJoin('users', 'bookings.student_id', '=', 'users.id')
             ->where('bookings.module_id', $moduleId)
             ->select(
                 'bookings.id as booking_id',
+                'bookings.module_id',
                 'students.student_id as matric_id',    
-                'users.name as student_name' // ◄ 🎯 FORCE THIS EXACT ALIAS NAME
+                DB::raw('COALESCE(users.name, students.student_id) as student_name')
             )
+            ->orderBy('users.name')
             ->get();
 
         return response()->json($registeredStudents); // Or return wrapped in ['data' => ...]
