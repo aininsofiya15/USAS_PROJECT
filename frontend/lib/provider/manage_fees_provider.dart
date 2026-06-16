@@ -164,6 +164,49 @@ class FeesManagementProvider extends ChangeNotifier {
     }
   }
 
+  // --- ADD THIS METHOD HERE ---
+  Future<String?> generateStripePaymentIntent({
+    required String studentId, 
+    required double amount,
+  }) async {
+    isLoading = true;
+    errorMessage = '';
+    notifyListeners();
+
+    try {
+      final response = await http.post(
+        Uri.parse('${Api.baseUrl}/tuition/payment-intent'),
+        headers: _headers,
+        body: jsonEncode({
+          'amount': amount,
+          'user_id': studentId,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['paymentIntentClientSecret'] != null) {
+          return data['paymentIntentClientSecret'];
+        } else {
+          errorMessage = data['error'] ?? 'Failed to initialize payment intent.';
+          return null;
+        }
+      } else {
+        // If the backend fails validation or errors out, this cleanly captures the JSON error payload
+        final errorData = json.decode(response.body);
+        errorMessage = errorData['error'] ?? 'Server Error: ${response.statusCode}';
+        return null;
+      }
+    } catch (e) {
+      errorMessage = 'Network connection failure: ${e.toString()}';
+      debugPrint("Stripe Payment Intent Generation Error: $e");
+      return null;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> refreshDashboard() async {
     await fetchDashboardSummary();
   }
