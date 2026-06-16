@@ -10,6 +10,9 @@ class UsasHeader extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      shadowColor: Colors.transparent,
+      scrolledUnderElevation: 0,
       elevation: 0,
       toolbarHeight: 100,
       centerTitle: true,

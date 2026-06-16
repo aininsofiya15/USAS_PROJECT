@@ -1,13 +1,15 @@
 import 'package:USAS/screens/student/attendance_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../widgets/header.dart'; 
+import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
 import 'financial_info.dart';
-import '../../provider/manage_fees_provider.dart'; // Ensure this matches your directory structures
+import '../../provider/manage_fees_provider.dart';
+import '../../provider/module_provider.dart';
 import '../../provider/user_provider.dart';
-import 'attendance_records.dart'; // IMPORT YOUR NEW HISTORICAL PAGE HERE
+import 'attendance_records.dart';
+import 'module_booking.dart';
 import 'subject_registration.dart';
 
 class StudentDashboard extends StatefulWidget {
@@ -26,10 +28,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
       final userId = Provider.of<UserProvider>(context, listen: false).userId;
       Provider.of<FeesManagementProvider>(context, listen: false)
           .fetchStudentPortalDashboardData(userId.toString());
+      Provider.of<ModuleProvider>(context, listen: false)
+          .fetchStudentBookings(userId.toString());
     });
   }
 
-  // Exact blueprint structural replication of the overlay warning dialog from image_89beba.png
   void _showAccessBlockedDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -43,11 +46,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const SizedBox(height: 10),
-                const Icon(
-                  Icons.do_not_disturb_on_rounded,
-                  color: Colors.red,
-                  size: 44,
-                ),
+                const Icon(Icons.do_not_disturb_on_rounded, color: Colors.red, size: 44),
                 const SizedBox(height: 15),
                 const Text(
                   "ACCESS BLOCKED",
@@ -70,11 +69,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   height: 45,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context); // Dismiss overlay route pop
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const FinancialInfoPage()),
-                      );
+                      Navigator.pop(context);
+                      Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const FinancialInfoPage()));
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF0066FF),
@@ -99,7 +96,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F7FF), 
+      backgroundColor: const Color(0xFFF0F7FF),
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
@@ -109,77 +106,105 @@ class _StudentDashboardState extends State<StudentDashboard> {
             return const Center(child: CircularProgressIndicator());
           }
 
+          final moduleProvider = Provider.of<ModuleProvider>(context);
+          final claimedModules = moduleProvider.bookedModules
+              .where((module) => module.isClaimed == 1)
+              .length;
+          final curriculumProgress = (claimedModules / 4).clamp(0.0, 1.0).toDouble();
+
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ── Welcome ──
                 Text(
                   "Welcome, ${widget.name}!",
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
                 ),
-                const SizedBox(height: 15),
-                
-                // Search Bar
+                const SizedBox(height: 12),
+
+                // ── Search Bar ──
                 _buildSearchBar(),
-                const SizedBox(height: 25),
+                const SizedBox(height: 20),
 
-                // FIXED: Passed context here to allow navigation from the header text action button
-            _buildSectionTitle("Categories", context),
+                // ── Categories Header ──
+                _buildSectionTitle("Categories", context),
                 const SizedBox(height: 10),
 
-                // Categories Grid (2x2)
-                GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 15,
-                  mainAxisSpacing: 15,
-                  childAspectRatio: 1.1,
-                  children: [
-                    _buildCategoryCard(
-                      "Subject Registration",
-                      "assets/icons/sub_reg.png",
-                      provider.studentIsBlocked,
-                      () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const StudentSubjectRegistrationPage(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildCategoryCard("Curriculum Activity", "assets/icons/curriculum.png", provider.studentIsBlocked, () {}),
-                    _buildCategoryCard("Attendance", "assets/icons/attendance.png", provider.studentIsBlocked, () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const AttendanceDashboard()));
-                    
-                }),
-                    // Tuition Fees card stays false under block rules to allow student payments
-                    _buildCategoryCard("Tuition Fees", "assets/icons/tuition.png", false, () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const FinancialInfoPage()));
-                    }),
-                  ],
-                ),
-
-                const SizedBox(height: 30),
-                _buildSectionTitle("Recent Updates", context),
-                const SizedBox(height: 10),
-
-                // Recent Updates Horizontal List
-                SizedBox(
-                  height: 180,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(), 
+                // ── Categories Grid ──
+                Container(
+                  padding: const EdgeInsets.fromLTRB(10, 14, 10, 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFBBD6FF),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 1.5,
                     children: [
-                      _buildProgressCard("Curriculum Progress", provider.curriculumProgress),
-                      _buildStatCard("Total Credit Current Sem", provider.totalCreditsCurrentSem.toString()),
-                      _buildStatCard("Upcoming Due Date", provider.upcomingDueDateStr, isDate: true),
-                      const SizedBox(width: 10), 
+                      _buildCategoryCard(
+                        "Subject Registration",
+                        "assets/icons/sub_reg.png",
+                        provider.studentIsBlocked,
+                        () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const StudentSubjectRegistrationPage())),
+                      ),
+                      _buildCategoryCard(
+                        "Curriculum Activity",
+                        "assets/icons/curriculum.png",
+                        provider.studentIsBlocked,
+                        () {},
+                      ),
+                      _buildCategoryCard(
+                        "Attendance",
+                        "assets/icons/attendance.png",
+                        provider.studentIsBlocked,
+                        () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const AttendanceDashboard())),
+                      ),
+                      _buildCategoryCard(
+                        "Tuition Fees",
+                        "assets/icons/tuition.png",
+                        false,
+                        () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const FinancialInfoPage())),
+                      ),
                     ],
                   ),
                 ),
+
+                const SizedBox(height: 24),
+
+                // ── Recent Updates Header ──
+                _buildSectionTitle("Recent Updates", context),
+                const SizedBox(height: 10),
+
+                // ── Recent Updates Row ──
+                SizedBox(
+                  height: 235,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      _buildProgressCard("Curriculum Progress", curriculumProgress),
+                      _buildStatCard(
+                          "Total Credit\nCurrent Sem",
+                          provider.totalCreditsCurrentSem.toString()),
+                      _buildStatCard(
+                          "Upcoming\nDue Date",
+                          provider.upcomingDueDateStr,
+                          isDate: true),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           );
@@ -188,85 +213,90 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
+  // ── Search Bar ──────────────────────────────────────────────────────────
   Widget _buildSearchBar() {
     return Container(
+      height: 42,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8)],
       ),
       child: const TextField(
+        style: TextStyle(fontSize: 13, color: Colors.black87),
         decoration: InputDecoration(
           hintText: "Search",
-          prefixIcon: Icon(Icons.search),
+          hintStyle: TextStyle(color: Colors.black38, fontSize: 13),
+          suffixIcon: Icon(Icons.search, color: Colors.black45, size: 19),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 15),
+          contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 11),
         ),
       ),
     );
   }
 
-  // FIXED: Added BuildContext parameter to navigate straight to your history list view page
+  // ── Section Title ───────────────────────────────────────────────────────
   Widget _buildSectionTitle(String title, BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Text(title,
+            style: const TextStyle(
+                fontSize: 19, fontWeight: FontWeight.bold, color: Colors.black87)),
         if (title == "Categories")
           TextButton(
-            onPressed: () {
-              // NAVIGATES TO ATTENDANCE RECORDS HISTORY PAGE
-              Navigator.push(
-                context, 
-                MaterialPageRoute(builder: (context) => const AttendanceRecordsPage())
-              );
-            }, 
-            child: const Text(
-              "Attendance History", 
-              style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)
-            ),
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AttendanceRecordsPage())),
+            child: const Text("Attendance History",
+                style: TextStyle(
+                    color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
           ),
       ],
     );
   }
 
-  Widget _buildCategoryCard(String title, String iconPath, bool isBlocked, VoidCallback onTap) {
+  // ── Category Card ───────────────────────────────────────────────────────
+  Widget _buildCategoryCard(
+      String title, String iconPath, bool isBlocked, VoidCallback onTap) {
     return InkWell(
-      onTap: () {
-        if (isBlocked) {
-          _showAccessBlockedDialog(context);
-        } else {
-          onTap();
-        }
-      },
+      onTap: () => isBlocked ? _showAccessBlockedDialog(context) : onTap(),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 2))
+          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            title == "Subject Registration"
-    ? Image.asset(
-        iconPath,
-        width: 100,
-        height: 100,
-      )
-    : Icon(
-        Icons.apps,
-        size: 40,
-        color: isBlocked ? Colors.grey : Colors.blue,
-      ),
-            const SizedBox(height: 8),
-            Text(
-              title, 
-              textAlign: TextAlign.center, 
-              style: TextStyle(
-                fontSize: 12, 
-                fontWeight: FontWeight.w600, 
+            Image.asset(
+              iconPath,
+              width: 52,
+              height: 52,
+              errorBuilder: (_, __, ___) => Icon(
+                Icons.apps,
+                size: 40,
                 color: isBlocked ? Colors.grey : const Color(0xFF3F51B5),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isBlocked ? Colors.grey : const Color(0xFF1565C0),
+                  height: 1.2,
+                ),
               ),
             ),
           ],
@@ -275,52 +305,181 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
+  // ── Progress Card ───────────────────────────────────────────────────────
   Widget _buildProgressCard(String title, double progress) {
+    final int percent = (progress * 100).toInt();
+    final bool isComplete = percent >= 100;
+    final Color progressColor =
+        isComplete ? const Color(0xFF1565C0) : const Color(0xFF2196F3);
+
     return Container(
-      width: 150,
-      margin: const EdgeInsets.only(right: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+      width: 155,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.black.withOpacity(0.07), width: 0.5),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
-          const Spacer(),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              CircularProgressIndicator(value: progress, strokeWidth: 8, backgroundColor: Colors.grey.shade200),
-              Text("${(progress * 100).toInt()}%", style: const TextStyle(fontWeight: FontWeight.bold)),
-            ],
+          // ── Title pinned to top ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
+            child: Text(
+              title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600, fontSize: 12, color: Colors.black87),
+              textAlign: TextAlign.center,
+            ),
           ),
-          const Spacer(),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: const StadiumBorder(), padding: const EdgeInsets.symmetric(horizontal: 10)),
-            child: const Text("Add Module", style: TextStyle(fontSize: 10, color: Colors.white)),
-          )
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Divider(thickness: 0.5, height: 1, color: Color(0x22000000)),
+          ),
+
+          // ── Content centered in remaining space ──
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 84,
+                      height: 84,
+                      child: CircularProgressIndicator(
+                        value: 1.0,
+                        strokeWidth: 9,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                            progressColor.withOpacity(0.15)),
+                      ),
+                    ),
+                    SizedBox(
+                      width: 84,
+                      height: 84,
+                      child: CircularProgressIndicator(
+                        value: progress,
+                        strokeWidth: 9,
+                        strokeCap: StrokeCap.round,
+                        backgroundColor: Colors.transparent,
+                        valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                      ),
+                    ),
+                    Text(
+                      "$percent%",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: progressColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (!isComplete)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 30,
+                      child: ElevatedButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const StudentActivitiesPage(),
+                  ),
+                ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2196F3),
+                          elevation: 0,
+                          padding: EdgeInsets.zero,
+                          shape: const StadiumBorder(),
+                        ),
+                        child: const Text(
+                          "Add Module",
+                          style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  const Text(
+                    "Completed!",
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF2196F3),
+                        fontWeight: FontWeight.bold),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
+  // ── Stat Card ───────────────────────────────────────────────────────────
   Widget _buildStatCard(String title, String value, {bool isDate = false}) {
     return Container(
-      width: 150,
-      margin: const EdgeInsets.only(right: 15),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+      width: 155,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.black.withOpacity(0.07), width: 0.5),
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center),
-          const SizedBox(height: 20),
-          Text(
-            value, 
-            style: TextStyle(
-              fontSize: isDate ? 14 : 40, 
-              fontWeight: FontWeight.bold,
-            ), 
-            textAlign: TextAlign.center,
+          // ── Title pinned to top ──
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
+            child: Text(
+              title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600, fontSize: 12, color: Colors.black87),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Divider(thickness: 0.5, height: 1, color: Color(0x22000000)),
+          ),
+
+          // ── Content centered in remaining space ──
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (isDate)
+                  const Icon(Icons.calendar_today_rounded,
+                      size: 28, color: Color(0xFF1565C0)),
+                if (isDate) const SizedBox(height: 8),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: isDate ? 15 : 46,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1565C0),
+                    height: 1.0,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                if (!isDate) ...[
+                  const SizedBox(height: 4),
+                  const Text(
+                    "credits enrolled",
+                    style: TextStyle(fontSize: 11, color: Colors.black38),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),

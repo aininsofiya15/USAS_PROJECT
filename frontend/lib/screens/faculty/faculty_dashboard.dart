@@ -45,17 +45,27 @@ class FacultyDashboard extends StatelessWidget {
             const SizedBox(height: 25),
 
             // Search Bar
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: const TextField(
-                decoration: InputDecoration(
-                  hintText: "Search",
-                  prefixIcon: Icon(Icons.search),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 14),
+            Center(
+              child: FractionallySizedBox(
+                widthFactor: 0.74,
+                child: Container(
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: const TextField(
+                    style: TextStyle(fontSize: 13, color: Colors.black87),
+                    decoration: InputDecoration(
+                      hintText: "Search",
+                      hintStyle: TextStyle(color: Colors.black38, fontSize: 13),
+                      suffixIcon: Icon(Icons.search, color: Colors.black45, size: 19),
+                      suffixIconConstraints: BoxConstraints(minWidth: 42, minHeight: 36),
+                      isDense: true,
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.fromLTRB(18, 10, 0, 10),
+                    ),
+                  ),
                 ),
               ),
             ),

@@ -44,24 +44,34 @@ class _TreasuryDashboardBodyState extends State<TreasuryDashboardBody> {
                   const SizedBox(height: 20),
 
                   // --- SEARCH BAR ---
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                  Center(
+                    child: FractionallySizedBox(
+                      widthFactor: 0.74,
+                      child: Container(
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: const TextField(
-                      decoration: InputDecoration(
-                        hintText: "Search",
-                        prefixIcon: Icon(Icons.search, color: Colors.grey),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 15),
+                        child: const TextField(
+                          style: TextStyle(fontSize: 13, color: Colors.black87),
+                          decoration: InputDecoration(
+                            hintText: "Search",
+                            hintStyle: TextStyle(color: Colors.black38, fontSize: 13),
+                            suffixIcon: Icon(Icons.search, color: Colors.black45, size: 19),
+                            suffixIconConstraints: BoxConstraints(minWidth: 42, minHeight: 36),
+                            isDense: true,
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.fromLTRB(18, 10, 0, 10),
+                          ),
+                        ),
                       ),
                     ),
                   ),

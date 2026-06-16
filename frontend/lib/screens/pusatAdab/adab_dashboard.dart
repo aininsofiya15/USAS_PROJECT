@@ -54,51 +54,58 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
           const SizedBox(height: 10),
 
           // ── Search Bar ──
-          Container(
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+          Center(
+            child: FractionallySizedBox(
+              widthFactor: 0.74,
+              child: Container(
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: TextField(
-              controller: _searchController,
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
-              decoration: const InputDecoration(
-                hintText: "Search",
-                hintStyle: TextStyle(color: Colors.black38, fontSize: 13),
-                suffixIcon: Icon(Icons.search, color: Colors.black45, size: 19),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  decoration: const InputDecoration(
+                    hintText: "Search",
+                    hintStyle: TextStyle(color: Colors.black38, fontSize: 13),
+                    suffixIcon: Icon(Icons.search, color: Colors.black45, size: 19),
+                    suffixIconConstraints: BoxConstraints(minWidth: 42, minHeight: 36),
+                    isDense: true,
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.fromLTRB(18, 10, 0, 10),
+                  ),
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
 
           // ── Categories Label ──
           const Text(
             "Categories",
             style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.black87),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
           // ── Categories Grid INSIDE teal rounded container ──
           Container(
-            padding: const EdgeInsets.fromLTRB(8, 14, 8, 8),
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
             decoration: BoxDecoration(
-              color: const Color(0xFFB2EBF2),
+              color: const Color(0xFFB9F6F0),
               borderRadius: BorderRadius.circular(20),
             ),
             child: GridView.count(
               crossAxisCount: 2,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
               childAspectRatio: 1.45, // slightly taller cards for bigger icons
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -217,7 +224,7 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 11,
-                  color: Color(0xFF1565C0),
+                  color: Color.fromARGB(255, 17, 84, 160),
                   height: 1.2,
                 ),
               ),

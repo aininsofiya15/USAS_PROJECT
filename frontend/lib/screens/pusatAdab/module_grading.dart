@@ -325,8 +325,16 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: SingleChildScrollView(
-        child: Column(
-          children: [
+        padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFB9F6F0),
+            borderRadius: BorderRadius.circular(34),
+          ),
+          child: Column(
+            children: [
             // Header Page Title
             const Padding(
               padding: EdgeInsets.only(top: 16, bottom: 8),
@@ -339,7 +347,6 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
             // Profile Container Info Box
             Container(
               width: double.infinity,
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -366,7 +373,6 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
             // Assessment Container Layout Form Box
             Container(
               width: double.infinity,
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -468,7 +474,8 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
               ),
             ),
             const SizedBox(height: 24),
-          ],
+            ],
+          ),
         ),
       ),
     );

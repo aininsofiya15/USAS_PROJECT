@@ -55,22 +55,27 @@ class _ViewModulesPageState extends State<ViewModulesPage> {
       body: Column(
         children: [
           const SizedBox(height: 15),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 25),
-            child: Container(
-              height: 40, 
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: const InputDecoration(
-                  hintText: "Search module",
-                  hintStyle: TextStyle(color: Colors.black38, fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: Colors.black45, size: 20),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 10),
+          Center(
+            child: FractionallySizedBox(
+              widthFactor: 0.88,
+              child: Container(
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                  decoration: const InputDecoration(
+                    hintText: "Search module",
+                    hintStyle: TextStyle(color: Colors.black38, fontSize: 13),
+                    suffixIcon: Icon(Icons.search, color: Colors.black87, size: 22),
+                    suffixIconConstraints: BoxConstraints(minWidth: 44, minHeight: 36),
+                    isDense: true,
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.fromLTRB(24, 10, 0, 10),
+                  ),
                 ),
               ),
             ),

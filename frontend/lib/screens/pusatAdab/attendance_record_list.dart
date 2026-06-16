@@ -48,8 +48,17 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
           appBar: const UsasHeader(),
           drawer: const AppSidebar(),
           bottomNavigationBar: const UsasBottomNav(),
-          body: Column(
-            children: [
+          body: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFB9F6F0),
+                borderRadius: BorderRadius.circular(34),
+              ),
+              child: Column(
+                children: [
               // ── Page Title ──────────────────────────────────────────────
               const Padding(
                 padding: EdgeInsets.only(top: 16, bottom: 8),
@@ -79,7 +88,9 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
                     ? const Center(child: CircularProgressIndicator())
                     : _buildStudentList(students),
               ),
-            ],
+                ],
+              ),
+            ),
           ),
         );
       },
@@ -102,7 +113,6 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
 
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -150,7 +160,6 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   // ── Present / Not Present Toggle ──────────────────────────────────────────
   Widget _buildStatusToggle() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
       height: 44,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -228,7 +237,6 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
     }).toList();
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
