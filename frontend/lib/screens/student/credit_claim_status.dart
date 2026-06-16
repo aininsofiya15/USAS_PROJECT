@@ -25,7 +25,7 @@ class _CreditClaimStatusPageState extends State<CreditClaimStatusPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = Provider.of<UserProvider>(context, listen: false).userId;
       Provider.of<CreditProvider>(context, listen: false)
-          .fetchLiveClaimStatus(userId.toString());
+          .fetchClaimStatus(userId.toString());
     });
   }
 

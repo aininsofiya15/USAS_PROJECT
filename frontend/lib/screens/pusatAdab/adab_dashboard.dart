@@ -24,7 +24,7 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<CreditProvider>(context, listen: false).fetchAdminClaims('all');
+      Provider.of<CreditProvider>(context, listen: false).fetchAllClaims('all');
     });
   }
 

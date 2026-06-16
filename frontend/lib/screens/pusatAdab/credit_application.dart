@@ -28,7 +28,7 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
   void _fetchData() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CreditProvider>(context, listen: false)
-          .fetchAdminClaims(_activeTab);
+          .fetchAllClaims(_activeTab);
     });
   }
 
@@ -367,7 +367,7 @@ class _AdminCreditStatusPageState extends State<AdminCreditStatusPage> {
                 // ── APPROVE — green pill ──
                 ElevatedButton(
                   onPressed: () =>
-                      provider.approveStudentApplication(claim.claimId),
+                      provider.processReview(claim.claimId),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF43A047), // green
                     foregroundColor: Colors.white,

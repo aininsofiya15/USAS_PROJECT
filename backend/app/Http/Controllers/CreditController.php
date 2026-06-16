@@ -48,7 +48,77 @@ class CreditController extends Controller
         return response()->json(['message' => 'Credit claim submitted successfully!'], 201);
     }
 
-    public function checkCreditStatus($studentId)
+    /**
+     * Individual Module Claim Logic
+     */
+    public function claimIndividualModule($id)
+    {
+        try {
+            $totalRequired = 4;
+
+            // Find the specific booking row entry
+            $booking = DB::table('bookings')->where('id', $id)->first();
+
+            if (!$booking) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Booking record row reference target not found.'
+                ], 404);
+            }
+
+            $activeBookingCount = DB::table('bookings')
+                ->where('bookings.student_id', $booking->student_id)
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('attendances')
+                        ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
+                        ->whereColumn('attendances.booking_id', 'bookings.id')
+                        ->whereColumn('attendance_records.student_id', 'bookings.student_id')
+                        ->whereRaw('LOWER(attendance_records.status) = ?', ['absent']);
+                })
+                ->count();
+
+            if ($activeBookingCount < $totalRequired) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Not eligible to claim. Insufficient module.',
+                    'claimed_count' => DB::table('bookings')
+                        ->where('student_id', $booking->student_id)
+                        ->where('is_claimed', 1)
+                        ->count(),
+                    'total_required' => $totalRequired,
+                ], 400);
+            }
+
+            // Update column flag to true (1)
+            DB::table('bookings')
+                ->where('id', $id)
+                ->update([
+                    'is_claimed' => 1,
+                    'updated_at' => now()
+                ]);
+
+            $claimedCount = DB::table('bookings')
+                ->where('student_id', $booking->student_id)
+                ->where('is_claimed', 1)
+                ->count();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Module claimed successfully.',
+                'claimed_count' => $claimedCount,
+                'total_required' => $totalRequired,
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Server script configuration fault: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getClaimStatus($studentId)
     {
         $claim = DB::table('credit_claims')
             ->join('subjects', 'credit_claims.subject_id', '=', 'subjects.subject_id')
@@ -73,7 +143,7 @@ class CreditController extends Controller
         ], 200);
     }
 
-    public function getAllClaims(Request $request)
+    public function index(Request $request)
     {
         $filter = $request->query('filter', 'all');
 
@@ -112,9 +182,9 @@ class CreditController extends Controller
     }
 
     /**
-     * ✅ APPROVE CREDIT CLAIM & REGISTER STUDENT
+     * ✅ UPDATE CREDIT CLAIM STATUS & REGISTER STUDENT
      */
-    public function approveClaim($id)
+    public function updateStatus($id)
     {
         $claim = DB::table('credit_claims')->where('id', $id)->first();
 

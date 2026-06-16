@@ -195,7 +195,7 @@ class _GradeStudentPageState extends State<GradeStudentPage> {
     try {
       final double marks = double.parse(text);
       
-      bool success = await provider.submitStudentGrade(recordId, marks);
+      bool success = await provider.updateStudentGrade(recordId, marks);
 
       if (success && mounted) {
         _showSuccessDialog(); // Triggers your clean wireframe alert dialog window popup

@@ -5,8 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 class ModuleAttendance extends Model
-{
 
+{
 
     protected $fillable = ['attendance_id', 'booking_id'];
 
@@ -22,4 +22,5 @@ class ModuleAttendance extends Model
     {
         return $this->belongsTo(Booking::class, 'booking_id');
     }
+
 }

@@ -30,7 +30,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
     final userId = Provider.of<UserProvider>(context, listen: false).userId;
     Provider.of<ModuleProvider>(context, listen: false).fetchStudentBookings(userId.toString());
     // 🌟 Sync live data row on initialization to see if user already applied
-    Provider.of<CreditProvider>(context, listen: false).fetchLiveClaimStatus(userId.toString());
+    Provider.of<CreditProvider>(context, listen: false).fetchClaimStatus(userId.toString());
   }
 
   // ── 🎯 MASTER CLAIM CREDIT CONTROLLER (INTEGRATED LIVE LARAVEL ROUTE) ──
@@ -51,7 +51,7 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
     final creditProvider = Provider.of<CreditProvider>(context, listen: false);
 
     // 2. Dispatch network thread payload to database
-    String result = await creditProvider.submitFinalCredit(studentId: userId.toString());
+    String result = await creditProvider.submitCreditClaim(studentId: userId.toString());
 
     if (!mounted) return;
 
