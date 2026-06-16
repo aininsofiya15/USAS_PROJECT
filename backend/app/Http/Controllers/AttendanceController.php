@@ -200,27 +200,37 @@ public function getDetails($id) {
     }
 
 /**
- * Function 1: Fetch students who ARE present (have an attendance record)
+ * Function 1: Fetch students who ARE present (with genuine Matric Card numbers)
  */
 public function getClassStudentAttendance($attendanceId)
 {
-    $present = DB::table('attendance_records')
-        ->join('students', 'attendance_records.student_id', '=', 'students.student_id')
-        ->join('users', 'students.user_id', '=', 'users.id')
-        ->where('attendance_records.attendance_id', $attendanceId)
-        ->select(
-            'attendance_records.id as record_id',
-            'students.student_id as matric_no',
-            'users.name as student_name',
-            'attendance_records.status',
-            'attendance_records.updated_at as check_in_time'
-        )
-        ->get();
+    try {
+        $present = DB::table('attendance_records')
+            // 1. Join attendance records directly to the users table using the student_id foreign key
+            ->join('users', 'attendance_records.student_id', '=', 'users.id')
+            // 2. Join the students table by matching its 'id' to the user's primary 'id'
+            ->join('students', 'users.id', '=', 'students.id')
+            ->where('attendance_records.attendance_id', $attendanceId)
+            ->select(
+                'attendance_records.id as record_id',
+                'students.student_id as matric_no',  // 🔑 Pulls the real alphanumeric matric ID (e.g. KOG24001)
+                'users.name as student_name',       // Pulls student name
+                'attendance_records.status',
+                'attendance_records.updated_at as check_in_time'
+            )
+            ->get();
 
-    return response()->json([
-        'success' => true,
-        'data' => $present
-    ]);
+        return response()->json([
+            'success' => true,
+            'data' => $present
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Query Failed: ' . $e->getMessage()
+        ], 500);
+    }
 }
 
 /**
@@ -258,6 +268,48 @@ public function getClassNotPresentStudents($attendanceId)
         'success' => true,
         'data' => $notPresent
     ]);
+}
+
+public function updateStudentAttendanceStatus(Request $request, $id)
+{
+    try {
+        // Validate incoming data inputs from Flutter
+        $request->validate([
+            'status' => 'required|string|in:present,late,absent,medical',
+            'remark' => 'nullable|string'
+        ]);
+
+        // Find the record matching the record_id passed from Flutter
+        $record = DB::table('attendance_records')->where('id', $id);
+
+        if (!$record->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Attendance record not found.'
+            ], 404);
+        }
+
+        // Perform update query
+        DB::table('attendance_records')
+            ->where('id', $id)
+            ->update([
+                'status' => strtolower($request->status),
+                // Assuming you have a 'remark' column or update the field accordingly
+                'grade_category' => $request->remark, 
+                'updated_at' => now()
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Attendance record updated successfully!'
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Backend Update Failed: ' . $e->getMessage()
+        ], 500);
+    }
 }
 
 

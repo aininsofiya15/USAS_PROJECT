@@ -170,7 +170,7 @@ class AttendanceProvider with ChangeNotifier {
     }
   }
 
-  // Function 1: Fetch Present Students
+  // Inside your AttendanceProvider file:
   Future<void> fetchClassPresentStudent(int attendanceId) async {
     _isLoading = true;
     notifyListeners();
@@ -178,8 +178,18 @@ class AttendanceProvider with ChangeNotifier {
       final response = await http.get(Uri.parse('${Api.baseUrl}/attendance/present/$attendanceId'));
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body)['data'];
-        // Map JSON to AttendanceRecord objects
-        _presentStudents = data.map((json) => AttendanceRecord.fromJson(json)).toList();
+        
+        // Clean parsing without changing your list type declaration
+        _presentStudents = data.map((json) {
+          return AttendanceRecord(
+            id: int.tryParse(json['record_id']?.toString() ?? '0') ?? 0,
+            studentName: json['student_name']?.toString() ?? "Unknown",
+            studentId: json['matric_no']?.toString() ?? "N/A",
+            name: json['student_name']?.toString() ?? "Unknown",
+            matricId: json['matric_no']?.toString() ?? "N/A",
+            status: json['status'] ?? "Absent",
+          );
+        }).toList();
       }
     } catch (e) {
       debugPrint("Error fetching present students: $e");
@@ -205,6 +215,29 @@ class AttendanceProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> fetchModuleSingleAttendance({
+    required int recordId, 
+    required String status, 
+    required String remark
+  }) async {
+    final url = Uri.parse('${Api.baseUrl}/attendance/update/$recordId');
+    
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'status': status,
+        'remark': remark,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      // Optional: Re-fetch dashboard list datasets here if you have global access to the active session ID
+    } else {
+      throw Exception('Failed to synchronize status update to backend controller.');
     }
   }
 

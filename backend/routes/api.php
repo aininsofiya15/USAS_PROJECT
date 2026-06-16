@@ -72,6 +72,7 @@ Route::get('/attendance/{id}', [AttendanceController::class, 'getDetails']);
 Route::post('/update-attendance', [AttendanceController::class, 'updateAttendanceDetails']);
 Route::get('/attendance/present/{id}', [AttendanceController::class, 'getClassStudentAttendance']);
 Route::get('/attendance/not-present/{id}', [AttendanceController::class, 'getClassNotPresentStudents']);
+Route::post('/attendance/update/{id}', [AttendanceController::class, 'updateStudentAttendanceStatus']);
 
 //PUSAT ADAB ROUTES
 Route::get('/get-adab-modules', [AttendanceController::class, 'getAdabModules']);

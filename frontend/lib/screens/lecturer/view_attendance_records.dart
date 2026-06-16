@@ -8,6 +8,7 @@ import '../../provider/attendance_provider.dart';
 import 'edit_attendance_details.dart';
 import 'view_student_attendance.dart';
 
+
 class ViewAttendanceRecords extends StatefulWidget {
   const ViewAttendanceRecords({super.key});
 
