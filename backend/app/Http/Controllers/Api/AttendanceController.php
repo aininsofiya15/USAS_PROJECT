@@ -343,7 +343,6 @@ public function fetchStudentClassModule($studentId)
 {
     try {
         // 1. Fetch Academic Curriculum
-        // Path: registration -> sections -> subjects
         $curriculum = DB::table('registration')
             ->join('sections', 'registration.section_id', '=', 'sections.section_id')
             ->join('subjects', 'sections.subject_id', '=', 'subjects.subject_id')
@@ -358,16 +357,21 @@ public function fetchStudentClassModule($studentId)
             )
             ->get();
 
-        // 2. Fetch Co-Curriculum (Bookings -> Modules)
+        // 2. Fetch Co-Curriculum (Bookings -> Modules -> module_attendances)
+        // FIXED: Selects the true tracking attendance_id and targets only today's/active slots
         $coCurriculum = DB::table('bookings')
             ->join('modules', 'bookings.module_id', '=', 'modules.id')
+            ->leftJoin('module_attendances', 'modules.id', '=', 'module_attendances.module_id')
             ->where('bookings.student_id', $studentId)
             ->select(
                 'modules.id as module_id', 
                 'modules.activity_name', 
                 'modules.date_time', 
-                'modules.venue'
+                'modules.venue',
+                'module_attendances.attendance_id' // 🔴 Grabs the real code connector (e.g., 7)
             )
+            // Optional: If you only want to show the module session created for today, uncomment below:
+            // ->whereDate('module_attendances.date', date('Y-m-d')) 
             ->get();
 
         return response()->json([

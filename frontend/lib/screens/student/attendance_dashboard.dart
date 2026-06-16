@@ -5,7 +5,8 @@ import '../../provider/user_provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
-import 'attendance_list.dart'; // Import the new list page
+import 'attendance_list.dart';
+import 'attendance_submission.dart';
 
 class AttendanceDashboard extends StatefulWidget {
   const AttendanceDashboard({super.key});
@@ -107,11 +108,8 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
       itemBuilder: (context, index) {
         final subject = subjects[index];
         return InkWell(
-          // --- NAVIGATOR PUSH IS HERE ---
           onTap: () {
-            // Ensure the ID is cast to int and handle potential nulls
             int sectionId = int.tryParse(subject['section_id'].toString()) ?? 0;
-
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -165,13 +163,17 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
       itemCount: modules.length,
       itemBuilder: (context, index) {
         final module = modules[index];
+
+        // Debug logger to trace your DB response keys
+        debugPrint("📊 DASHBOARD CO-CURRICULUM ROW: $module");
+
         return Container(
           margin: const EdgeInsets.only(bottom: 15),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+            boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,7 +184,7 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
               ),
               const SizedBox(height: 8),
               Text(
-                "Class Date: ${module['date_time']}",
+                "Class Date: ${module['date_time'] ?? 'N/A'}",
                 style: const TextStyle(fontSize: 12, color: Colors.black54),
               ),
               const SizedBox(height: 15),
@@ -194,10 +196,34 @@ class _AttendanceDashboardState extends State<AttendanceDashboard> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () {
-                    // Logic for Module attendance submission
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AttendanceSubmissionPage(
+                          sessionData: {
+                            'id': module['id'],
+                            'session_id': module['session_id'],
+                            'attendance_id': module['attendance_id'] ?? module['id'] ?? module['session_id'] ?? 0,
+                            'date': module['date'] ?? module['date_time'] ?? 'N/A',
+                            'time': module['time'] ?? '', 
+                            'venue': module['venue'] ?? module['location_name'] ?? 'N/A',
+                            'lecturer_name': module['lecturer_name'] ?? module['instructor_name'] ?? module['lecturer'] ?? 'N/A',
+                            'enrolled': module['enrolled'] ?? '0',
+                            'capacity': module['capacity'] ?? '60',
+                            'activity_name': module['activity_name'],
+                          },
+                          sectionId: int.tryParse(module['module_id']?.toString() ?? '0') ?? 0,
+                          subjectCode: module['module_code'] ?? 'CO-CURR',
+                          subjectName: module['activity_name'] ?? 'Unknown Activity',
+                          isCoCurriculum: true, // Forces layout switch
+                        ),
+                      ),
+                    );
                   },
-                  child: const Text("Submit Attendance",
-                      style: TextStyle(color: Colors.white, fontSize: 11)),
+                  child: const Text(
+                    "Submit Attendance",
+                    style: TextStyle(color: Colors.white, fontSize: 11),
+                  ),
                 ),
               )
             ],

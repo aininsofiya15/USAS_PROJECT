@@ -12,6 +12,7 @@ class AttendanceSubmissionPage extends StatefulWidget {
   final int sectionId;
   final String subjectCode;
   final String subjectName;
+  final bool isCoCurriculum;
 
   const AttendanceSubmissionPage({
     super.key,
@@ -19,6 +20,7 @@ class AttendanceSubmissionPage extends StatefulWidget {
     required this.sectionId,
     required this.subjectCode,
     required this.subjectName,
+    this.isCoCurriculum = false,
   });
 
   @override
@@ -44,7 +46,6 @@ class _AttendanceSubmissionPageState extends State<AttendanceSubmissionPage> {
 
     setState(() => _errorMessage = '');
 
-    // 1. Display the "Location Verification Required" Loading Modal Dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -54,59 +55,34 @@ class _AttendanceSubmissionPageState extends State<AttendanceSubmissionPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 10),
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF007AFF)),
-            ),
+            const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF007AFF))),
             const SizedBox(height: 25),
-            const Text(
-              "Location Verification Required", 
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
+            const Text("Location Verification Required", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 10),
             const Text(
-              "To prevent fraudulent attendance, we need to verify you're physically present at the event venue.",
+              "Verifying device coordinates match physical venue constraints...",
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.black54, height: 1.4),
+              style: TextStyle(fontSize: 12, color: Colors.black54),
             ),
             const SizedBox(height: 20),
-            Text(
-              code,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: Colors.black87, letterSpacing: 2),
-            ),
-            const SizedBox(height: 15),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Please ensure:", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)),
-                  SizedBox(height: 6),
-                  Text("• Location/GPS is enabled on your device", style: TextStyle(fontSize: 11, color: Colors.black54)),
-                  Text("• You are at the actual event venue", style: TextStyle(fontSize: 11, color: Colors.black54)),
-                  Text("• You are using a device with GPS capabilities", style: TextStyle(fontSize: 11, color: Colors.black54)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
+            Text(code, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, letterSpacing: 2)),
           ],
         ),
       ),
     );
 
     try {
-      // 2. Resolve Core System GPS Permissions
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
 
       if (permission == LocationPermission.deniedForever) {
-        if (mounted) Navigator.pop(context); // Remove loading modal
+        if (mounted) Navigator.pop(context);
         setState(() => _errorMessage = 'Location permissions are permanently denied.');
         return;
       }
 
-      // 3. Capture Real-Time Coordinate Metrics
       Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 10),
@@ -114,9 +90,18 @@ class _AttendanceSubmissionPageState extends State<AttendanceSubmissionPage> {
 
       final studentId = Provider.of<UserProvider>(context, listen: false).userId.toString();
       final provider = Provider.of<AttendanceProvider>(context, listen: false);
-      final int attendanceId = widget.sessionData['attendance_id'] ?? 0;
 
-      // 4. Send Code + Coordinates directly to Backend via unified method
+      // Safe integer extraction
+      int attendanceId = int.tryParse(widget.sessionData['attendance_id'].toString()) ?? 
+                         int.tryParse(widget.sessionData['id'].toString()) ?? 
+                         int.tryParse(widget.sessionData['session_id'].toString()) ?? 0;
+
+      if (attendanceId == 0) {
+        if (mounted) Navigator.pop(context);
+        setState(() => _errorMessage = 'Missing target attendance session ID identifier.');
+        return;
+      }
+
       final result = await provider.submitAttendance(
         attendanceId: attendanceId,
         studentId: studentId,
@@ -126,46 +111,27 @@ class _AttendanceSubmissionPageState extends State<AttendanceSubmissionPage> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog tracking context frame
+      Navigator.pop(context); 
 
-      // 5. Evaluate response data maps and display explicit status modal components
       if (result['success'] == true) {
-        // Handle physical inclusion range verification match state matches
         int calculatedDistance = (result['distance'] as num?)?.toInt() ?? 0;
-        
         _showStatusResultDialog(
           success: true,
           distance: calculatedDistance,
           msg: result['message'] ?? "Success! Attendance recorded successfully!",
         );
-        
-        // Quietly reload the background history listings indices mapping tables array
         await provider.getAttendanceSubmission(widget.sectionId, studentId);
       } else {
-        // Verify if backend successfully ran calculation but flagged out-of-bounds error
-        if (result['in_range'] == false && result['distance'] != null) {
-          int calculatedDistance = (result['distance'] as num?)?.toInt() ?? 0;
-          _showStatusResultDialog(
-            success: false,
-            distance: calculatedDistance,
-            msg: result['message'] ?? "Failed! Attendance could not be recorded.",
-          );
-        } else {
-          // Fallback UI rendering tracking error loops for validation code mismatch items
-          setState(() {
-            _errorMessage = result['message'] ?? 'Invalid payload or incorrect verification code.';
-          });
-        }
+        setState(() {
+          _errorMessage = result['message'] ?? 'Invalid verification code.';
+        });
       }
     } catch (e) {
-      if (mounted) Navigator.pop(context); // Handle popping dialog framework safely on failures
-      setState(() {
-        _errorMessage = "System failed capturing hardware coordinates: $e";
-      });
+      if (mounted) Navigator.pop(context);
+      setState(() => _errorMessage = "Hardware resolution failure: $e");
     }
   }
 
-  /// Displays the explicit Status Validation Alert Card panels
   void _showStatusResultDialog({required bool success, required int distance, required String msg}) {
     showDialog(
       context: context,
@@ -175,65 +141,19 @@ class _AttendanceSubmissionPageState extends State<AttendanceSubmissionPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 10),
-            Icon(
-              success ? Icons.check_circle_outline_rounded : Icons.cancel_outlined,
-              color: success ? const Color(0xFF1BC467) : Colors.red,
-              size: 60,
-            ),
+            Icon(success ? Icons.check_circle_outline_rounded : Icons.cancel_outlined, color: success ? Colors.green : Colors.red, size: 60),
             const SizedBox(height: 20),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
-              decoration: BoxDecoration(
-                color: success ? const Color(0xFFE8F7EE) : const Color(0xFFFDEBEB),
-                border: Border.all(color: success ? const Color(0xFF1BC467).withOpacity(0.5) : Colors.red.withOpacity(0.5)),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    "Location Detected.",
-                    style: TextStyle(color: success ? const Color(0xFF1BC467) : Colors.red, fontWeight: FontWeight.bold, fontSize: 13),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Distance from venue: $distance meters",
-                    style: TextStyle(color: success ? const Color(0xFF1BC467) : Colors.red, fontSize: 12),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    success ? "You are within the allowed range!" : "You are outside the allowed range!",
-                    style: TextStyle(color: success ? const Color(0xFF1BC467) : Colors.red, fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
+            Text("Distance from venue: $distance meters", style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 20),
-            Text(
-              msg, 
-              textAlign: TextAlign.center, 
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)
-            ),
+            Text(msg, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 25),
-            SizedBox(
-              width: double.infinity,
-              height: 40,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1BC467),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                onPressed: () {
-                  Navigator.pop(context); // Dismount alert dialogue view
-                  if (success) {
-                    Navigator.pop(context); // Pop current UI and push user backward to updated tracking history listings
-                  }
-                },
-                child: const Text("OK", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                if (success) Navigator.pop(context);
+              },
+              child: const Text("OK"),
+            )
           ],
         ),
       ),
@@ -243,131 +163,69 @@ class _AttendanceSubmissionPageState extends State<AttendanceSubmissionPage> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<AttendanceProvider>(context);
-
-    String displaySubject = "${widget.subjectCode} ${widget.subjectName}".toUpperCase();
-    String displaySection = widget.sessionData['section_name'] ?? "01A"; 
-    String displayLecturer = widget.sessionData['lecturer_name'] ?? "Ts Dr. Fahmi";
-    String displayDate = widget.sessionData['date'] ?? "";
-    String displayTime = widget.sessionData['time'] ?? "";
-    String displayLocation = widget.sessionData['location_name'] ?? widget.sessionData['venue'] ?? "N/A";
+    
+    // Auto layout switch logic
+    bool renderCoCurriculumLayout = widget.isCoCurriculum || 
+                                    widget.sessionData.containsKey('activity_name') || 
+                                    !widget.sessionData.containsKey('section_name');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFD1E9F6),
+      backgroundColor: const Color(0xFFD9EDF7),
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 30.0),
+        padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 30.0),
         child: Column(
           children: [
-            const Center(
-              child: Text(
-                "Attendance",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-            ),
+            const Center(child: Text("Attendance", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
             const SizedBox(height: 25),
-
-            // Top Meta Information Container Card
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(25),
+              padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
-                ],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
               ),
-              child: Column(
-                children: [
-                  Text(
-                    displaySubject,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.3),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildMetaRow("Section:", displaySection),
-                  _buildMetaRow("Lecturer:", displayLecturer),
-                  _buildMetaRow("Date:", displayDate),
-                  _buildMetaRow("Time:", displayTime),
-                  _buildMetaRow("Location:", displayLocation),
-                ],
-              ),
+              child: renderCoCurriculumLayout ? _buildCoCurriculumDetails() : _buildClassDetails(),
             ),
             const SizedBox(height: 20),
-
-            // Bottom Entry Verification Interaction Box
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 35),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 35),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
-                ],
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
               ),
               child: Column(
                 children: [
-                  const Text(
-                    "ENTER CODE:",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
-                  ),
+                  const Text("ENTER CODE:", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                   const SizedBox(height: 15),
-                  
                   Container(
                     height: 50,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0F0F0),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    decoration: BoxDecoration(color: const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(8)),
                     child: TextField(
                       controller: _codeController,
                       maxLength: 6,
-                      keyboardType: TextInputType.text,
-                      autocorrect: false,
-                      enableSuggestions: false,
                       textAlign: TextAlign.center,
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 8),
-                      decoration: const InputDecoration(
-                        counterText: "",
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                      ),
+                      decoration: const InputDecoration(counterText: "", border: InputBorder.none),
                     ),
                   ),
-                  
                   if (_errorMessage.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    Text(
-                      _errorMessage,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
+                    Text(_errorMessage, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
                   ],
-                  const SizedBox(height: 25),
-
+                  const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
                     height: 45,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1BC467), 
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1CB55C)),
                       onPressed: provider.isLoading ? null : _handleSubmit,
-                      child: provider.isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                            )
-                          : const Text(
-                              "Submit Attendance",
-                              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                            ),
+                      child: const Text("Submit Attendance", style: TextStyle(color: Colors.white)),
                     ),
                   ),
                 ],
@@ -379,17 +237,46 @@ class _AttendanceSubmissionPageState extends State<AttendanceSubmissionPage> {
     );
   }
 
-  Widget _buildMetaRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54)),
-          const SizedBox(width: 5),
-          Text(value, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.black87)),
-        ],
-      ),
+  // --- HERE IS THE METHOD YOU NEEDED ---
+  Widget _buildCoCurriculumDetails() {
+    String displayActivity = (widget.sessionData['activity_name'] ?? widget.subjectName ?? "CO-CURRICULUM").toString().toUpperCase();
+    String displayDate = widget.sessionData['date'] ?? "N/A";
+    String displayTime = widget.sessionData['time'] ?? "";
+    String displayVenue = widget.sessionData['venue'] ?? "N/A";
+    String displayLecturer = widget.sessionData['lecturer_name'] ?? "N/A";
+    String enrolled = widget.sessionData['enrolled']?.toString() ?? "0";
+    String capacity = widget.sessionData['capacity']?.toString() ?? "60";
+    
+    dynamic rawId = widget.sessionData['attendance_id'] ?? widget.sessionData['id'] ?? 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Visual confirmation element showing target ID
+        Text("DEBUG ACTIVE TARGET ID: $rawId", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
+        const SizedBox(height: 10),
+        Text(displayActivity, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+        const SizedBox(height: 15),
+        Text("Number of Student: $enrolled / $capacity Students", textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Colors.black87, height: 1.5)),
+        Text("Class Date: $displayDate $displayTime", textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Colors.black87, height: 1.5)),
+        Text("Venue: $displayVenue", textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Colors.black87, height: 1.5)),
+        Text("Lecturer Name: $displayLecturer", textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: Colors.black87, height: 1.5)),
+      ],
+    );
+  }
+
+  Widget _buildClassDetails() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text("${widget.subjectCode} ${widget.subjectName}".toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+        const SizedBox(height: 15),
+        Text("Section: ${widget.sessionData['section_name'] ?? '01A'}", textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, height: 1.5)),
+        Text("Lecturer: ${widget.sessionData['lecturer_name'] ?? 'N/A'}", textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, height: 1.5)),
+        Text("Date: ${widget.sessionData['date'] ?? ''}", textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, height: 1.5)),
+        Text("Time: ${widget.sessionData['time'] ?? ''}", textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, height: 1.5)),
+        Text("Location: ${widget.sessionData['location_name'] ?? 'N/A'}", textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, height: 1.5)),
+      ],
     );
   }
 }

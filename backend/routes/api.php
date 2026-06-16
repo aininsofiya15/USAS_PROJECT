@@ -77,11 +77,13 @@ Route::get('/attendance/not-present/{id}', [AttendanceController::class, 'getCla
 //PUSAT ADAB ROUTES
 Route::get('/get-adab-modules', [AttendanceController::class, 'getAdabModules']);
 Route::post('/module-attendance/store', [AttendanceController::class, 'storeModuleAttendance']);
+
 //STUDENT ROUTES
 Route::get('/student/dashboard/{studentId}', [AttendanceController::class, 'fetchStudentClassModule']);
 Route::get('/attendance/submissions/{sectionId}/{studentId}', [AttendanceController::class, 'getAttendanceSubmission']);
 Route::post('/attendance/submit', [AttendanceController::class, 'submitAttendance']);
 Route::get('/student/attendance-history/{studentId}', [AttendanceController::class, 'getSubmittedAttendanceRecords']);
+Route::get('/student/modules/{studentId}', [AttendanceController::class, 'fetchStudentClassModule']);
 
 //JIHA 
 //TREASURER ROUTES
