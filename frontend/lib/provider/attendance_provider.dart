@@ -547,60 +547,69 @@ Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async
 }
 
 
-  /// Fetches student records for a specific module session
-  /// AININ
-  /// 
+// ------------------------------------------------------------------------------
+  // AININ
+// ------------------------------------------------------------------------------
+
+
+  // 1. Fetch all published modules for the admin selection page
   Future<void> fetchPusatAdabModules({String? selectedDate}) async {
-  _isLoading = true;
-  notifyListeners();
-
-  try {
-    // FIX 1: Point to the exact backend endpoint that worked in your browser!
-    String url = "${Api.baseUrl}/attendance/pusat-adab";
-    if (selectedDate != null) {
-      url += "?date=$selectedDate";
-    }
-
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      // FIX 2: Decode the response body as a Map object first
-      final Map<String, dynamic> responseData = jsonDecode(response.body);
-      
-      // FIX 3: Extract the actual inner array from the 'data' key wrapper safely
-      final List<dynamic> dataList = responseData['data'] ?? [];
-      
-      // Map the inner array rows to your Module model structure
-      _pusatAdabModules = dataList.map((json) => Module.fromJson(json)).toList();
-    } else {
-      debugPrint("Server returned error code: ${response.statusCode}");
-      _pusatAdabModules = [];
-    }
-  } catch (e) {
-    // This will catch any missing field/parsing errors from your domain class
-    debugPrint("Module Fetch Error caught in pipeline: $e");
-    _pusatAdabModules = [];
-  } finally {
-    _isLoading = false;
-    notifyListeners();
-  }
-}
-
-  Future<void> fetchAttendanceDetails(int moduleId) async {
     _isLoading = true;
-    notifyListeners();
+    notifyListeners(); // Tell the UI to show the loading spinner
 
     try {
+      // Set up the API URL endpoint
+      String url = "${Api.baseUrl}/attendance/pusat-adab";
+      if (selectedDate != null) {
+        url += "?date=$selectedDate";
+      }
+
+      // Send the GET request to our Laravel backend
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        // Decode the raw response text into a readable Map structure
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        
+        // Grab the inner list out of the 'data' key wrapper safely
+        final List<dynamic> dataList = responseData['data'] ?? [];
+        
+        // Map the database rows directly into our local Module model list
+        _pusatAdabModules = dataList.map((json) => Module.fromJson(json)).toList();
+      } else {
+        // If the server returns an error code, reset the modules list to empty
+        debugPrint("Server returned error code: ${response.statusCode}");
+        _pusatAdabModules = [];
+      }
+    } catch (e) {
+      // Catch any data mapping or parsing bugs safely
+      debugPrint("Module Fetch Error caught in pipeline: $e");
+      _pusatAdabModules = [];
+    } finally {
+      _isLoading = false;
+      notifyListeners(); // Turn off the loading spinner and refresh the screen
+    }
+  }
+
+  // 2. Fetch the module details and the student attendance list
+  Future<void> fetchAttendanceDetails(int moduleId) async {
+    _isLoading = true;
+    notifyListeners(); // Tell the UI to show the loading spinner
+
+    try {
+      // Put the module ID directly into the API endpoint path
       final String url = "${Api.baseUrl}/attendance/pusat-adab/$moduleId/present";
       final response = await http.get(Uri.parse(url));
 
+      // Check if the response is successful 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         final Map<String, dynamic> coreData = responseData['data'] ?? {};
         
+        // Save the module details
         _currentModuleDetails = coreData['module'];
         
-        // FIX: Extract and save data directly to your presentModuleStudent list layout
+        // Save the list of present students into our local array
         _presentModuleStudent = coreData['students'] ?? [];
       } else {
         _presentModuleStudent = [];
@@ -612,18 +621,19 @@ Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async
       _currentModuleDetails = null;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      notifyListeners(); // Turn off the loading spinner
     }
-}
+  }
 
+  // 3. Update student marks and grade category
   Future<bool> updateStudentGrade(int recordId, double marks) async {
     _isSubmitting = true;
-    notifyListeners(); // Tells the UI to render the loading spinner immediately
+    notifyListeners(); // Show the submission loading spinner right away
 
     try {
-
       final String fullUrl = "${Api.pusatAdabAttendance}/grade/$recordId";
       
+      // Send the marks payload data to the backend server
       final response = await http.post(
         Uri.parse(fullUrl),
         headers: {
@@ -639,35 +649,36 @@ Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async
 
       if (response.statusCode == 200) {
         _isSubmitting = false;
-        notifyListeners();
-        return true; // Operation successful
+        notifyListeners(); // Turn off submission loading state
+        return true; // Let the UI dialog know it was a success
       } else {
-        // Capture any custom verification error messages sent from Laravel validation rules
+        // If Laravel validation fails, read the specific error message text
         String errorMessage = responseData['error'] ?? responseData['message'] ?? 'Failed to save grade.';
         throw Exception(errorMessage);
       }
     } catch (e) {
       _isSubmitting = false;
-      notifyListeners(); // Turn off loading spin state even if request fails
-      rethrow; // Pass error back to the UI view screen to handle the alert snackbar
+      notifyListeners(); // Close the loading state even if the request fails
+      rethrow; // Pass the error back up so the UI page can display an alert snackbar
     }
   }
 
+  // 4. Fetch a single attendance record details 
   Future<Map<String, dynamic>?> fetchSingleAttendance(int attendanceId) async {
-  try {
-    final response = await http.get(
-      Uri.parse("${Api.baseUrl}/attendance/$attendanceId"),
-      headers: {'Accept': 'application/json'},
-    );
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+    try {
+      // Send GET request for one specific attendance ID
+      final response = await http.get(
+        Uri.parse("${Api.baseUrl}/attendance/$attendanceId"),
+        headers: {'Accept': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body); // Return decoded map object directly
+      }
+    } catch (e) {
+      debugPrint("Fetch Detail Error: $e");
     }
-  } catch (e) {
-    debugPrint("Fetch Detail Error: $e");
+    return null; // Return null if anything goes wrong
   }
-  return null;
-}
-
-
 }

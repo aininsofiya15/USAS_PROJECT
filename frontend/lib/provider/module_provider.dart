@@ -18,10 +18,10 @@ class ModuleProvider with ChangeNotifier {
   List<Module> _bookedModules = [];
   List<Module> get bookedModules => _bookedModules;
 
-  // Fetches all modules from the Laravel backend database
+  // 1. Fetch all available modules catalog from Laravel
   Future<void> fetchModules() async {
     _isLoading = true;
-    notifyListeners();
+    notifyListeners(); // Turn on loading spinner
 
     try {
       final response = await http.get(Uri.parse("${Api.baseUrl}/modules"));
@@ -30,17 +30,18 @@ class ModuleProvider with ChangeNotifier {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         final List<dynamic> modulesList = responseData['data'];
 
+        // Map the backend data directly into our local Module model list
         _modules = modulesList.map((json) => Module.fromJson(json)).toList();
       }
     } catch (e) {
-      print("Error fetching modules data: $e");
+      debugPrint("Error fetching modules data: $e");
     } finally {
       _isLoading = false;
-      notifyListeners();
+      notifyListeners(); // Turn off loading spinner
     }
   }
 
-  /// Creates a new academic module record (Saves as Draft or Published)
+  // 2. Create and publish a new module 
   Future<bool> createModule({
     required String activityName,
     required String dateTime,
@@ -52,7 +53,7 @@ class ModuleProvider with ChangeNotifier {
     String status = 'published',
   }) async {
     _isLoading = true;
-    notifyListeners();
+    notifyListeners(); // Turn on loading spinner
 
     try {
       final response = await http.post(
@@ -73,7 +74,7 @@ class ModuleProvider with ChangeNotifier {
       _isLoading = false;
       
       if (response.statusCode == 201) {
-        await fetchModules(); 
+        await fetchModules(); // Re-fetch the list so the new module shows up right away
         return true;
       }
       notifyListeners();
@@ -85,7 +86,7 @@ class ModuleProvider with ChangeNotifier {
     }
   }
 
-  /// Updates an existing module record using a reliable body payload lookup mapping
+  // 3. Update an existing module's details
   Future<bool> updateModule({
     required String id, 
     required String activityName,
@@ -98,7 +99,7 @@ class ModuleProvider with ChangeNotifier {
     required String status,
   }) async {
     _isLoading = true;
-    notifyListeners();
+    notifyListeners(); // Turn on loading spinner
 
     try {
       final url = Uri.parse("${Api.modules}/update-existing");
@@ -122,28 +123,25 @@ class ModuleProvider with ChangeNotifier {
       _isLoading = false;
 
       if (response.statusCode == 200) {
-        await fetchModules(); 
+        await fetchModules(); // Re-fetch list to show edited changes instantly
         return true;
       } else {
-        print("Backend Error Code: ${response.statusCode}");
-        print("Backend Error Body: ${response.body}");
+        debugPrint("Backend Error Code: ${response.statusCode}");
         notifyListeners();
         return false;
       }
     } catch (e) {
-      print("Error updating module: $e");
+      debugPrint("Error updating module: $e");
       _isLoading = false;
       notifyListeners();
       return false;
     }
   }
 
-  // --- STUDENT BOOKING METHODS ---
-
-  /// Sends a registration application request to the Laravel backend database
+  // 4. Let a student register/join a specific module 
   Future<bool> applyToModule({required int moduleId, required String studentId}) async {
     _isLoading = false;
-    _errorMessage = null; // Clear old errors before starting
+    _errorMessage = null; // Reset old error messages before running
     notifyListeners();
 
     try {
@@ -159,11 +157,12 @@ class ModuleProvider with ChangeNotifier {
       _isLoading = false;
 
       if (response.statusCode == 200) {
-        await fetchModules(); 
-        await fetchStudentBookings(studentId); 
+        await fetchModules(); // Re-fetch catalogs to update total counter metrics
+        await fetchStudentBookings(studentId); // Sync the student's personal calendar list
         return true;
       } 
       else {
+        // Read the message if student hits a duplicate booking boundary rule
         try {
           final data = jsonDecode(response.body);
           _errorMessage = data['message']; 
@@ -176,7 +175,7 @@ class ModuleProvider with ChangeNotifier {
       }
       
     } catch (e) {
-      print("Error during module application: $e");
+      debugPrint("Error during module application: $e");
       _errorMessage = "Network error. Check your connection.";
       _isLoading = false;
       notifyListeners();
@@ -184,7 +183,7 @@ class ModuleProvider with ChangeNotifier {
     }
   }
 
-  // Fetches all modules successfully booked by a specific student ID
+  // 5. Fetch all module sessions successfully joined by a student ID
   Future<void> fetchStudentBookings(String studentId) async {
     _isLoading = true;
     _bookedModules = []; // Reset the array list for a clean layout refresh
@@ -196,7 +195,6 @@ class ModuleProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         final dynamic decodedResponse = jsonDecode(response.body);
 
-        // Extract the raw list matrix safely out of your Laravel data wrapper
         List<dynamic> rawList = [];
         if (decodedResponse is Map && decodedResponse.containsKey('data')) {
           rawList = decodedResponse['data'] as List<dynamic>;
@@ -204,11 +202,10 @@ class ModuleProvider with ChangeNotifier {
           rawList = decodedResponse as List<dynamic>;
         }
 
-        // 🎯 FIXED OBJECT FACTORY MAPPING: Map fields directly to satisfy List<Module> type constraints
+        // Map fields directly and inject database join values on the fly
         _bookedModules = rawList.map((json) {
           Module moduleObj = Module.fromJson(json);
           
-          // Inject our custom database join data on the fly!
           moduleObj.totalMarks = json['total_marks'] != null 
               ? double.tryParse(json['total_marks'].toString()) 
               : null;
@@ -219,22 +216,22 @@ class ModuleProvider with ChangeNotifier {
           return moduleObj;
         }).toList();
 
-        print("Successfully synchronized ${_bookedModules.length} active curriculum student bookings.");
+        debugPrint("Synchronized ${_bookedModules.length} student curriculum bookings.");
       } else {
-        print("Backend synchronization failed with response code status: ${response.statusCode}");
+        debugPrint("Backend synchronization failed with status: ${response.statusCode}");
       }
     } catch (e) {
-      print("Error fetching student bookings execution pipeline: $e");
+      debugPrint("Error fetching student bookings: $e");
     } finally {
       _isLoading = false;
-      notifyListeners(); 
+      notifyListeners(); // Repaint UI lists with fresh sync elements
     }
   }
 
-  /// Drop/Unregister a module
+  // 6. Student rop an booking session
   Future<bool> dropModule({required int bookingId, required String studentId}) async {
     _isLoading = true;
-    notifyListeners(); // Turns on the spinner spinner framework loaders
+    notifyListeners(); // Turn on loading spinner
 
     try {
       final response = await http.delete(
@@ -242,15 +239,13 @@ class ModuleProvider with ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        // 1. 🎯 THE LOCAL CLEANUP: Physically eject the item from our active application memory array
+        // Eject the row item out of local phone memory instantly so UI cards disappear immediately
         _bookedModules.removeWhere((item) => item.bookingId == bookingId || item.id == bookingId);
         
-        // 2. 🔥 THE CRITICAL FIX: Explicitly notify the Flutter layout trees to repaint right away!
         _isLoading = false;
-        notifyListeners(); 
+        notifyListeners(); // Refresh layouts right away
         
-        // 3. BACKGROUND SYNC: Re-fetch from MySQL to guarantee everything aligns completely
-        await fetchStudentBookings(studentId); 
+        await fetchStudentBookings(studentId); // Pull raw values from MySQL to double check alignment
         return true;
       }
       
@@ -258,20 +253,19 @@ class ModuleProvider with ChangeNotifier {
       notifyListeners();
       return false;
     } catch (e) {
-      print("Error dropping module execution pipeline: $e");
+      debugPrint("Error dropping module: $e");
       _isLoading = false;
       notifyListeners();
       return false;
     }
   }
 
-  // Updates a specific module row state to claimed=1
+  // 7. Student claim a completed module
   Future<bool> claimModule({required int bookingId, required String studentId}) async {
     _isLoading = true;
-    notifyListeners();
+    notifyListeners(); // Turn on loading spinner
 
     try {
-      // 🎯 TARGET ENDPOINT: Adjust this string path pattern to match your Laravel routing setup
       final response = await http.post(
         Uri.parse("${Api.baseUrl}/bookings/$bookingId/claim"),
         headers: {
@@ -281,15 +275,14 @@ class ModuleProvider with ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        // 🔥 THE REAL SYNC: Instantly pull down fresh, real-time metrics directly from MySQL
-        await fetchStudentBookings(studentId);
+        await fetchStudentBookings(studentId); // Re-fetch data to reflect the changes instantly
         return true;
       }
       
-      print("Claim submission rejected by backend server. Status: ${response.statusCode}");
+      debugPrint("Claim rejected by server. Status: ${response.statusCode}");
       return false;
     } catch (e) {
-      print("Network pipeline error during module claim transaction execution: $e");
+      debugPrint("Network error during module claim transaction: $e");
       return false;
     } finally {
       _isLoading = false;
@@ -297,17 +290,17 @@ class ModuleProvider with ChangeNotifier {
     }
   }
 
-  // VIEW ALL REGISTERED STUDENTS FOR A MODULE (PUSAT ADAB)
   List<dynamic> _registeredStudents = [];
   List<dynamic> get registeredStudents => _registeredStudents;
   int? _registeredStudentsModuleId;
   int? get registeredStudentsModuleId => _registeredStudentsModuleId;
 
+  // 8. Fetch the list of all registered students for a chosen module ID
   Future<void> fetchRegisteredStudents(int moduleId) async {
     _isLoading = true;
     _registeredStudentsModuleId = moduleId;
     _registeredStudents = [];
-    notifyListeners();
+    notifyListeners(); // Clear old lists and show loading state spinner
 
     try {
       final response = await http.get(Uri.parse("${Api.baseUrl}/modules/$moduleId/students"));
@@ -322,26 +315,27 @@ class ModuleProvider with ChangeNotifier {
         } else if (data is List) {
           _registeredStudents = data;
         }
-        print("Fetched ${_registeredStudents.length} students");
+        debugPrint("Fetched ${_registeredStudents.length} students");
       }
     } catch (e) {
-      print("Error: $e");
+      debugPrint("Error fetching roster: $e");
     } finally {
       _isLoading = false;
-      notifyListeners();
+      notifyListeners(); // Turn off loading state and render student roster table rows
     }
   }
 
+  // 9. Kick or remove a student from an active module 
   Future<bool> removeStudentFromModule({required int bookingId, required int moduleId}) async {
     try {
       final response = await http.delete(Uri.parse("${Api.baseUrl}/bookings/$bookingId"));
       if (response.statusCode == 200) {
-        await fetchRegisteredStudents(moduleId);
-        await fetchModules();
+        await fetchRegisteredStudents(moduleId); // Refresh admin roster screen right away
+        await fetchModules(); // Refresh global seat capacity counts
         return true;
       }
     } catch (e) {
-      print("Delete error: $e");
+      debugPrint("Delete student from roster error: $e");
     }
     return false;
   }
@@ -349,10 +343,10 @@ class ModuleProvider with ChangeNotifier {
   List<AttendanceRecord> _attendanceRecords = [];
   List<AttendanceRecord> get attendanceRecords => _attendanceRecords;
 
-  // Fetch the list for the Attendance Records screen
+  // 10. Fetch the attendance record for a specific module session
   Future<void> fetchAttendanceRecords(int attendanceId) async {
     _isLoading = true;
-    notifyListeners();
+    notifyListeners(); // Turn on loading spinner
 
     try {
       final response = await http.get(Uri.parse('$Api.baseUrl/attendance-records/$attendanceId'));
@@ -361,11 +355,10 @@ class ModuleProvider with ChangeNotifier {
         _attendanceRecords = data.map((item) => AttendanceRecord.fromJson(item)).toList();
       }
     } catch (e) {
-      debugPrint("Fetch Error: $e");
+      debugPrint("Fetch attendance record logs failed: $e");
     }
 
     _isLoading = false;
-    notifyListeners();
+    notifyListeners(); // Turn off loading spinner and repaint logs state
   }
-
 }

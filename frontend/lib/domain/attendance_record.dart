@@ -1,9 +1,11 @@
+// This defines the data models for attendance records 
 class AcademicAttendanceRecord {
   final int recordId;
   final String studentId;
   final String studentName;
   final String status;
 
+  // Constructor for the AcademicAttendanceRecord class
   AcademicAttendanceRecord({
     required this.recordId,
     required this.studentId,
@@ -11,6 +13,7 @@ class AcademicAttendanceRecord {
     required this.status,
   });
 
+  // Factory method to create an instance of AcademicAttendanceRecord from JSON data
   factory AcademicAttendanceRecord.fromJson(Map<String, dynamic> json) {
     return AcademicAttendanceRecord(
       recordId: int.tryParse(json['record_id']?.toString() ?? '0') ?? 0,
@@ -21,6 +24,7 @@ class AcademicAttendanceRecord {
   }
 }
 
+// This defines the data model for attendance records specific to Pusat Adab
 class AttendanceRecord {
   final int id;
   final String studentId;
@@ -31,6 +35,7 @@ class AttendanceRecord {
   double? marks;
   String? gradeCategory;
 
+  // Constructor for the AttendanceRecord class
   AttendanceRecord({
     required this.id,
     required this.studentName,
@@ -42,10 +47,10 @@ class AttendanceRecord {
     this.gradeCategory,
   });
 
+  // Factory method to create an instance of AttendanceRecord from JSON data
   factory AttendanceRecord.fromJson(Map<String, dynamic> json) {
     return AttendanceRecord(
       id: json['id'],
-      // Accessing the nested student and user data from your controller
       studentName: json['student']?['user']?['name'] ?? "Unknown",
       studentId: json['student']?['student_id'] ?? "N/A",
       name: json['student']?['name'] ?? "Unknown",
