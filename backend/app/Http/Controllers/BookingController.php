@@ -220,13 +220,15 @@ class BookingController extends Controller
     {
         $registeredStudents = DB::table('bookings')
             ->join('students', 'bookings.student_id', '=', 'students.id')
-            ->join('users', 'students.id', '=', 'users.id')
+            ->leftJoin('users', 'bookings.student_id', '=', 'users.id')
             ->where('bookings.module_id', $moduleId)
             ->select(
                 'bookings.id as booking_id',
+                'bookings.module_id',
                 'students.student_id as matric_id',    
-                'users.name as student_name' // ◄ 🎯 FORCE THIS EXACT ALIAS NAME
+                DB::raw('COALESCE(users.name, students.student_id) as student_name')
             )
+            ->orderBy('users.name')
             ->get();
 
         return response()->json($registeredStudents); // Or return wrapped in ['data' => ...]

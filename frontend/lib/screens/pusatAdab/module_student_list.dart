@@ -30,7 +30,10 @@ class _StudentListPageState extends State<StudentListPage> {
   Widget build(BuildContext context) {
     final moduleProvider = Provider.of<ModuleProvider>(context);
 
-    final dynamic rawData = moduleProvider.registeredStudents;
+    final bool isCurrentModule =
+        moduleProvider.registeredStudentsModuleId == widget.module.id;
+    final dynamic rawData =
+        isCurrentModule ? moduleProvider.registeredStudents : [];
     final List<dynamic> studentList = (rawData is List) ? rawData : [];
 
     final List<dynamic> filteredList = searchQuery.isEmpty
