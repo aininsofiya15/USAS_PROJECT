@@ -12,41 +12,52 @@ use App\Http\Controllers\RegistrarSubjectController;
 use App\Http\Controllers\StudentSubjectController;
 use App\Http\Controllers\CreditController;
 
-// This is the "door" the Flutter app is knocking on
+// Login route for all users 
 Route::post('/login', [AuthController::class, 'login']);
 
 //--------------------------------------------------------------------------------------------------------------------//
 //AININ 
-// -------- Pusat Adab Routes ---------------------------------------
+// -------- Pusat Adab Routes ------------------------------------------------------
 
+// 1. Route to fetch all modules for Pusat Adab
 Route::get('/modules', [ModuleController::class, 'index']);
+// 2. Route to create a new module (Pusat Adab)
 Route::post('/modules', [ModuleController::class, 'store']);
+// 3. Route to update an existing module (Pusat Adab)
 Route::post('/modules/update-existing', [ModuleController::class, 'update']);
+// 4. Route to delete a module (Pusat Adab)
 Route::get('/modules/{id}/students', [BookingController::class, 'getRegisteredStudents']);
-
-
+// 5. Route to fetch all modules for Pusat Adab (for attendance)
 Route::get('/attendance/pusat-adab', [AttendanceRecordController::class, 'fetchPusatAdabModules']);
-
-// Route to fetch the studentattendance list for a specific module
+// 6. Route to fetch students who are present for a specific module (Pusat Adab)
 Route::get('/attendance/pusat-adab/{moduleId}/present', [AttendanceRecordController::class, 'getPresentStudents']);
-
-// 3. Route to save student grades (Grade Dialog)
+// 7. Route to fetch students data for grading (Pusat Adab)
 Route::post('/attendance/pusat-adab/grade/{recordId}', [AttendanceRecordController::class, 'updateStudentGrade']);
-
+// 8. Route to fetch students credit claims submissions (Pusat Adab)
 Route::get('/pusat-adab/credit-claims', [CreditController::class, 'index']);
+// 9. Route to approve a credit claim (Pusat Adab)
 Route::post('/pusat-adab/credit-claims/{id}/approve', [CreditController::class, 'updateStatus']);
+// 10. Route to reject a credit claim (Pusat Adab)
 Route::post('/pusat-adab/credit-claims/{id}/reject', [CreditController::class, 'rejectClaim']);
-//--------------------------------------------------------------------------------------------------------------------//
 
-// STUDENT ROUTES
+//--------------------------------------------------------------------------------------------------------------------//
 //AININ 
+// -------------------Student Routes----------------------------------------------------
+
+// 1. Route for students to apply for a module (Student)
 Route::post('/modules/apply', [BookingController::class, 'applyToModule']);
+// 2. Route to fetch a student's bookings
 Route::get('/students/{studentId}/bookings', [BookingController::class, 'getStudentBookings']);
+// 3. Route to delete a booking (Student)
 Route::delete('/bookings/{id}', [BookingController::class, 'destroy']);
+// 4. Route for students to claim a module (Student)
 Route::post('/bookings/{id}/claim', [CreditController::class, 'claimIndividualModule']);
+// 5. Route for students to submit final credit claim (Student)
 Route::post('/credit-claims/submit', [CreditController::class, 'submitFinalCredit']);
+// 6. Route to fetch a student's credit claim status (Student)
 Route::get('/credit-claims/status/{studentId}', [CreditController::class, 'getClaimStatus']);
-//-----------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------------------
 
 
 //YAYA 

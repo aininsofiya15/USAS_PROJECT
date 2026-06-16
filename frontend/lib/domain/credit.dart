@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 
+// This file defines the data models for credit claims
 class CreditClaim {
   final int id;
   final int studentId;
@@ -8,6 +8,7 @@ class CreditClaim {
   final String subjectName;
   final String status; // Tracks 'pending', 'approved', or 'rejected'
 
+  // Constructor for the CreditClaim class
   CreditClaim({
     required this.id,
     required this.studentId,
@@ -17,6 +18,7 @@ class CreditClaim {
     required this.status,
   });
 
+  // Factory method to create an instance of CreditClaim from JSON data
   factory CreditClaim.fromJson(Map<String, dynamic> json) {
     return CreditClaim(
       id: json['id'] ?? 0,
@@ -28,6 +30,7 @@ class CreditClaim {
     );
   }
 
+  // This method provides a   q message based on the current status of the credit claim
   String get actionMessage {
     switch (status.toLowerCase()) {
       case 'pending':

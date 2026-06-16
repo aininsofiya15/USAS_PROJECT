@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AttendanceRecord extends Model
 {
-    // These are the fields you will be managing for grading
+    // These are the fields for the attendance record
     protected $fillable = [
         'attendance_id', 
         'student_id', 
@@ -17,20 +17,24 @@ class AttendanceRecord extends Model
         'grade_category'
     ];
 
-    // This allows you to pull Student name and Matric ID easily
+    // Link back to the parent attendance to get the GPS/Code info
     public function attendance()
     {
+        // Define the relationship to the attendance record
         return $this->belongsTo(Attendance::class, 'attendance_id');
     }
 
     // Links to the student profile to get their name and matric ID
     public function student()
     {
+        // Define the relationship to the student record
         return $this->belongsTo(Student::class, 'student_id');
     }
 
+    // Link to the booking to know WHICH module this is for
      public function booking() 
     {
+        // Define the relationship to the booking record
          return $this->belongsTo(Booking::class, 'booking_id');
     }
 }

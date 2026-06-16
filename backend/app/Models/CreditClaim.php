@@ -7,31 +7,27 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CreditClaim extends Model
 {
-    // 1. Explicitly define the table name matching your migration
+    // Specify the table name 
     protected $table = 'credit_claims';
-
-    // 2. Specify fillable fields to protect against Mass Assignment vulnerabilities
+    
+    // These are the fields for the credit claim application
     protected $fillable = [
         'student_id',
         'subject_id',
         'status',
     ];
 
-    // ── 🔄 RELATIONSHIPS (Makes querying data incredibly simple) ──
-
-    /**
-     * Get the student profile that owns this credit claim application.
-     */
+    // Link to the student profile to get their name and matric ID
     public function student(): BelongsTo
     {
+        // Define the relationship to the user record (student)
         return $this->belongsTo(User::class, 'student_id', 'id');
     }
 
-    /**
-     * Get the subject metadata details (UQA2002) linked to this claim.
-     */
+    // Link to the subject to get the subject name and code
     public function subject(): BelongsTo
     {
+        // Define the relationship to the subject record
         return $this->belongsTo(Subject::class, 'subject_id', 'subject_id');
     }
 }

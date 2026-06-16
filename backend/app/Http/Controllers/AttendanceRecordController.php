@@ -96,9 +96,10 @@ class AttendanceRecordController extends Controller
                 $gradeCategory = 'Pass';
             }
 
-            // Check if the attendance record line item exists for the provided record ID
+            // Check if the attendance record exists in database
             $record = DB::table('attendance_records')->where('id', $recordId)->first();
             
+            // Message when attendance record ID does not exist in database
             if (!$record) {
                 return response()->json([
                     'status' => 'error',
@@ -106,7 +107,7 @@ class AttendanceRecordController extends Controller
                 ], 404);
             }
 
-            // Execute database columns update execution statement
+            // Run the update statement to save the new marks and grade category 
             DB::table('attendance_records')
                 ->where('id', $recordId)
                 ->update([
@@ -115,7 +116,7 @@ class AttendanceRecordController extends Controller
                     'updated_at' => now(),
                 ]);
 
-            // Return success configuration status array data
+            // Return clean success data back to update the Flutter UI state
             return response()->json([
                 'status' => 'success',
                 'message' => 'Student records graded successfully!',
@@ -128,13 +129,14 @@ class AttendanceRecordController extends Controller
             ], 200);
 
         } catch (ValidationException $ve) {
-            // Handle validation error exceptions
+            // Handle input validation errors 
             return response()->json([
                 'status' => 'validation_error',
                 'error' => $ve->errors()->first()
             ], 422);
+        //  
         } catch (\Exception $e) {
-            // Handle execution fallback error exceptions
+            // Handle unexpected database system crashes
             return response()->json([
                 'status' => 'error',
                 'error' => 'Database grading transaction failed: ' . $e->getMessage()

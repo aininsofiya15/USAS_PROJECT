@@ -5,18 +5,19 @@ import '../config/api.dart';
 import '../domain/credit.dart';
 
 class CreditProvider with ChangeNotifier {
-  // ── 👤 STUDENT STATES ──
+
+  // ── Student STATES ──
   CreditClaim? _activeClaim;
   bool _hasClaim = false;
 
-  // ── 🏢 ADMIN (PUSAT ADAB) STATES ──
+  // ── Pusat Adab STATES ──
   List<AdminCreditClaim> _adminClaims = [];
-  String _currentAdminFilter = 'all'; // Tracks active view: 'all' or 'pending'
+  String _currentAdminFilter = 'all'; // Tracks if view shows 'all' or 'pending' claims
 
-  // ── ⚡ SHARED STATES ──
+  // ── Shared STATES ──
   bool _isLoading = false;
 
-  // ── 🔓 GETTERS ──
+  // ── Getters ──
   CreditClaim? get activeClaim => _activeClaim;
   bool get hasClaim => _hasClaim;
   List<AdminCreditClaim> get adminClaims => _adminClaims;
@@ -25,29 +26,33 @@ class CreditProvider with ChangeNotifier {
 
 
   // =========================================================================
-  // 👤 STUDENT OPERATION METHODS
+  // STUDENT OPERATION METHODS
   // =========================================================================
 
-  /// 🔄 FETCH LIVE STATUS FLOW (STUDENT)
-  /// Asks Laravel if a database row exists for this student and parses it dynamically
+  // 1. Check if the student has already submitted a credit claim
   Future<void> fetchClaimStatus(String studentId) async {
     _isLoading = true;
-    notifyListeners();
+    notifyListeners(); // Show loading spinner on student screen
 
     final url = Uri.parse(Api.checkCreditStatus(studentId));
 
     try {
-      final response = await http.get(url);
 
+      // Send GET request to check if there's an active claim for the student
+      final response = await http.get(url);
+      // If the server returns a successful response, parse the data
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
 
+        // Save data if the student has an active claim record row in the DB
         if (responseData['data'] != null) {
           _activeClaim = CreditClaim.fromJson(responseData['data']);
           _hasClaim = true;
+        // If the server returns a 'exists' status, it means the student has already submitted a claim
         } else if (responseData['status'] == 'exists' || responseData['status'] == 'success') {
           _activeClaim = CreditClaim.fromJson(responseData['data']);
           _hasClaim = true;
+          // If the server returns a 'no_record' status, it means the student has not submitted any claim yet
         } else {
           _activeClaim = null;
           _hasClaim = false;
@@ -57,23 +62,21 @@ class CreditProvider with ChangeNotifier {
         _hasClaim = false;
       }
     } catch (e) {
-      print("Error fetching dynamic claim metrics from database: $e");
+      debugPrint("Error fetching student claim status: $e");
       _activeClaim = null;
       _hasClaim = false;
     }
-
     _isLoading = false;
-    notifyListeners();
+    notifyListeners(); // Turn off loading spinner
   }
 
-  /// 🟢 FINAL SUBMISSION FLOW (STUDENT)
-  /// Dispatches the student_id to your automated submitCreditClaim Laravel method
+  // 2. Let a student submit their final credit claims
   Future<String> submitCreditClaim({required String studentId}) async {
     _isLoading = true;
-    notifyListeners();
+    notifyListeners(); // Show loading spinner
 
     final url = Uri.parse(Api.submitCreditClaim);
-
+    
     try {
       final response = await http.post(
          url,
@@ -87,32 +90,26 @@ class CreditProvider with ChangeNotifier {
       notifyListeners();
 
       if (response.statusCode == 201) {
-        await fetchClaimStatus(studentId);
+        await fetchClaimStatus(studentId); // Re-fetch status to show 'pending' view immediately
         return "success";
       } else if (response.statusCode == 409) {
-        return "duplicate"; 
+        return "duplicate"; // Blocks user if they try to click submit twice
       } else {
         return "error";
       }
     } catch (e) {
-      print("Network breakdown on credit submission execution context: $e");
+      debugPrint("Network error during credit submission: $e");
       _isLoading = false;
       notifyListeners();
       return "network_failure";
     }
   }
 
-
-  // =========================================================================
-  // 🏢 ADMIN (PUSAT ADAB) OPERATION METHODS
-  // =========================================================================
-
-  /// 📋 FETCH ALL CLAIMS (ADMIN)
-  /// Targets endpoints using the filter parameter to parse student applications
+  // 3. Fetch all student applications for the Pusat Adab dashboard list
   Future<void> fetchAllClaims(String filter) async {
     _isLoading = true;
-    _currentAdminFilter = filter;
-    notifyListeners();
+    _currentAdminFilter = filter; // Save if view is filtered by 'all' or 'pending'
+    notifyListeners(); // Show loading spinner on admin dashboard
 
     final url = Uri.parse(Api.getAdminClaims(filter));
 
@@ -123,6 +120,7 @@ class CreditProvider with ChangeNotifier {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         if (responseData['data'] != null) {
           final List<dynamic> claimsList = responseData['data'];
+          // Map database array elements to our local Admin model array list
           _adminClaims = claimsList.map((item) => AdminCreditClaim.fromJson(item)).toList();
         } else {
           _adminClaims = [];
@@ -131,15 +129,15 @@ class CreditProvider with ChangeNotifier {
         _adminClaims = [];
       }
     } catch (e) {
-      print("Admin compilation network breakdown context: $e");
+      debugPrint("Admin claims load error: $e");
       _adminClaims = [];
     }
 
     _isLoading = false;
-    notifyListeners();
+    notifyListeners(); // Turn off loading spinner and refresh dashboard cards
   }
 
-  /// ✅ APPROVE APPLICATION ACTION DISPATCHER (ADMIN)
+  // 4. Approve/Reject student credit claim application 
   Future<bool> processReview(int claimId) async {
     final url = Uri.parse(Api.approveAdminClaim(claimId));
 
@@ -147,18 +145,18 @@ class CreditProvider with ChangeNotifier {
       final response = await http.post(url);
 
       if (response.statusCode == 200) {
-        // Automatically sync the workspace state right after a modification
+        // Automatically re-fetch list right away so approved card disappears from 'pending' list
         await fetchAllClaims(_currentAdminFilter);
         return true;
       }
       return false;
     } catch (e) {
-      print("Error processing approval transaction: $e");
+      debugPrint("Error processing claim approval: $e");
       return false;
     }
   }
 
-  // REJECT APPLICATION ACTION DISPATCHER (ADMIN)
+  // 5. Reject button to deny application status
   Future<bool> rejectStudentApplication(int claimId) async {
     final url = Uri.parse(Api.rejectAdminClaim(claimId));
 
@@ -166,13 +164,13 @@ class CreditProvider with ChangeNotifier {
       final response = await http.post(url);
 
       if (response.statusCode == 200) {
-        // Automatically sync the workspace state right after a modification
+        // Automatically re-fetch list right away to show updated application statuses
         await fetchAllClaims(_currentAdminFilter);
         return true;
       }
       return false;
     } catch (e) {
-      print("Error processing rejection transaction: $e");
+      debugPrint("Error processing claim rejection: $e");
       return false;
     }
   }

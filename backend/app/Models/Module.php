@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Module extends Model
 {
+    // These are the fields for the module record
     use HasFactory;
 
     protected $fillable = [
@@ -23,6 +24,7 @@ class Module extends Model
     ];
 
     public function attendanceRecords() {
+        // Define the relationship to the attendance records for this module
         return $this->hasMany(AttendanceRecord::class);
     }
 
