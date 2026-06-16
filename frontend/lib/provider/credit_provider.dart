@@ -30,7 +30,7 @@ class CreditProvider with ChangeNotifier {
 
   /// 🔄 FETCH LIVE STATUS FLOW (STUDENT)
   /// Asks Laravel if a database row exists for this student and parses it dynamically
-  Future<void> fetchLiveClaimStatus(String studentId) async {
+  Future<void> fetchClaimStatus(String studentId) async {
     _isLoading = true;
     notifyListeners();
 
@@ -67,8 +67,8 @@ class CreditProvider with ChangeNotifier {
   }
 
   /// 🟢 FINAL SUBMISSION FLOW (STUDENT)
-  /// Dispatches the student_id to your automated submitFinalCredit Laravel method
-  Future<String> submitFinalCredit({required String studentId}) async {
+  /// Dispatches the student_id to your automated submitCreditClaim Laravel method
+  Future<String> submitCreditClaim({required String studentId}) async {
     _isLoading = true;
     notifyListeners();
 
@@ -87,7 +87,7 @@ class CreditProvider with ChangeNotifier {
       notifyListeners();
 
       if (response.statusCode == 201) {
-        await fetchLiveClaimStatus(studentId);
+        await fetchClaimStatus(studentId);
         return "success";
       } else if (response.statusCode == 409) {
         return "duplicate"; 
@@ -109,7 +109,7 @@ class CreditProvider with ChangeNotifier {
 
   /// 📋 FETCH ALL CLAIMS (ADMIN)
   /// Targets endpoints using the filter parameter to parse student applications
-  Future<void> fetchAdminClaims(String filter) async {
+  Future<void> fetchAllClaims(String filter) async {
     _isLoading = true;
     _currentAdminFilter = filter;
     notifyListeners();
@@ -140,7 +140,7 @@ class CreditProvider with ChangeNotifier {
   }
 
   /// ✅ APPROVE APPLICATION ACTION DISPATCHER (ADMIN)
-  Future<bool> approveStudentApplication(int claimId) async {
+  Future<bool> processReview(int claimId) async {
     final url = Uri.parse(Api.approveAdminClaim(claimId));
 
     try {
@@ -148,7 +148,7 @@ class CreditProvider with ChangeNotifier {
 
       if (response.statusCode == 200) {
         // Automatically sync the workspace state right after a modification
-        await fetchAdminClaims(_currentAdminFilter);
+        await fetchAllClaims(_currentAdminFilter);
         return true;
       }
       return false;
@@ -158,7 +158,7 @@ class CreditProvider with ChangeNotifier {
     }
   }
 
-  /// ❌ REJECT APPLICATION ACTION DISPATCHER (ADMIN)
+  // REJECT APPLICATION ACTION DISPATCHER (ADMIN)
   Future<bool> rejectStudentApplication(int claimId) async {
     final url = Uri.parse(Api.rejectAdminClaim(claimId));
 
@@ -167,7 +167,7 @@ class CreditProvider with ChangeNotifier {
 
       if (response.statusCode == 200) {
         // Automatically sync the workspace state right after a modification
-        await fetchAdminClaims(_currentAdminFilter);
+        await fetchAllClaims(_currentAdminFilter);
         return true;
       }
       return false;

@@ -160,7 +160,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
                         "Curriculum Activity",
                         "assets/icons/curriculum.png",
                         provider.studentIsBlocked,
-                        () {},
+                        () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const StudentActivitiesPage())),
                       ),
                       _buildCategoryCard(
                         "Attendance",
@@ -215,21 +216,34 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   // ── Search Bar ──────────────────────────────────────────────────────────
   Widget _buildSearchBar() {
-    return Container(
-      height: 42,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8)],
-      ),
-      child: const TextField(
-        style: TextStyle(fontSize: 13, color: Colors.black87),
-        decoration: InputDecoration(
-          hintText: "Search",
-          hintStyle: TextStyle(color: Colors.black38, fontSize: 13),
-          suffixIcon: Icon(Icons.search, color: Colors.black45, size: 19),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+    return Center(
+      child: FractionallySizedBox(
+        widthFactor: 0.74,
+        child: Container(
+          height: 36,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const TextField(
+            style: TextStyle(fontSize: 13, color: Colors.black87),
+            decoration: InputDecoration(
+              hintText: "Search",
+              hintStyle: TextStyle(color: Colors.black38, fontSize: 13),
+              suffixIcon: Icon(Icons.search, color: Colors.black45, size: 19),
+              suffixIconConstraints: BoxConstraints(minWidth: 42, minHeight: 36),
+              isDense: true,
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.fromLTRB(18, 10, 0, 10),
+            ),
+          ),
         ),
       ),
     );
@@ -277,13 +291,16 @@ class _StudentDashboardState extends State<StudentDashboard> {
           children: [
             Image.asset(
               iconPath,
-              width: 52,
-              height: 52,
-              errorBuilder: (_, __, ___) => Icon(
-                Icons.apps,
-                size: 40,
-                color: isBlocked ? Colors.grey : const Color(0xFF3F51B5),
-              ),
+              width: 70,
+              height: 70,
+              errorBuilder: (_, error, ___) {
+                debugPrint('Failed to load icon: $iconPath — $error');
+                return Icon(
+                  Icons.apps,
+                  size: 40,
+                  color: isBlocked ? Colors.grey : const Color(0xFF3F51B5),
+                );
+              },
             ),
             const SizedBox(height: 6),
             Padding(
@@ -323,7 +340,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ── Title pinned to top ──
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
             child: Text(
@@ -337,8 +353,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Divider(thickness: 0.5, height: 1, color: Color(0x22000000)),
           ),
-
-          // ── Content centered in remaining space ──
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -385,12 +399,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       width: double.infinity,
                       height: 30,
                       child: ElevatedButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const StudentActivitiesPage(),
-                  ),
-                ),
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const StudentActivitiesPage(),
+                          ),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2196F3),
                           elevation: 0,
@@ -436,7 +450,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ── Title pinned to top ──
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
             child: Text(
@@ -450,8 +463,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Divider(thickness: 0.5, height: 1, color: Color(0x22000000)),
           ),
-
-          // ── Content centered in remaining space ──
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,

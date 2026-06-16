@@ -18,7 +18,7 @@ class ModuleProvider with ChangeNotifier {
   List<Module> _bookedModules = [];
   List<Module> get bookedModules => _bookedModules;
 
-  /// Fetches all modules from the Laravel backend api database
+  // Fetches all modules from the Laravel backend database
   Future<void> fetchModules() async {
     _isLoading = true;
     notifyListeners();
@@ -184,7 +184,7 @@ class ModuleProvider with ChangeNotifier {
     }
   }
 
-  /// Fetches all modules successfully booked by a specific student ID
+  // Fetches all modules successfully booked by a specific student ID
   Future<void> fetchStudentBookings(String studentId) async {
     _isLoading = true;
     _bookedModules = []; // Reset the array list for a clean layout refresh
@@ -265,7 +265,7 @@ class ModuleProvider with ChangeNotifier {
     }
   }
 
-  /// Real-Time Network Trigger: Updates a specific module row state to claimed=1
+  // Updates a specific module row state to claimed=1
   Future<bool> claimModule({required int bookingId, required String studentId}) async {
     _isLoading = true;
     notifyListeners();
@@ -368,26 +368,4 @@ class ModuleProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Submit marks to Laravel (Your Grading Task)
-  Future<bool> updateStudentGrade(int recordId, double marks) async {
-    try {
-      final response = await http.patch(
-        Uri.parse('$Api.baseUrl/attendance-records/$recordId/grade'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'marks': marks}),
-      );
-
-      if (response.statusCode == 200) {
-        int index = _attendanceRecords.indexWhere((r) => r.id == recordId);
-        if (index != -1) {
-          _attendanceRecords[index].marks = marks;
-          notifyListeners();
-        }
-        return true;
-      }
-    } catch (e) {
-      debugPrint("Update Error: $e");
-    }
-    return false;
-  }
 }

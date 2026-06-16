@@ -282,7 +282,6 @@ class AttendanceProvider with ChangeNotifier {
   }
 }
 
-  
 
   //PusatAdab
 
@@ -515,6 +514,7 @@ Future<Map<String, dynamic>> submitAttendance({
 List<dynamic> _historyRecords = [];
 List<dynamic> get historyRecords => _historyRecords;
 
+
 Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async {
   _isLoading = true;
   _historyRecords = [];
@@ -616,7 +616,7 @@ Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async
     }
 }
 
-  Future<bool> submitStudentGrade(int recordId, double marks) async {
+  Future<bool> updateStudentGrade(int recordId, double marks) async {
     _isSubmitting = true;
     notifyListeners(); // Tells the UI to render the loading spinner immediately
 
