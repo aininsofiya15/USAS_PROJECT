@@ -138,37 +138,59 @@ class FeesManagementProvider extends ChangeNotifier {
       final data = json.decode(response.body);
 
       if (data['success'] == true) {
-        String blockDateRaw = data['block_date'] ?? "2026-05-18"; 
+        String blockDateRaw = data['block_date'] ?? "";
+        
+        // ✅ Try to parse block date, fallback to current block date or default
+        DateTime parsedBlockDate;
+        if (blockDateRaw.isNotEmpty && blockDateRaw != "null") {
+          try {
+            parsedBlockDate = DateTime.parse(blockDateRaw);
+          } catch (e) {
+            parsedBlockDate = _currentBlockDate ?? DateTime.now();
+          }
+        } else {
+          parsedBlockDate = _currentBlockDate ?? DateTime.now();
+        }
+        
+        // ✅ Update upcomingDueDateStr
+        _updateUpcomingDueDate(parsedBlockDate);
+        
         String paymentStatus = data['payment_status']?.toString().toLowerCase() ?? 'unpaid';
         
         totalCreditsCurrentSem = int.tryParse(data['total_credits']?.toString() ?? '12') ?? 12;
         curriculumProgress = double.tryParse(data['curriculum_progress']?.toString() ?? '0.7') ?? 0.7;
 
-        DateTime parsedBlockDate = DateTime.parse("$blockDateRaw 00:00:00");
-        upcomingDueDateStr = "${DateFormat('d MMMM').format(parsedBlockDate)}\n12:00 AM";
-
-        DateTime currentSystemTime = DateTime.now();
-        if (paymentStatus == 'unpaid' && currentSystemTime.isAfter(parsedBlockDate)) {
+        // ✅ Use the is_blocked from backend instead of calculating here
+        bool isBlockedFromBackend = data['is_blocked'] ?? false;
+        
+        if (isBlockedFromBackend) {
           studentIsBlocked = true;
           _isBlocked = true;
-          _blockMessage = 'Your academic access has been blocked due to unpaid tuition fees.';
+          _blockMessage = data['block_message'] ?? 'Your academic access has been blocked due to unpaid tuition fees.';
         } else {
           studentIsBlocked = false;
           _isBlocked = false;
           _blockMessage = '';
         }
+        
         notifyListeners();
       } else {
         errorMessage = data['message'] ?? 'Backend operation failed validation.';
-        upcomingDueDateStr = "Sync Error";
+        if (_currentBlockDate != null) {
+          _updateUpcomingDueDate(_currentBlockDate!);
+        }
       }
     } else {
       errorMessage = 'Server Error Status Code context: ${response.statusCode}';
-      upcomingDueDateStr = "Sync Error";
+      if (_currentBlockDate != null) {
+        _updateUpcomingDueDate(_currentBlockDate!);
+      }
     }
   } catch (e) {
     errorMessage = 'Network connection thread failure: ${e.toString()}';
-    upcomingDueDateStr = "Offline";
+    if (_currentBlockDate != null) {
+      _updateUpcomingDueDate(_currentBlockDate!);
+    }
     debugPrint("Student Dashboard System Engine Sync Error trace: $e");
   } finally {
     isLoading = false;

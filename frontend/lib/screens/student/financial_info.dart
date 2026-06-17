@@ -271,7 +271,7 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                           .fetchStudentFinancialProfile(user.userId.toString());
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF004D73),
+                      backgroundColor: const Color(0xFF076EFF),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -351,7 +351,7 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                       Navigator.of(context).pop();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: const Color(0xFF076EFF),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -484,7 +484,7 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                   if (!mounted) return;
 
                   String errorMessage = e.toString();
-                  String displayMessage = 'Payment failed. Please try again.';
+                  String displayMessage = 'Payment failed. Unfortunately, your payment was rejected. Please try again.';
                   
                   if (errorMessage.contains('canceled')) {
                     displayMessage = 'Payment was cancelled.';

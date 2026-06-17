@@ -21,6 +21,8 @@ class StudentDashboard extends StatefulWidget {
 }
 
 class _StudentDashboardState extends State<StudentDashboard> {
+  bool _hasShownBlockDialog = false;
+
   @override
   void initState() {
     super.initState();
@@ -28,11 +30,119 @@ class _StudentDashboardState extends State<StudentDashboard> {
       final userId = Provider.of<UserProvider>(context, listen: false).userId;
       final feesProvider = Provider.of<FeesManagementProvider>(context, listen: false);
       
+      feesProvider.fetchBlockDate();
       feesProvider.fetchStudentPortalDashboardData(userId.toString());
       feesProvider.checkBlockStatus(userId.toString());
       Provider.of<ModuleProvider>(context, listen: false)
           .fetchStudentBookings(userId.toString());
     });
+  }
+
+  // ✅ Show Access Blocked Dialog (Replaces the overlay)
+  void _showAccessBlockedDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User cannot dismiss by tapping outside
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Block Icon
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFEBEE),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.block,
+                    color: Colors.red,
+                    size: 56,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Title
+                const Text(
+                  'ACCESS BLOCKED',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                
+                // Message
+                const Text(
+                  'Your academic access has been blocked due to unpaid tuition fees.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'You will be redirected to Tuition Fees page.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Go to Tuition Fees Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close dialog
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const FinancialInfoPage(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0066FF),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Go to Tuition Fees',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -48,223 +158,119 @@ class _StudentDashboardState extends State<StudentDashboard> {
             return const Center(child: CircularProgressIndicator());
           }
 
+          // ✅ Show block dialog automatically if student is blocked
+          if (provider.isBlocked && !_hasShownBlockDialog) {
+            _hasShownBlockDialog = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _showAccessBlockedDialog(context);
+            });
+          }
+
           final moduleProvider = Provider.of<ModuleProvider>(context);
           final claimedModules = moduleProvider.bookedModules
               .where((module) => module.isClaimed == 1)
               .length;
           final curriculumProgress = (claimedModules / 4).clamp(0.0, 1.0).toDouble();
 
-          return Stack(
-            children: [
-              // Main Content
-              SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Welcome ──
-                    Text(
-                      "Welcome, ${widget.name}!",
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // ── Search Bar ──
-                    _buildSearchBar(),
-                    const SizedBox(height: 20),
-
-                    // ── Categories Header ──
-                    _buildSectionTitle("Categories", context),
-                    const SizedBox(height: 10),
-
-                    // ── Categories Grid ──
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(10, 14, 10, 10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFBBD6FF),
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio: 1.5,
-                        children: [
-                          _buildCategoryCard(
-                            "Subject Registration",
-                            "assets/icons/sub_reg.png",
-                            provider.isBlocked,
-                            () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => const StudentSubjectRegistrationPage())),
-                          ),
-                          _buildCategoryCard(
-                            "Curriculum Activity",
-                            "assets/icons/curriculum.png",
-                            provider.isBlocked,
-                            () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => const StudentActivitiesPage())),
-                          ),
-                          _buildCategoryCard(
-                            "Attendance",
-                            "assets/icons/attendance.png",
-                            provider.isBlocked,
-                            () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => const AttendanceDashboard())),
-                          ),
-                          _buildCategoryCard(
-                            "Tuition Fees",
-                            "assets/icons/tuition.png",
-                            false, // Always allow Tuition Fees
-                            () => Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => const FinancialInfoPage())),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // ── Recent Updates Header ──
-                    _buildSectionTitle("Recent Updates", context),
-                    const SizedBox(height: 10),
-
-                    // ── Recent Updates Row ──
-                    SizedBox(
-                      height: 235,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        children: [
-                          _buildProgressCard("Curriculum Progress", curriculumProgress, provider.isBlocked),
-                          _buildStatCard(
-                              "Total Credit\nCurrent Sem",
-                              provider.totalCreditsCurrentSem.toString()),
-                          _buildStatCard(
-                              "Upcoming\nDue Date",
-                              provider.upcomingDueDateStr,
-                              isDate: true),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              ),
-
-              // ── Block Overlay (Matches Prototype) ──
-              if (provider.isBlocked)
-                Container(
-                  color: Colors.black.withOpacity(0.5),
-                  child: Center(
-                    child: Container(
-                      margin: const EdgeInsets.all(30),
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Block Icon (smaller)
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFFEBEE),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.block,
-                              color: Colors.red,
-                              size: 48, // Smaller icon
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          
-                          // Title
-                          const Text(
-                            'ACCESS BLOCKED',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          
-                          // Message (prototype style)
-                          const Text(
-                            'Your academic access has been blocked due to unpaid tuition fees.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black87,
-                              height: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'You will be redirected to Tuition Fees page.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black87,
-                              height: 1.5,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          
-                          // Blue Button
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const FinancialInfoPage(),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF0066FF), // Blue
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
-                                'Go to Tuition Fees',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Welcome ──
+                Text(
+                  "Welcome, ${widget.name}!",
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
-            ],
+                const SizedBox(height: 12),
+
+                // ── Search Bar ──
+                _buildSearchBar(),
+                const SizedBox(height: 20),
+
+                // ── Categories Header ──
+                _buildSectionTitle("Categories", context),
+                const SizedBox(height: 10),
+
+                // ── Categories Grid ──
+                Container(
+                  padding: const EdgeInsets.fromLTRB(10, 14, 10, 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFBBD6FF),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 1.5,
+                    children: [
+                      _buildCategoryCard(
+                        "Subject Registration",
+                        "assets/icons/sub_reg.png",
+                        provider.isBlocked,
+                        () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const StudentSubjectRegistrationPage())),
+                      ),
+                      _buildCategoryCard(
+                        "Curriculum Activity",
+                        "assets/icons/curriculum.png",
+                        provider.isBlocked,
+                        () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const StudentActivitiesPage())),
+                      ),
+                      _buildCategoryCard(
+                        "Attendance",
+                        "assets/icons/attendance.png",
+                        provider.isBlocked,
+                        () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const AttendanceDashboard())),
+                      ),
+                      _buildCategoryCard(
+                        "Tuition Fees",
+                        "assets/icons/tuition.png",
+                        false, // Always clickable
+                        () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const FinancialInfoPage())),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // ── Recent Updates Header ──
+                _buildSectionTitle("Recent Updates", context),
+                const SizedBox(height: 10),
+
+                // ── Recent Updates Row ──
+                SizedBox(
+                  height: 235,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      _buildProgressCard("Curriculum Progress", curriculumProgress, provider.isBlocked),
+                      _buildStatCard(
+                          "Total Credit\nCurrent Sem",
+                          provider.totalCreditsCurrentSem.toString()),
+                      _buildStatCard(
+                          "Upcoming\nDue Date",
+                          provider.upcomingDueDateStr,
+                          isDate: true),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
           );
         },
       ),
@@ -332,13 +338,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
     return InkWell(
       onTap: () {
         if (isBlocked) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Access blocked. Please pay your tuition fees first.'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
-            ),
-          );
+          // Show the block dialog when trying to access blocked categories
+          _showAccessBlockedDialog(context);
         } else {
           onTap();
         }

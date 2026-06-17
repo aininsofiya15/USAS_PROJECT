@@ -673,7 +673,7 @@ class TuitionFeesController extends Controller
         ];
     }
 
-    public function checkBlockStatus(Request $request, $userId)
+    public function checkBlockStatus($userId)
     {
         // 1. Get the latest block setting criteria from the treasurer
         $blockSetting = DB::table('block_settings')

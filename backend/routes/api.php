@@ -170,4 +170,4 @@ Route::get('/notifications/{userId}', [TuitionFeesController::class, 'getUserNot
 Route::post('/notifications/{notificationId}/read', [TuitionFeesController::class, 'markNotificationAsRead']);
 Route::post('/notifications/mark-all-read', [TuitionFeesController::class, 'markAllNotificationsAsRead']);
 Route::post('/notifications/send-block-warnings', [TuitionFeesController::class, 'checkAndSendBlockWarnings']);
-Route::get('/student/check-block/{userId}', [TuitionFeesController::class, 'checkStudentBlockStatus']);
+Route::get('/student/check-block/{userId}', [TuitionFeesController::class, 'checkBlockStatus']);
