@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
+import 'subject_form_page.dart';
+import '../../provider/registrar_subject_provider.dart';
 
 class SubjectDetailsPage extends StatefulWidget {
 
@@ -142,6 +144,54 @@ class _SubjectDetailsPageState
 
                       const SizedBox(
                           height: 20),
+
+                          Row(
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+    ElevatedButton.icon(
+      icon: const Icon(Icons.edit),
+      label: const Text("Edit"),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+      ),
+      onPressed: () {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => SubjectFormPage(
+        subject: subjectDetails,
+      ),
+    ),
+  );
+},
+    ),
+
+    const SizedBox(width: 10),
+
+    ElevatedButton.icon(
+      icon: const Icon(Icons.delete),
+      label: const Text("Deactive"),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.red,
+        foregroundColor: Colors.white,
+      ),
+      onPressed: () async {
+
+  var response =
+      await RegistrarSubjectProvider()
+          .deleteSubject(
+              widget.subject['subject_id']);
+
+  print(response);
+
+  Navigator.pop(context);
+},
+    ),
+  ],
+),
+
+const SizedBox(height: 20),
 
                       SizedBox(
 
