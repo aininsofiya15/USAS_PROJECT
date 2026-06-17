@@ -27,10 +27,9 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
     });
   }
 
-  // Pure mathematical breakdown formula calculating absolute total of actual payment array elements
   double _calculateReceiptTotal(List<dynamic> payments) {
     return payments.fold(0.0, (sum, item) {
-      final double amt = double.tryParse(item['amount']?.toString() ?? '0') ?? 0.0;
+      final double amt = double.tryParse(item['total_payment']?.toString() ?? '0') ?? 0.0;
       return sum + amt;
     });
   }
@@ -104,7 +103,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage> {
                           separatorBuilder: (context, index) => const Divider(color: Colors.black12),
                           itemBuilder: (context, index) {
                             final payment = payments[index];
-                            final double amountValue = double.tryParse(payment['amount']?.toString() ?? '0') ?? 0.0;
+                            final double amountValue = double.tryParse(payment['total_payment']?.toString() ?? '0') ?? 0.0;
 
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 8),

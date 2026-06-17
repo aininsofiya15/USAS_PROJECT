@@ -17,6 +17,8 @@ import '../screens/student/credit_claim_status.dart';
 import '../screens/pusatAdab/credit_application.dart';
 import 'package:USAS/screens/faculty/subject_form_page.dart';
 import '../screens/student/list_registered_subjects.dart';
+import '../screens/student/financial_info.dart'; // ✅ Used for Tuition Fees
+import '../screens/payment_history.dart'; // ✅ Used for Payment History
 
 class AppSidebar extends StatelessWidget {
   const AppSidebar({super.key});
@@ -84,7 +86,8 @@ class AppSidebar extends StatelessWidget {
                       icon: Icon(Icons.notifications_outlined,
                           color: getTextColor(role)),
                       onPressed: () {
-                        // TODO: handle notification tap
+                        Navigator.pop(context);
+                        Navigator.pushNamed(context, '/notifications');
                       },
                     ),
                   ),
@@ -178,16 +181,19 @@ class AppSidebar extends StatelessWidget {
 
                   // ── STUDENT (default) ────────────────────────────────
                   else ...[
+                    // Home
                     _buildMenuItem(context, Icons.home_outlined, "Home", role,
                         destination: const DashboardPage()),
                     _buildDivider(role),
 
+                    // Subject Registration
                     _buildMenuItem(context, Icons.grid_view, "Subject Registration", role,
                         destination: const StudentSubjectRegistrationPage()),
                     _buildSubMenuItem(context, "List of Registered Subjects", role,
                         destination: const ListRegisteredSubjectsPage()),
                     _buildDivider(role),
 
+                    // Curriculum Activity
                     _buildMenuItem(context, Icons.menu_book, "Curriculum Activity", role),
                     _buildSubMenuItem(context, "View My Module", role,
                         destination: MyBookingsPage()),
@@ -197,10 +203,27 @@ class AppSidebar extends StatelessWidget {
                         destination: CreditClaimStatusPage()),
                     _buildDivider(role),
 
+                    // Attendance
                     _buildMenuItem(context, Icons.assignment_turned_in, "Attendance", role),
                     _buildSubMenuItem(context, "Take Attendance", role),
                     _buildSubMenuItem(context, "Attendance History", role,
                         destination: AttendanceDashboard()),
+                    _buildDivider(role),
+
+                    // ✅ Tuition Fees - WITH destination to FinancialInfoPage
+                    _buildMenuItem(
+                      context, 
+                      Icons.payment, 
+                      "Tuition Fees", 
+                      role,
+                      destination: const FinancialInfoPage(), // ✅ Now used!
+                    ),
+                    _buildSubMenuItem(
+                      context, 
+                      "Payment History", 
+                      role,
+                      destination: const PaymentHistoryPage(),
+                    ),
                   ],
                 ],
               ),
@@ -236,6 +259,7 @@ class AppSidebar extends StatelessWidget {
     Widget? destination,
   }) {
     final color = getTextColor(role);
+
     return ListTile(
       dense: true,
       visualDensity: const VisualDensity(vertical: -2),

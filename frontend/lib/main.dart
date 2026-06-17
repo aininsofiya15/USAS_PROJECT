@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'screens/login_page.dart'; 
 import 'screens/student/bank_acc_info.dart';
 import 'screens/payment_history.dart';
+import 'screens/student/notification.dart';
 import 'provider/user_provider.dart';
 import 'provider/treasurer_provider.dart';
 import 'provider/module_provider.dart'; 
@@ -57,6 +58,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/bank_acc_info': (context) => const BankAccountInfoPage(),
         '/payment_history': (context) => const PaymentHistoryPage(),
+        '/notifications': (context) => const NotificationPage(),
       },
     );
   }

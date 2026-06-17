@@ -114,6 +114,7 @@ Route::post('/treasurer/block-settings', [TuitionFeesController::class, 'updateB
 Route::get('/treasurer/report-totals', [TuitionFeesController::class, 'getFinancialReportTotals']);
 Route::get('/treasurer/report/download-pdf', [TuitionFeesController::class, 'downloadFinancialReportPDF']);
 Route::get('/treasurer/report/download-csv', [TuitionFeesController::class, 'downloadFinancialReportCSV']);
+Route::get('/treasurer/block-settings/latest', [TuitionFeesController::class, 'getLatestBlockSettings']);
 
 //STUDENT ROUTES
 Route::get('/student/dashboard-status/{student_id}', [TuitionFeesController::class, 'getStudentDashboardStatus']);
@@ -122,3 +123,6 @@ Route::post('/student/complete-payment', [TuitionFeesController::class, 'complet
 Route::get('/student/payment-history/{userId}', [TuitionFeesController::class, 'getPaymentHistory']); 
 Route::post('/student/update-bank', [TuitionFeesController::class, 'updateStudentBank']);
 Route::post('/tuition/payment-intent', [TuitionFeesController::class, 'generateStripeIntent']);
+Route::get('/notifications/{userId}', [TuitionFeesController::class, 'getUserNotifications']);
+Route::post('/notifications/{notificationId}/read', [TuitionFeesController::class, 'markNotificationAsRead']);
+Route::post('/notifications/mark-all-read', [TuitionFeesController::class, 'markAllNotificationsAsRead']);

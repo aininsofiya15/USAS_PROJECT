@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api.dart'; 
-import 'package:intl/intl.dart'; // Added for Date formatting
+import 'package:intl/intl.dart';
 
 class StudentFeeStatus {
   final int userId;
@@ -46,7 +46,7 @@ class FeesManagementProvider extends ChangeNotifier {
   String currentFilter = 'all';
   String searchQuery = '';
   int unpaidCount = 0;
-  DateTime selectedBlockDate = DateTime.now();
+  DateTime? _currentBlockDate; // ✅ Changed to nullable
   List<dynamic> paymentHistory = [];
   double totalCollectedToday = 1250.50; 
   double totalCollectedThisWeek = 8400.00; 
@@ -59,8 +59,11 @@ class FeesManagementProvider extends ChangeNotifier {
   // --- NEW STUDENT CORE RECENT UPDATES PORTAL STATE VARIABLES ---
   bool studentIsBlocked = false;
   String upcomingDueDateStr = "Loading...";
-  double curriculumProgress = 0.7; // Kept your layout default layout percentage value 
-  int totalCreditsCurrentSem = 12;  // Kept your layout default credit count variable
+  double curriculumProgress = 0.7;
+  int totalCreditsCurrentSem = 12;
+
+  // ✅ Getter for selectedBlockDate
+  DateTime get selectedBlockDate => _currentBlockDate ?? DateTime.now();
 
   double get totalPaidAmount => summary['paid']?.toDouble() ?? 0.0; 
   double get totalOutstandingBalance {
@@ -74,6 +77,44 @@ class FeesManagementProvider extends ChangeNotifier {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
+
+  // ✅ NEW: Fetch block date from database
+  Future<void> fetchBlockDate() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${Api.baseUrl}/treasurer/block-settings/latest'),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['block_date'] != null) {
+          _currentBlockDate = DateTime.parse(data['block_date']);
+          _updateUpcomingDueDate(_currentBlockDate!);
+        } else {
+          _currentBlockDate = DateTime.now();
+          _updateUpcomingDueDate(_currentBlockDate!);
+        }
+      } else {
+        _currentBlockDate = DateTime.now();
+        _updateUpcomingDueDate(_currentBlockDate!);
+      }
+    } catch (e) {
+      print('Error fetching block date: $e');
+      _currentBlockDate = DateTime.now();
+      _updateUpcomingDueDate(_currentBlockDate!);
+    }
+  }
+
+  // ✅ Helper method to update upcomingDueDateStr
+  void _updateUpcomingDueDate(DateTime date) {
+    try {
+      upcomingDueDateStr = "${DateFormat('d MMMM yyyy').format(date)}\n12:00 AM";
+    } catch (e) {
+      upcomingDueDateStr = "Date not set";
+    }
+    notifyListeners();
+  }
 
   Future<void> fetchStudentPortalDashboardData(String studentId) async {
     isLoading = true;
@@ -93,37 +134,55 @@ class FeesManagementProvider extends ChangeNotifier {
         final data = json.decode(response.body);
 
         if (data['success'] == true) {
-          // Extract matching variables directly from database payload elements keys
-          String blockDateRaw = data['block_date'] ?? "2026-05-18"; 
+          String blockDateRaw = data['block_date'] ?? "";
+          
+          // ✅ Try to parse block date, fallback to current block date or default
+          DateTime parsedBlockDate;
+          if (blockDateRaw.isNotEmpty && blockDateRaw != "null") {
+            try {
+              parsedBlockDate = DateTime.parse(blockDateRaw);
+            } catch (e) {
+              parsedBlockDate = _currentBlockDate ?? DateTime.now();
+            }
+          } else {
+            parsedBlockDate = _currentBlockDate ?? DateTime.now();
+          }
+          
+          // ✅ Update upcomingDueDateStr
+          _updateUpcomingDueDate(parsedBlockDate);
+          
           String paymentStatus = data['payment_status']?.toString().toLowerCase() ?? 'unpaid';
           
           totalCreditsCurrentSem = int.tryParse(data['total_credits']?.toString() ?? '12') ?? 12;
           curriculumProgress = double.tryParse(data['curriculum_progress']?.toString() ?? '0.7') ?? 0.7;
 
-          // Parse structural string format safely ("2026-05-18 00:00:00")
-          DateTime parsedBlockDate = DateTime.parse("$blockDateRaw 00:00:00");
-          
-          // Re-format into dashboard view text panel string layout configuration block
-          upcomingDueDateStr = "${DateFormat('d MMMM').format(parsedBlockDate)}\n12:00 AM";
-
-          // Evaluate live runtime system conditions rules
           DateTime currentSystemTime = DateTime.now();
           if (paymentStatus == 'unpaid' && currentSystemTime.isAfter(parsedBlockDate)) {
             studentIsBlocked = true;
           } else {
             studentIsBlocked = false;
           }
+          notifyListeners();
         } else {
           errorMessage = data['message'] ?? 'Backend operation failed validation.';
-          upcomingDueDateStr = "Sync Error";
+          // ✅ Don't set to "Sync Error", keep existing date
+          if (_currentBlockDate != null) {
+            _updateUpcomingDueDate(_currentBlockDate!);
+          }
         }
       } else {
         errorMessage = 'Server Error Status Code context: ${response.statusCode}';
-        upcomingDueDateStr = "Sync Error";
+        // ✅ Don't set to "Sync Error", use current block date
+        if (_currentBlockDate != null) {
+          _updateUpcomingDueDate(_currentBlockDate!);
+        }
       }
     } catch (e) {
       errorMessage = 'Network connection thread failure: ${e.toString()}';
-      upcomingDueDateStr = "Offline";
+      // ✅ Don't set to "Offline" or "Sync Error"
+      if (_currentBlockDate != null) {
+        _updateUpcomingDueDate(_currentBlockDate!);
+      }
       debugPrint("Student Dashboard System Engine Sync Error trace: $e");
     } finally {
       isLoading = false;
@@ -164,7 +223,6 @@ class FeesManagementProvider extends ChangeNotifier {
     }
   }
 
-  // --- ADD THIS METHOD HERE ---
   Future<String?> generateStripePaymentIntent({
     required String studentId, 
     required double amount,
@@ -192,7 +250,6 @@ class FeesManagementProvider extends ChangeNotifier {
           return null;
         }
       } else {
-        // If the backend fails validation or errors out, this cleanly captures the JSON error payload
         final errorData = json.decode(response.body);
         errorMessage = errorData['error'] ?? 'Server Error: ${response.statusCode}';
         return null;
@@ -309,12 +366,14 @@ class FeesManagementProvider extends ChangeNotifier {
         headers: _headers,
         body: json.encode({
           'treasurer_id': treasurerId,
-          'block_start_date': selectedBlockDate.toIso8601String(),
+          'block_start_date': _currentBlockDate?.toIso8601String() ?? DateTime.now().toIso8601String(),
         }),
       );
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
+        // ✅ Refresh block date after saving
+        await fetchBlockDate();
         return responseData['success'] == true;
       } else {
         return false;
@@ -385,7 +444,8 @@ class FeesManagementProvider extends ChangeNotifier {
   }
 
   void updateBlockDate(DateTime date) {
-    selectedBlockDate = date;
+    _currentBlockDate = date;
+    _updateUpcomingDueDate(date);
     notifyListeners();
   }
 
@@ -401,12 +461,21 @@ class FeesManagementProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        paymentHistory = json.decode(response.body);
+        final data = json.decode(response.body);
+        
+        paymentHistory = data.where((payment) {
+          final status = payment['status']?.toString().toLowerCase() ?? '';
+          return status == 'success';
+        }).toList();
+        
+        print('Payment History fetched: ${paymentHistory.length} records');
       } else {
         errorMessage = 'Failed to load payment history';
+        paymentHistory = [];
       }
     } catch (e) {
       errorMessage = 'Network error: ${e.toString()}';
+      paymentHistory = [];
     } finally {
       isLoading = false;
       notifyListeners();
