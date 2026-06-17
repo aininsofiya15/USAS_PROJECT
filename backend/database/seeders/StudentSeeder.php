@@ -11,7 +11,6 @@ class StudentSeeder extends Seeder
 {
     public function run(): void
     {
-        // Prevent foreign key restrictions from deadlocking database modifications
         Schema::disableForeignKeyConstraints();
         DB::table('students')->truncate();
         Schema::enableForeignKeyConstraints();
@@ -52,18 +51,35 @@ class StudentSeeder extends Seeder
         ];
 
         foreach ($studentUsers as $index => $user) {
-            if ($index >= 35) {
+            // ✅ Distribute students across faculties
+            if ($index < 10) {
+                // First 10: Faculty of Computing
                 $facultyName = 'Faculty of Computing';
                 $facultyCourses = $coursesWithPrefixes[$facultyName];
                 $courseName = array_rand($facultyCourses);
                 $coursePrefix = $facultyCourses[$courseName];
+            } elseif ($index < 20) {
+                // Next 10: Faculty of Industrial Sciences and Technology
+                $facultyName = 'Faculty of Industrial Sciences and Technology';
+                $facultyCourses = $coursesWithPrefixes[$facultyName];
+                $courseName = array_rand($facultyCourses);
+                $coursePrefix = $facultyCourses[$courseName];
+            } elseif ($index < 35) {
+                // Next 15: Faculty of Chemical and Process Engineering Technology
+                $facultyName = 'Faculty of Chemical and Process Engineering Technology';
+                $facultyCourses = $coursesWithPrefixes[$facultyName];
+                $courseName = array_rand($facultyCourses);
+                $coursePrefix = $facultyCourses[$courseName];
             } else {
-                $facultyName = array_rand($coursesWithPrefixes);
-                $courseName = array_rand($coursesWithPrefixes[$facultyName]);
-                $coursePrefix = $coursesWithPrefixes[$facultyName][$courseName];
+                // Remaining: Faculty of Electrical and Electronics Engineering Technology
+                $facultyName = 'Faculty of Electrical and Electronics Engineering Technology';
+                $facultyCourses = $coursesWithPrefixes[$facultyName];
+                $courseName = array_rand($facultyCourses);
+                $coursePrefix = $facultyCourses[$courseName];
             }
             
-            $yearIntake = rand(23, 24);
+            // ✅ Distribute intake years (23-25)
+            $yearIntake = rand(23, 25);
             $matricNo = $coursePrefix . $yearIntake . str_pad($index + 1, 3, '0', STR_PAD_LEFT);
             
             $yearPrefix = '0' . rand(1, 4); 
@@ -73,10 +89,9 @@ class StudentSeeder extends Seeder
             $randomDigits = rand(1000, 9999);
             $icNo = $yearPrefix . $month . $day . $stateCode . $randomDigits;
 
-            $currentSemester = rand(1, 4);
+            $currentSemester = rand(1, 6); // Up to Year 3
             $calculatedYear = (int) ceil($currentSemester / 2);
 
-            // Using pure insert since we cleanly truncate at the start of execution now
             DB::table('students')->insert([
                 'id' => $user->id,
                 'student_id' => $matricNo,

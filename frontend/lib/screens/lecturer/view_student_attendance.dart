@@ -10,7 +10,7 @@ import '../../domain/attendance_record.dart';
 
 class ViewStudentAttendance extends StatefulWidget {
   final int attendanceId;
-  final String subjectName; // Will display full concatenated header text
+  final String subjectName; // Will display full concatenated header text or subject name directly
   final String date;
   final String time;
   final String code;
@@ -90,7 +90,7 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
                         ),
                         const SizedBox(height: 20),
 
-                        // Formatted header block
+                        // Formatted dynamic database header block
                         _buildSessionHeader(),
                         const SizedBox(height: 20),
 
@@ -151,11 +151,15 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
   }
 
   Widget _buildSessionHeader() {
-    // Standardizes text rendering structure to always present code + title cleanly
     String displayTitle = widget.subjectName;
-    if (!displayTitle.contains("SECURE SOFTWARE DEVELOPMENT") && displayTitle.contains("BCY3083")) {
+
+    // If the string passed contains just the course code (e.g., "BCI1093"),
+    // check if it matches your specific database subject item to append the name correctly.
+    if (displayTitle.trim() == "BCI1093") {
+      displayTitle = "BCI1093 Algorithm";
+    } else if (displayTitle.trim() == "BCY3083") {
       displayTitle = "BCY3083 SECURE SOFTWARE DEVELOPMENT";
-    } else if (!displayTitle.contains("PENETRATION TESTING") && displayTitle.contains("BCY3073")) {
+    } else if (displayTitle.trim() == "BCY3073") {
       displayTitle = "BCY3073 PENETRATION TESTING";
     }
 
@@ -296,8 +300,8 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         ),
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          final bool? shouldRefresh = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
               builder: (context) => EditStudentAttendance(
@@ -312,6 +316,14 @@ class _ViewStudentAttendanceState extends State<ViewStudentAttendance> {
               ),
             ),
           );
+
+          if ((shouldRefresh == true || shouldRefresh == null) && mounted) {
+            final provider = Provider.of<AttendanceProvider>(context, listen: false);
+            await Future.wait([
+              provider.fetchClassPresentStudent(widget.attendanceId),
+              provider.fetchClassNotPresentStudent(widget.attendanceId),
+            ]);
+          }
         },
         child: const Text("Edit", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
       ),
