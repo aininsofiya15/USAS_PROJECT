@@ -59,13 +59,13 @@ class FeesManagementProvider extends ChangeNotifier {
   bool _isBlocked = false;
   String _blockMessage = '';
   
-  // --- NEW STUDENT CORE RECENT UPDATES PORTAL STATE VARIABLES ---
+  // --- STUDENT CORE RECENT UPDATES PORTAL STATE VARIABLES ---
   bool studentIsBlocked = false;
   String upcomingDueDateStr = "Loading...";
   double curriculumProgress = 0.7;
   int totalCreditsCurrentSem = 12;
 
-  // ✅ Getter for selectedBlockDate
+  // Getter for selectedBlockDate
   DateTime get selectedBlockDate => _currentBlockDate ?? DateTime.now();
   bool get isBlocked => _isBlocked;
   String get blockMessage => _blockMessage;
@@ -82,7 +82,7 @@ class FeesManagementProvider extends ChangeNotifier {
     'Accept': 'application/json',
   };
 
-  // ✅ NEW: Fetch block date from database
+  // Fetch block date from database
   Future<void> fetchBlockDate() async {
     try {
       final response = await http.get(
@@ -110,7 +110,7 @@ class FeesManagementProvider extends ChangeNotifier {
     }
   }
 
-  // ✅ Helper method to update upcomingDueDateStr
+  // Helper method to update upcomingDueDateStr
   void _updateUpcomingDueDate(DateTime date) {
     try {
       upcomingDueDateStr = "${DateFormat('d MMMM yyyy').format(date)}\n12:00 AM";
@@ -121,120 +121,98 @@ class FeesManagementProvider extends ChangeNotifier {
   }
 
   Future<void> fetchStudentPortalDashboardData(String studentId) async {
+  isLoading = true;
+  errorMessage = '';
+  notifyListeners();
+
+  try {
+    final url = '${Api.baseUrl}/student/dashboard-status/$studentId';
+    debugPrint("Hitting dynamic student platform status pipeline via url context: $url");
+
+    final response = await http.get(
+      Uri.parse(url),
+      headers: _headers,
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      if (data['success'] == true) {
+        String blockDateRaw = data['block_date'] ?? "2026-05-18"; 
+        String paymentStatus = data['payment_status']?.toString().toLowerCase() ?? 'unpaid';
+        
+        totalCreditsCurrentSem = int.tryParse(data['total_credits']?.toString() ?? '12') ?? 12;
+        curriculumProgress = double.tryParse(data['curriculum_progress']?.toString() ?? '0.7') ?? 0.7;
+
+        DateTime parsedBlockDate = DateTime.parse("$blockDateRaw 00:00:00");
+        upcomingDueDateStr = "${DateFormat('d MMMM').format(parsedBlockDate)}\n12:00 AM";
+
+        DateTime currentSystemTime = DateTime.now();
+        if (paymentStatus == 'unpaid' && currentSystemTime.isAfter(parsedBlockDate)) {
+          studentIsBlocked = true;
+          _isBlocked = true;
+          _blockMessage = 'Your academic access has been blocked due to unpaid tuition fees.';
+        } else {
+          studentIsBlocked = false;
+          _isBlocked = false;
+          _blockMessage = '';
+        }
+        notifyListeners();
+      } else {
+        errorMessage = data['message'] ?? 'Backend operation failed validation.';
+        upcomingDueDateStr = "Sync Error";
+      }
+    } else {
+      errorMessage = 'Server Error Status Code context: ${response.statusCode}';
+      upcomingDueDateStr = "Sync Error";
+    }
+  } catch (e) {
+    errorMessage = 'Network connection thread failure: ${e.toString()}';
+    upcomingDueDateStr = "Offline";
+    debugPrint("Student Dashboard System Engine Sync Error trace: $e");
+  } finally {
+    isLoading = false;
+    notifyListeners();
+  }
+}
+
+  Future<void> refreshBlockStatus(String userId) async {
+    await checkBlockStatus(userId);
+    await fetchStudentPortalDashboardData(userId);
+  }
+
+  Future<void> fetchDashboardSummary() async {
     isLoading = true;
     errorMessage = '';
+    totalCollectedToday = 1250.50;
+    totalCollectedThisWeek = 8400.00;
     notifyListeners();
 
     try {
-      final url = '${Api.baseUrl}/student/dashboard-status/$studentId';
-      debugPrint("Hitting dynamic student platform status pipeline via url context: $url");
-
       final response = await http.get(
-        Uri.parse(url),
+        Uri.parse('${Api.baseUrl}/treasurer/fees-summary?page=1&per_page=1'),
         headers: _headers,
       );
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
-        if (data['success'] == true) {
-          String blockDateRaw = data['block_date'] ?? "";
-          
-          // ✅ Parse block date
-          DateTime parsedBlockDate;
-          if (blockDateRaw.isNotEmpty && blockDateRaw != "null") {
-            try {
-              parsedBlockDate = DateTime.parse(blockDateRaw);
-            } catch (e) {
-              parsedBlockDate = _currentBlockDate ?? DateTime.now();
-            }
-          } else {
-            parsedBlockDate = _currentBlockDate ?? DateTime.now();
-          }
-          
-          // ✅ Update upcomingDueDateStr
-          _updateUpcomingDueDate(parsedBlockDate);
-          
-          String paymentStatus = data['payment_status']?.toString().toLowerCase() ?? 'unpaid';
-          
-          totalCreditsCurrentSem = int.tryParse(data['total_credits']?.toString() ?? '12') ?? 12;
-          curriculumProgress = double.tryParse(data['curriculum_progress']?.toString() ?? '0.7') ?? 0.7;
-
-          // ✅ Use the is_blocked from backend instead of calculating here
-          bool isBlockedFromBackend = data['is_blocked'] ?? false;
-          
-          if (isBlockedFromBackend) {
-            studentIsBlocked = true;
-            _isBlocked = true;
-            _blockMessage = data['block_message'] ?? 'Your academic access has been blocked due to unpaid tuition fees.';
-          } else {
-            studentIsBlocked = false;
-            _isBlocked = false;
-            _blockMessage = '';
-          }
-          
-          notifyListeners();
-        } else {
-          errorMessage = data['message'] ?? 'Backend operation failed validation.';
-          if (_currentBlockDate != null) {
-            _updateUpcomingDueDate(_currentBlockDate!);
-          }
+        if (data['students'] != null && data['students']['total'] != null) {
+          totalStudents = data['students']['total'];
+        } else if (data['total_students'] != null) {
+          totalStudents = data['total_students'];
         }
       } else {
-        errorMessage = 'Server Error Status Code context: ${response.statusCode}';
-        if (_currentBlockDate != null) {
-          _updateUpcomingDueDate(_currentBlockDate!);
-        }
+        errorMessage = 'Server Error: ${response.statusCode}';
       }
     } catch (e) {
-      errorMessage = 'Network connection thread failure: ${e.toString()}';
-      if (_currentBlockDate != null) {
-        _updateUpcomingDueDate(_currentBlockDate!);
-      }
-      debugPrint("Student Dashboard System Engine Sync Error trace: $e");
+      errorMessage = 'Could not sync total students.';
+      debugPrint("Dashboard Fetch Error: $e");
     } finally {
       isLoading = false;
       notifyListeners();
     }
   }
-
-    Future<void> refreshBlockStatus(String userId) async {
-      await checkBlockStatus(userId);
-      await fetchStudentPortalDashboardData(userId);
-    }
-
-    Future<void> fetchDashboardSummary() async {
-      isLoading = true;
-      errorMessage = '';
-      totalCollectedToday = 1250.50;
-      totalCollectedThisWeek = 8400.00;
-      notifyListeners();
-
-      try {
-        final response = await http.get(
-          Uri.parse('${Api.baseUrl}/treasurer/fees-summary?page=1&per_page=1'),
-          headers: _headers,
-        );
-
-        if (response.statusCode == 200) {
-          final data = json.decode(response.body);
-
-          if (data['students'] != null && data['students']['total'] != null) {
-            totalStudents = data['students']['total'];
-          } else if (data['total_students'] != null) {
-            totalStudents = data['total_students'];
-          }
-        } else {
-          errorMessage = 'Server Error: ${response.statusCode}';
-        }
-      } catch (e) {
-        errorMessage = 'Could not sync total students.';
-        debugPrint("Dashboard Fetch Error: $e");
-      } finally {
-        isLoading = false;
-        notifyListeners();
-      }
-    }
 
   Future<String?> generateStripePaymentIntent({
     required String studentId, 
@@ -397,7 +375,6 @@ class FeesManagementProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         lastNotificationsSent = responseData['notifications_sent'] ?? 0;
-        // ✅ Refresh block date after saving
         await fetchBlockDate();
         return responseData['success'] == true;
       } else {
@@ -578,4 +555,5 @@ class FeesManagementProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
 }

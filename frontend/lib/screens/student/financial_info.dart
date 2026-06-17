@@ -468,6 +468,8 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                     final result = jsonDecode(completeResponse.body);
                     if (result['success'] == true) {
                       await Provider.of<FeesManagementProvider>(context, listen: false)
+                          .refreshBlockStatus(dynamicUserId);
+                      await Provider.of<FeesManagementProvider>(context, listen: false)
                           .fetchStudentFinancialProfile(dynamicUserId);
 
                       if (!mounted) return;

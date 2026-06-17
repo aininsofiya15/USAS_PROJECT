@@ -7,15 +7,12 @@ import '../../widgets/app_sidebar.dart';
 import 'financial_info.dart';
 import '../../provider/manage_fees_provider.dart';
 import '../../provider/module_provider.dart';
-import '../../provider/student_subject_provider.dart';
 import '../../provider/user_provider.dart';
 import 'attendance_records.dart';
 import 'module_booking.dart';
 import 'subject_registration.dart';
 
-// Student dashboard main page
 class StudentDashboard extends StatefulWidget {
-   // Logged-in student name
   final String name;
   const StudentDashboard({super.key, required this.name});
 
@@ -24,119 +21,18 @@ class StudentDashboard extends StatefulWidget {
 }
 
 class _StudentDashboardState extends State<StudentDashboard> {
-  bool _hasShownBlockDialog = false;
-  final StudentSubjectProvider _studentSubjectProvider = StudentSubjectProvider();
-  int _registeredSubjectCredits = 0;
-
   @override
   void initState() {
-
-     // Load dashboard data after page is rendered
     super.initState();
-
-    // Retrieve dashboard information
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = Provider.of<UserProvider>(context, listen: false).userId;
       final feesProvider = Provider.of<FeesManagementProvider>(context, listen: false);
-      feesProvider.fetchBlockDate();
+      
       feesProvider.fetchStudentPortalDashboardData(userId.toString());
-      feesProvider.checkBlockStatus(userId.toString()); 
+      feesProvider.checkBlockStatus(userId.toString());
       Provider.of<ModuleProvider>(context, listen: false)
           .fetchStudentBookings(userId.toString());
-      _loadRegisteredSubjectCredits(userId);
     });
-  }
-
-  Future<void> _loadRegisteredSubjectCredits(int userId) async {
-    try {
-      final subjects = await _studentSubjectProvider.fetchRegisteredSubjects(userId);
-      final totalCredit = subjects.fold<int>(
-        0,
-        (sum, subject) => sum + subject.creditHours,
-      );
-
-      if (!mounted) return;
-      setState(() => _registeredSubjectCredits = totalCredit);
-    } catch (e) {
-      debugPrint("Failed to load registered subject credits: $e");
-    }
-  }
-
-// Display access blocked dialog for students with unpaid fees
-  void _showAccessBlockedDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFFFEBEE),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.block,
-                    color: Colors.red,
-                    size: 48,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  "ACCESS BLOCKED",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  "Your academic access has been blocked due to unpaid tuition fees.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  "You will be redirected to Tuition Fees page.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  height: 45,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => const FinancialInfoPage()));
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0066FF),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      "Go to Tuition Fees",
-                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 5),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -146,20 +42,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
-      // Listen for dashboard updates
       body: Consumer<FeesManagementProvider>(
         builder: (context, provider, child) {
-          // Show loading indicator while data is loading
           if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
-          }
-
-          // ✅ Show block dialog automatically if student is blocked
-          if (provider.studentIsBlocked && !_hasShownBlockDialog) {
-            _hasShownBlockDialog = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _showAccessBlockedDialog(context);
-            });
           }
 
           final moduleProvider = Provider.of<ModuleProvider>(context);
@@ -168,149 +54,219 @@ class _StudentDashboardState extends State<StudentDashboard> {
               .length;
           final curriculumProgress = (claimedModules / 4).clamp(0.0, 1.0).toDouble();
 
-          return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Welcome ──
-                Text(
-                  "Welcome, ${widget.name}!",
-                  style: const TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+          return Stack(
+            children: [
+              // Main Content
+              SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Welcome ──
+                    Text(
+                      "Welcome, ${widget.name}!",
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // ── Search Bar ──
+                    _buildSearchBar(),
+                    const SizedBox(height: 20),
+
+                    // ── Categories Header ──
+                    _buildSectionTitle("Categories", context),
+                    const SizedBox(height: 10),
+
+                    // ── Categories Grid ──
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(10, 14, 10, 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFBBD6FF),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: GridView.count(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 1.5,
+                        children: [
+                          _buildCategoryCard(
+                            "Subject Registration",
+                            "assets/icons/sub_reg.png",
+                            provider.isBlocked,
+                            () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) => const StudentSubjectRegistrationPage())),
+                          ),
+                          _buildCategoryCard(
+                            "Curriculum Activity",
+                            "assets/icons/curriculum.png",
+                            provider.isBlocked,
+                            () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) => const StudentActivitiesPage())),
+                          ),
+                          _buildCategoryCard(
+                            "Attendance",
+                            "assets/icons/attendance.png",
+                            provider.isBlocked,
+                            () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) => const AttendanceDashboard())),
+                          ),
+                          _buildCategoryCard(
+                            "Tuition Fees",
+                            "assets/icons/tuition.png",
+                            false, // Always allow Tuition Fees
+                            () => Navigator.push(context,
+                                MaterialPageRoute(builder: (_) => const FinancialInfoPage())),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // ── Recent Updates Header ──
+                    _buildSectionTitle("Recent Updates", context),
+                    const SizedBox(height: 10),
+
+                    // ── Recent Updates Row ──
+                    SizedBox(
+                      height: 235,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        children: [
+                          _buildProgressCard("Curriculum Progress", curriculumProgress, provider.isBlocked),
+                          _buildStatCard(
+                              "Total Credit\nCurrent Sem",
+                              provider.totalCreditsCurrentSem.toString()),
+                          _buildStatCard(
+                              "Upcoming\nDue Date",
+                              provider.upcomingDueDateStr,
+                              isDate: true),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 ),
-                const SizedBox(height: 12),
+              ),
 
-                // ── Search Bar ──
-                _buildSearchBar(),
-                const SizedBox(height: 20),
-
-                // ── Categories Header ──
-                _buildSectionTitle("Categories", context),
-                const SizedBox(height: 10),
-
-                // ── Categories Grid ──
+              // ── Block Overlay (Matches Prototype) ──
+              if (provider.isBlocked)
                 Container(
-                  padding: const EdgeInsets.fromLTRB(10, 14, 10, 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFBBD6FF),
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1.5,
-                    children: [
-                      _buildCategoryCard(
-                        "Subject Registration",
-                        "assets/icons/sub_reg.png",
-                        provider.studentIsBlocked,
-                        () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const StudentSubjectRegistrationPage())),
+                  color: Colors.black.withOpacity(0.5),
+                  child: Center(
+                    child: Container(
+                      margin: const EdgeInsets.all(30),
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
-                      _buildCategoryCard(
-                        "Curriculum Activity",
-                        "assets/icons/curriculum.png",
-                        provider.studentIsBlocked,
-                        () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const StudentActivitiesPage())),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Block Icon (smaller)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFFFEBEE),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.block,
+                              color: Colors.red,
+                              size: 48, // Smaller icon
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // Title
+                          const Text(
+                            'ACCESS BLOCKED',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          
+                          // Message (prototype style)
+                          const Text(
+                            'Your academic access has been blocked due to unpaid tuition fees.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'You will be redirected to Tuition Fees page.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                              height: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          
+                          // Blue Button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const FinancialInfoPage(),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0066FF), // Blue
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Go to Tuition Fees',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      _buildCategoryCard(
-                        "Attendance",
-                        "assets/icons/attendance.png",
-                        provider.studentIsBlocked,
-                        () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const AttendanceDashboard())),
-                      ),
-                      _buildCategoryCard(
-                        "Tuition Fees",
-                        "assets/icons/tuition.png",
-                        false, // ✅ Always clickable
-                        () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const FinancialInfoPage())),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-
-                const SizedBox(height: 24),
-
-                // ── Recent Updates Header ──
-                _buildSectionTitle("Recent Updates", context),
-                const SizedBox(height: 10),
-
-                // ── Recent Updates Row ──
-                SizedBox(
-                  height: 235,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    children: [
-                      _buildProgressCard("Curriculum Progress", curriculumProgress, provider.studentIsBlocked),
-                      _buildStatCard(
-                          "Total Credit\nCurrent Sem",
-                          provider.totalCreditsCurrentSem.toString()),
-                      _buildUpcomingDueDateCard(provider.upcomingDueDateStr), 
-                    ],
-                  ),
-                ),
-                
-                const SizedBox(height: 16),
-              ],
-            ),
+            ],
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildUpcomingDueDateCard(String value) {
-    return Container(
-      width: 155,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.black.withOpacity(0.07), width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
-            child: const Text(
-              "Upcoming\nDue Date",
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-                color: Colors.black87,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Divider(thickness: 0.5, height: 1, color: Color(0x22000000)),
-          ),
-          Expanded(
-            child: Center(
-              child: Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                  height: 1.2,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -376,7 +332,13 @@ class _StudentDashboardState extends State<StudentDashboard> {
     return InkWell(
       onTap: () {
         if (isBlocked) {
-          _showAccessBlockedDialog(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Access blocked. Please pay your tuition fees first.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
         } else {
           onTap();
         }
@@ -388,9 +350,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 2))
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            )
           ],
         ),
         child: Column(
@@ -525,9 +488,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
                         child: const Text(
                           "Add Module",
                           style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600),
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -561,9 +525,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   const Text(
                     "Completed!",
                     style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF2196F3),
-                        fontWeight: FontWeight.bold),
+                      fontSize: 11,
+                      color: Color(0xFF2196F3),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
               ],
             ),
@@ -591,7 +556,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
             child: Text(
               title,
               style: const TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: 12, color: Colors.black87),
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                color: Colors.black87,
+              ),
               textAlign: TextAlign.center,
             ),
           ),

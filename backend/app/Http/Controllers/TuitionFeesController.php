@@ -312,7 +312,6 @@ class TuitionFeesController extends Controller
 
     /**
      * Send Payment Reminder & Block Warning to unpaid students
-     * Returns the number of notifications sent
      */
     private function sendNotificationsToUnpaidStudents($blockDate)
     {
@@ -672,6 +671,49 @@ class TuitionFeesController extends Controller
             'college' => $college,
             'room_number' => $roomNumber
         ];
+    }
+
+    public function checkBlockStatus(Request $request, $userId)
+    {
+        // 1. Get the latest block setting criteria from the treasurer
+        $blockSetting = DB::table('block_settings')
+                        ->orderBy('block_date', 'desc')
+                        ->first();
+
+        if (!$blockSetting) {
+            return response()->json(['is_blocked' => false]);
+        }
+
+        // 2. Check if today's date has reached or passed the deadline restriction
+        $today = date('Y-m-d');
+        $isPastDeadline = ($today >= $blockSetting->block_date);
+
+        // 🌟 FIX: Find the alphanumeric matric string (student_id) using the incoming numerical User ID
+        $matricId = DB::table('students')->where('id', $userId)->value('student_id');
+
+        if (!$matricId) {
+            return response()->json([
+                'is_blocked' => false,
+                'message' => 'Student record matching ID context not found.'
+            ]);
+        }
+
+        // 3. Look up if this student still has remaining balances using the correct Matric ID string
+        $studentFee = DB::table('fees')
+                        ->where('student_id', $matricId)
+                        ->first();
+
+        // 4. Evaluate true block conditions (Case-insensitive match check for safety)
+        $hasUnpaidBalance = $studentFee && ($studentFee->outstanding_amount > 0 || strtolower($studentFee->status) !== 'paid');
+
+        if ($isPastDeadline && $hasUnpaidBalance) {
+            return response()->json([
+                'is_blocked' => true,
+                'message' => 'Your academic access has been blocked due to unpaid tuition fees.'
+            ]);
+        }
+
+        return response()->json(['is_blocked' => false]);
     }
 
     public function getFinancialReportTotals(Request $request)

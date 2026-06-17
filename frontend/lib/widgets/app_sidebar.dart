@@ -1,10 +1,10 @@
 import 'package:USAS/screens/dashboard.dart';
-import 'package:USAS/screens/student/attendance_dashboard.dart';
 import 'package:flutter/material.dart';
 import '../screens/pusatAdab/module_form.dart';
 import '../screens/pusatAdab/view_module.dart';
 import 'package:provider/provider.dart';
 import '../provider/user_provider.dart';
+import '../provider/manage_fees_provider.dart';
 import '../screens/student/module_booking.dart';
 import 'package:USAS/screens/faculty/subject_registration_page.dart';
 import '../screens/student/my_module_booking.dart';
@@ -15,8 +15,7 @@ import '../screens/student/credit_claim_status.dart';
 import '../screens/pusatAdab/credit_application.dart';
 import 'package:USAS/screens/faculty/subject_form_page.dart';
 import '../screens/student/list_registered_subjects.dart';
-import '../screens/student/financial_info.dart'; // ✅ Used for Tuition Fees
-import '../screens/payment_history.dart'; // ✅ Used for Payment History
+import '../screens/payment_history.dart';
 
 class AppSidebar extends StatelessWidget {
   const AppSidebar({super.key});
@@ -55,11 +54,18 @@ class AppSidebar extends StatelessWidget {
         : const Color.fromARGB(100, 255, 255, 255);
   }
 
+  // ✅ Check if student is blocked
+  bool _isStudentBlocked(BuildContext context) {
+    final feesProvider = Provider.of<FeesManagementProvider>(context, listen: false);
+    return feesProvider.isBlocked;
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<UserProvider>(context);
     final String name = user.name;
     final String role = user.role;
+    final isBlocked = _isStudentBlocked(context);
 
     return Drawer(
       child: Container(
@@ -107,6 +113,7 @@ class AppSidebar extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        // ❌ REMOVED: BLOCKED badge under name
                       ],
                     ),
                   ),
@@ -179,48 +186,114 @@ class AppSidebar extends StatelessWidget {
 
                   // ── STUDENT (default) ────────────────────────────────
                   else ...[
-                    // Home
-                    _buildMenuItem(context, Icons.home_outlined, "Home", role,
-                        destination: const DashboardPage()),
+                    // ✅ Home - ALWAYS clickable
+                    _buildMenuItem(
+                      context, 
+                      Icons.home_outlined, 
+                      "Home", 
+                      role,
+                      destination: const DashboardPage(),
+                      isBlocked: false, // Always allowed
+                    ),
                     _buildDivider(role),
 
-                    // Subject Registration
-                    _buildMenuItem(context, Icons.grid_view, "Subject Registration", role,
-                        destination: const StudentSubjectRegistrationPage()),
-                    _buildSubMenuItem(context, "List of Registered Subjects", role,
-                        destination: const ListRegisteredSubjectsPage()),
+                    // ✅ Subject Registration - Unclickable when blocked (not grayed out)
+                    _buildMenuItem(
+                      context, 
+                      Icons.grid_view, 
+                      "Subject Registration", 
+                      role,
+                      destination: const StudentSubjectRegistrationPage(),
+                      isBlocked: isBlocked,
+                      disableGray: true, // Don't gray out
+                    ),
+                    _buildSubMenuItem(
+                      context, 
+                      "List of Registered Subjects", 
+                      role,
+                      destination: const ListRegisteredSubjectsPage(),
+                      isBlocked: isBlocked,
+                      disableGray: true,
+                    ),
                     _buildDivider(role),
 
-                    // Curriculum Activity
-                    _buildMenuItem(context, Icons.menu_book, "Curriculum Activity", role),
-                    _buildSubMenuItem(context, "View My Module", role,
-                        destination: MyBookingsPage()),
-                    _buildSubMenuItem(context, "Module Booking", role,
-                        destination: StudentActivitiesPage()),
-                    _buildSubMenuItem(context, "Claim Credit Status", role,
-                        destination: CreditClaimStatusPage()),
+                    // ✅ Curriculum Activity - Unclickable when blocked (not grayed out)
+                    _buildMenuItem(
+                      context, 
+                      Icons.menu_book, 
+                      "Curriculum Activity", 
+                      role,
+                      isBlocked: isBlocked,
+                      disableGray: true,
+                    ),
+                    _buildSubMenuItem(
+                      context, 
+                      "View My Module", 
+                      role,
+                      destination: MyBookingsPage(),
+                      isBlocked: isBlocked,
+                      disableGray: true,
+                    ),
+                    _buildSubMenuItem(
+                      context, 
+                      "Module Booking", 
+                      role,
+                      destination: StudentActivitiesPage(),
+                      isBlocked: isBlocked,
+                      disableGray: true,
+                    ),
+                    _buildSubMenuItem(
+                      context, 
+                      "Claim Credit Status", 
+                      role,
+                      destination: CreditClaimStatusPage(),
+                      isBlocked: isBlocked,
+                      disableGray: true,
+                    ),
                     _buildDivider(role),
 
-                    // Attendance
-                    _buildMenuItem(context, Icons.assignment_turned_in, "Attendance", role),
-                    _buildSubMenuItem(context, "Take Attendance", role),
-                    _buildSubMenuItem(context, "Attendance History", role,
-                        destination: AttendanceDashboard()),
+                    // ✅ Attendance - Unclickable when blocked (not grayed out)
+                    _buildMenuItem(
+                      context, 
+                      Icons.assignment_turned_in, 
+                      "Attendance", 
+                      role,
+                      isBlocked: isBlocked,
+                      disableGray: true,
+                    ),
+                    _buildSubMenuItem(
+                      context, 
+                      "Module Attendance", 
+                      role,
+                      destination: const AddModuleAttendancePage(),
+                      isBlocked: isBlocked,
+                      disableGray: true,
+                    ),
+                    _buildSubMenuItem(
+                      context, 
+                      "Attendance Records", 
+                      role,
+                      destination: const ModuleAttendanceSelectionPage(),
+                      isBlocked: isBlocked,
+                      disableGray: true,
+                    ),
                     _buildDivider(role),
 
-                    // ✅ Tuition Fees - WITH destination to FinancialInfoPage
+                    // ✅ Tuition Fees - ALWAYS clickable (even when blocked) with highlight
                     _buildMenuItem(
                       context, 
                       Icons.payment, 
                       "Tuition Fees", 
                       role,
-                      destination: const FinancialInfoPage(), // ✅ Now used!
+                      isBlocked: false, // Always allowed
+                      isHighlighted: isBlocked, // Highlight when blocked
                     ),
                     _buildSubMenuItem(
                       context, 
                       "Payment History", 
                       role,
                       destination: const PaymentHistoryPage(),
+                      isBlocked: false, // Always allowed
                     ),
                   ],
                 ],
@@ -255,31 +328,55 @@ class AppSidebar extends StatelessWidget {
     String role, {
     bool isLogout = false,
     Widget? destination,
+    bool isBlocked = false,
+    bool isHighlighted = false,
+    bool disableGray = false, // ✅ New parameter to prevent graying out
   }) {
     final color = getTextColor(role);
+    final isDisabled = isBlocked && !isLogout;
+    
+    // If disableGray is true, use normal color even when disabled
+    final textColor = (isDisabled && !disableGray) ? Colors.grey.shade500 : color;
+    final iconColor = (isDisabled && !disableGray) ? Colors.grey.shade500 : color;
 
     return ListTile(
       dense: true,
       visualDensity: const VisualDensity(vertical: -2),
-      leading: Icon(icon, color: color, size: 22),
+      leading: Icon(
+        icon, 
+        color: iconColor, 
+        size: 22
+      ),
       title: Text(
         title,
         style: TextStyle(
-          color: color,
+          color: textColor,
           fontSize: 20,
           fontWeight: isLogout ? FontWeight.bold : FontWeight.w600,
           letterSpacing: isLogout ? 0.5 : 0,
         ),
       ),
+      tileColor: isHighlighted ? Colors.blue.withOpacity(0.2) : null,
       onTap: () {
         if (isLogout) {
           Navigator.pushReplacementNamed(context, '/');
+        } else if (isDisabled) {
+          // Show blocked message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Access blocked. Please pay your tuition fees first.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
         } else if (destination != null) {
           Navigator.pop(context);
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => destination),
           );
+        } else {
+          Navigator.pop(context);
         }
       },
     );
@@ -291,17 +388,37 @@ class AppSidebar extends StatelessWidget {
     String title,
     String role, {
     Widget? destination,
+    bool isBlocked = false,
+    bool disableGray = false, // ✅ New parameter to prevent graying out
   }) {
     final color = getTextColor(role);
+    final isDisabled = isBlocked;
+    
+    // If disableGray is true, use normal color even when disabled
+    final textColor = (isDisabled && !disableGray) ? Colors.grey.shade500 : color;
+    final lineColor = (isDisabled && !disableGray) ? Colors.grey.shade500 : color.withOpacity(0.45);
 
     return InkWell(
       onTap: () {
+        if (isDisabled) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Access blocked. Please pay your tuition fees first.'),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+          return;
+        }
+        
         if (destination != null) {
           Navigator.pop(context);
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => destination),
           );
+        } else {
+          Navigator.pop(context);
         }
       },
       child: Padding(
@@ -313,20 +430,20 @@ class AppSidebar extends StatelessWidget {
             Container(
               width: 2,
               height: 36,
-              color: color.withOpacity(0.45),
+              color: lineColor,
             ),
             // Horizontal branch line
             Container(
               width: 14,
               height: 2,
-              color: color.withOpacity(0.45),
+              color: lineColor,
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 title,
                 style: TextStyle(
-                  color: color,
+                  color: textColor,
                   fontSize: 13.5,
                   fontWeight: FontWeight.w500,
                 ),
