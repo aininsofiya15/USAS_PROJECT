@@ -6,6 +6,7 @@ import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../provider/attendance_provider.dart';
 import 'release_attendance.dart';
+import 'lecturer_dashboard.dart';
 
 class GenerateAttendanceCode extends StatefulWidget {
   final String subjectName;
@@ -48,7 +49,6 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
     setState(() => _isFetchingLocation = true);
     
     try {
-      // 1. Verify if device system level location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
@@ -59,7 +59,6 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
         return;
       }
 
-      // 2. Validate application system permission locks
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -73,11 +72,10 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
       }
 
       if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-        // 3. 🔑 FIX: Clear old system coordinate caches to force a real satellite update
         Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.best, // High accuracy can still fallback to cache; "best" forces optimal resolution
-          forceAndroidLocationManager: true,       // 🔑 Forces system to bypass network approximation and hit actual hardware GPS
-          timeLimit: const Duration(seconds: 12),  // Failsafe so the loader spinner doesn't freeze the screen forever
+          desiredAccuracy: LocationAccuracy.best, 
+          forceAndroidLocationManager: true,       
+          timeLimit: const Duration(seconds: 12),  
         );
 
         if (mounted) {
@@ -104,6 +102,7 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
     }
   }
 
+  // --- FORM SUBMISSION HANDLING WITH DUPLICATE CHECK MANAGEMENT ---
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       if (_currentLat == null || _currentLong == null) {
@@ -113,9 +112,16 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
         return;
       }
 
+      // 1. Show loading overlay while checking backend validation rules
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
       final provider = Provider.of<AttendanceProvider>(context, listen: false);
 
-      final String? generatedCode = await provider.generateAttendance(
+      final String? responseCode = await provider.generateAttendance(
         sectionId: widget.sectionId,
         labName: _selectedLab,
         lat: _currentLat!, 
@@ -124,7 +130,16 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
         time: _timeController.text,
       );
 
-      if (generatedCode != null && mounted) {
+      if (!mounted) return;
+      Navigator.pop(context); // Dismiss loading overlay spinner
+
+      // 2. INTERCEPT DUPLICATE: Show warning modal instantly on this page!
+      if (responseCode == "DUPLICATE") {
+        _showDuplicateWarningDialog(context);
+      } 
+      
+      // 3. SUCCESS: Proceed to release page only if code is unique
+      else if (responseCode != null) {
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -133,12 +148,76 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
               sectionNo: widget.sectionNo,
               date: _dateController.text,
               time: _timeController.text,
-              code: generatedCode,
+              code: responseCode,
             ),
           ),
         );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to process transaction. Please try again."), backgroundColor: Colors.red),
+        );
       }
     }
+  }
+
+  void _showDuplicateWarningDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.warning_rounded,
+                  color: Colors.red,
+                  size: 60,
+                ),
+                const SizedBox(height: 15),
+                const Text(
+                  "An attendance code for this class session has already been released.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // Return to the first route in the stack, typically the dashboard
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF22C55E),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      "Back to Dashboard",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -159,7 +238,7 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(15),
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                boxShadow: [const BoxShadow(color: Colors.black12, blurRadius: 10)],
               ),
               child: Form(
                 key: _formKey,
@@ -195,7 +274,6 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
                       ],
                     ),
                     
-                    // Display the coordinates if they exist
                     if (_currentLat != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),

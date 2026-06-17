@@ -24,8 +24,9 @@ class Api {
 
   static const String submitCreditClaim = "$baseUrl/credit-claims/submit";
   static String checkCreditStatus(String studentId) => "$baseUrl/credit-claims/status/$studentId";
+  
   // Attendance 
-  static const String lecturerSubjects = "$baseUrl/lecturer/subjects";
+static String lecturerSubjects(int lecturerId) => "$baseUrl/lecturer/subjects/$lecturerId";
   static const String generateAttendance = "$baseUrl/attendance/store";
   static const String updateAttendance = "$baseUrl/update-attendance";
   static String moduleDetails(int moduleId) => "$baseUrl/modules/$moduleId/details";
