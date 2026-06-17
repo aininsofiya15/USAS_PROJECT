@@ -15,13 +15,11 @@ class Subject {
 
   factory Subject.fromJson(Map<String, dynamic> json) {
     return Subject(
-      // 1. Convert to string first, then parse to int, fallback to 0
-      subjectId: int.tryParse(json['subject_id']?.toString() ?? '0') ?? 0,
-      // 2. Use ?.toString() ?? '' to ensure it's never a Null type
-      subjectCode: json['subject_code']?.toString() ?? 'N/A',
-      subjectName: json['subject_name']?.toString() ?? 'Unknown Subject',
-      sectionId: int.tryParse(json['section_id']?.toString() ?? '0') ?? 0,
-      sectionNo: json['section_no']?.toString() ?? '00',
+      subjectId: json['subject_id'] ?? 0,
+      subjectCode: json['subject_code'] ?? '',
+      subjectName: json['subject_name'] ?? '',
+      sectionId: json['section_id'] ?? 0,
+      sectionNo: json['section_no'] ?? '',
     );
   }
 }

@@ -57,37 +57,33 @@ class AttendanceProvider with ChangeNotifier {
 
   /// Fetches subjects for academic classes
   Future<void> fetchLecturerSubjects(int lecturerId) async {
-    // If ID is 0, don't even try the request
-    if (lecturerId == 0) {
-      debugPrint("Error: Lecturer ID is 0. Check Login/UserProvider.");
-      return;
-    }
-
     _isLoading = true;
     notifyListeners();
 
+    // 🔑 Uses 10.0.2.2 to bridge back to your computer's 127.0.0.1 environment from the emulator
+    final String url = "http://10.0.2.2:8000/api/lecturer/subjects/$lecturerId";
+
     try {
-      final response = await http.get(
-        Uri.parse("${Api.lecturerSubjects}?user_id=$lecturerId"),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      );
+      final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        final List<dynamic> subjectList = data['data'];
-        _subjects = subjectList.map((json) => Subject.fromJson(json)).toList();
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        if (responseData['success'] == true) {
+          final List<dynamic> dataList = responseData['data'];
+          _subjects = dataList.map((item) => Subject.fromJson(item)).toList();
+        }
+      } else {
+        debugPrint("Server error status code: ${response.statusCode}");
       }
-    } catch (e) {
-      debugPrint("Network Error: ${e.toString()}");
+    } catch (error) {
+      debugPrint("Network exception encountered during fetch: $error");
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
+  
   Future<void> fetchLabsForSection(int sectionId) async {
     _isLoading = true;
     _availableLabs = [];

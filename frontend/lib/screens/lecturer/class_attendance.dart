@@ -21,16 +21,14 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
     super.initState();
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // 1. Get the current logged-in user from your Auth/User Provider
       final authProvider = Provider.of<UserProvider>(context, listen: false);
       final int? currentLecturerId = authProvider.userId;
 
-      // 2. Pass that dynamic ID to the fetch function
       if (currentLecturerId != null) {
         Provider.of<AttendanceProvider>(context, listen: false)
             .fetchLecturerSubjects(currentLecturerId);
       } else {
-        debugPrint("Error: No logged-in user found.");
+        debugPrint("Error: No valid logged-in lecturer profile identified.");
       }
     });
   }
@@ -49,10 +47,15 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
           }
 
           if (provider.subjects.isEmpty) {
-            return const Center(child: Text("No assigned subjects found."));
+            return const Center(
+              child: Text(
+                "No assigned subjects or sections found.",
+                style: TextStyle(fontSize: 14, color: Colors.black54, fontWeight: FontWeight.w500),
+              ),
+            );
           }
 
-          // FIX: Group the flat subjects into a Map so we can show 1 Card per Subject
+          // Group flat backend records by unique subject IDs
           final Map<int, List<Subject>> groupedSubjects = {};
           for (var s in provider.subjects) {
             groupedSubjects.putIfAbsent(s.subjectId, () => []).add(s);
@@ -63,12 +66,12 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
             child: Column(
               children: [
                 const Text(
-                  "Attendance",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  "Attendance Panel",
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
                 ),
                 const SizedBox(height: 25),
                 
-                // Use the entries of the grouped Map to build cards
+                // Build subject cards dynamically
                 ...groupedSubjects.entries.map((entry) {
                   final List<Subject> subjectSections = entry.value;
                   return _buildSubjectCard(subjectSections);
@@ -81,9 +84,8 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
     );
   }
 
-  // FIX: This now accepts a List of Subject objects (all belonging to the same ID)
   Widget _buildSubjectCard(List<Subject> sections) {
-    final first = sections.first;
+    final firstSubject = sections.first;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -100,6 +102,7 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
       ),
       child: Column(
         children: [
+          // Header Row for Subject Metadata
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
@@ -107,20 +110,21 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
               border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
             ),
             child: Text(
-              "${first.subjectCode} ${first.subjectName}",
+              "${firstSubject.subjectCode} ${firstSubject.subjectName}".toUpperCase(),
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Color(0xFF3F51B5),
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
+                letterSpacing: 0.5,
               ),
             ),
           ),
           
+          // Section interaction buttons
           Padding(
             padding: const EdgeInsets.all(15.0),
             child: Column(
-              // FIX: We map the 'sections' list we created in the build method
               children: sections.map((sec) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10),
@@ -142,7 +146,7 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF007BFF),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -150,7 +154,7 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
                       ),
                       child: Text(
                         "SECTION ${sec.sectionNo}",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0),
                       ),
                     ),
                   ),

@@ -5,7 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TuitionFeesController;
 use App\Http\Controllers\Api\ModuleController;
 use App\Http\Controllers\Api\BookingController;
-use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Api\AttendanceRecordController;
 use App\Models\Subject; 
 use App\Http\Controllers\Api\RegistrarSubjectController;
@@ -40,12 +40,9 @@ Route::post('/pusat-adab/credit-claims/{id}/approve', [CreditController::class, 
 // 10. Route to reject a credit claim (Pusat Adab)
 Route::post('/pusat-adab/credit-claims/{id}/reject', [CreditController::class, 'rejectClaim']);
 
-<<<<<<< Updated upstream
 //--------------------------------------------------------------------------------------------------------------------//
-=======
 
 // STUDENT ROUTES
->>>>>>> Stashed changes
 //AININ 
 // -------------------Student Routes----------------------------------------------------
 
@@ -80,8 +77,11 @@ Route::get('/total-subjects', function () { return response()->json(['totalSubje
 
 //WIDA
 //LECTURER ROUTES
-Route::get('/lecturer/subjects', [AttendanceController::class, 'getLecturerSubjects']);
-Route::get('/sections/{sectionId}/labs', [App\Http\Controllers\Api\AttendanceController::class, 'getSectionLabs']);
+// Fetch all subjects and sections assigned to a lecturer
+Route::get('/lecturer/subjects/{lecturerId}', [AttendanceController::class, 'getLecturerSubjects']);
+
+// Other attendance-related endpoints
+Route::get('/sections/{sectionId}/labs', [AttendanceController::class, 'getSectionLabs']);
 Route::post('/attendance/store', [AttendanceController::class, 'store']);
 Route::get('/lecturer/{lecturerId}/attendance-history', [AttendanceController::class, 'getAttendanceHistory']);
 Route::get('/attendance/{id}', [AttendanceController::class, 'getDetails']);

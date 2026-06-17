@@ -43,32 +43,64 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
     });
   }
 
-  // --- LOGIC: Fetch Current GPS ---
+  // --- LOGIC: Fetch Current GPS (Accurate & Forced Update) ---
   Future<void> _getCurrentLocation() async {
     setState(() => _isFetchingLocation = true);
     
     try {
+      // 1. Verify if device system level location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please enable device Location services/GPS toggle!"), backgroundColor: Colors.orange),
+          );
+        }
+        return;
+      }
+
+      // 2. Validate application system permission locks
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw 'Location permissions are denied.';
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        throw 'Location permissions are permanently denied, cannot request permissions.';
       }
 
       if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+        // 3. 🔑 FIX: Clear old system coordinate caches to force a real satellite update
         Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high
+          desiredAccuracy: LocationAccuracy.best, // High accuracy can still fallback to cache; "best" forces optimal resolution
+          forceAndroidLocationManager: true,       // 🔑 Forces system to bypass network approximation and hit actual hardware GPS
+          timeLimit: const Duration(seconds: 12),  // Failsafe so the loader spinner doesn't freeze the screen forever
         );
-        setState(() {
-          _currentLat = position.latitude;
-          _currentLong = position.longitude;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Location captured!"), backgroundColor: Colors.green),
-        );
+
+        if (mounted) {
+          setState(() {
+            _currentLat = position.latitude;
+            _currentLong = position.longitude;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Highly accurate location captured!"), backgroundColor: Colors.green),
+          );
+        }
       }
     } catch (e) {
       debugPrint("Location error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed getting location accuracy: $e"), backgroundColor: Colors.red),
+        );
+      }
     } finally {
-      setState(() => _isFetchingLocation = false);
+      if (mounted) {
+        setState(() => _isFetchingLocation = false);
+      }
     }
   }
 

@@ -16,32 +16,37 @@ class AttendanceController extends Controller
     /**
      * Get subjects for a specific lecturer
      */
-    public function getLecturerSubjects(Request $request)
+    public function getLecturerSubjects($lecturerId)
     {
-        $lecturerId = $request->query('user_id');
+        try {
+            // Join sections to subjects table
+            $data = DB::table('sections')
+                ->join('subjects', 'sections.subject_id', '=', 'subjects.subject_id') // 🔑 FIXED: changed subjects.id to subjects.subject_id
+                ->where('sections.lecturer_id', $lecturerId)
+                ->select(
+                    'subjects.subject_id as subject_id', // 🔑 FIXED: changed subjects.id to subjects.subject_id
+                    'subjects.subject_code',
+                    'subjects.subject_name',
+                    'sections.section_id as section_id', 
+                    'sections.section_no as section_no' 
+                )
+                ->get();
 
-        if (!$lecturerId) {
-            return response()->json(['success' => false, 'message' => 'Lecturer ID required'], 400);
+            return response()->json([
+                'success' => true,
+                'message' => 'Lecturer records retrieved successfully.',
+                'data' => $data
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Database query exception encountered.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        // Using DB::table for a flatter, simpler structure like your Tuition controller
-        $subjects = DB::table('subjects')
-            ->join('sections', 'subjects.subject_id', '=', 'sections.subject_id')
-            ->where('sections.lecturer_id', $lecturerId)
-            ->select(
-                'subjects.subject_id',
-                'subjects.subject_code',
-                'subjects.subject_name',
-                'sections.section_id',
-                'sections.section_no'
-            )
-            ->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $subjects
-        ]);
     }
+
 
     public function getSectionLabs($sectionId)
     {
