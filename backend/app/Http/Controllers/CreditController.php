@@ -10,25 +10,30 @@ class CreditController extends Controller
 // 1. Student submit final credit claim 
     public function submitFinalCredit(Request $request)
     {
+        // Validate that the student id
         $request->validate([
             'student_id' => 'required', 
         ]);
 
         $studentId = $request->input('student_id');
 
+        // Check the database for the Co-Curriculum subject
         $subject = DB::table('subjects')
             ->where('subject_code', 'UQA2002')
             ->first();
 
+        // If the subject is not found, return error message
         if (!$subject) {
             return response()->json(['message' => 'UQA2002 Co-Curriculum subject row not found in database.'], 404);
         }
 
+        // Count the number of claimed modules for the student
         $claimedModulesCount = DB::table('bookings')
             ->where('student_id', $studentId)
             ->where('is_claimed', 1)
             ->count();
 
+        // If the student has not claimed all 4 modules, return an error message
         if ($claimedModulesCount < 4) {
             return response()->json([
                 'message' => 'Not eligible to claim credit. You must claim all 4 modules first.',
@@ -36,11 +41,13 @@ class CreditController extends Controller
             ], 400);
         }
 
+        // Check if the student has already submitted a claim for this subject
         $existingClaim = DB::table('credit_claims')
             ->where('student_id', $studentId)
             ->where('subject_id', $subject->subject_id)
             ->first();
 
+        // If an existing claim is found, return a message indicating that the claim has already been submitted
         if ($existingClaim) {
             return response()->json([
                 'message' => 'You have already submitted a claim for this credit hour.',
@@ -48,6 +55,7 @@ class CreditController extends Controller
             ], 409); 
         }
 
+        // Insert a new claim record into the credit_claims table
         DB::table('credit_claims')->insert([
             'student_id' => $studentId,
             'subject_id' => $subject->subject_id,
@@ -63,18 +71,17 @@ class CreditController extends Controller
     public function claimIndividualModule(Request $request, $id)
     {
         try {
-            // 🎯 CAPTURE: Get the logged-in student's user ID from the request payload (e.g., 9)
+            // Get the logged-in student's user id
             $studentId = $request->input('student_id');
 
-            // 🎯 SEARCH LAYER: Find the unclaimed booking row using the module_id and student_id together!
-            // This prevents mismatches if Flutter passes a module_id (like 1 for Memanah) instead of a booking primary key id.
+            //  Check module that havent been claimed
             $booking = DB::table('bookings')
                 ->where('module_id', $id)
                 ->where('student_id', $studentId)
                 ->where('is_claimed', 0)
                 ->first();
 
-            // Fallback safety check: If Flutter actually did pass the exact booking table primary key 'id'
+            // 
             if (!$booking) {
                 $booking = DB::table('bookings')->where('id', $id)->first();
             }
@@ -87,14 +94,14 @@ class CreditController extends Controller
                 ], 404);
             }
 
-            // Update the unique booking record to mark the module as claimed
+            // Update the  booking record to mark the module as claimed
             DB::table('bookings')
-                ->where('id', $booking->id) // Safely updates the correct resolved row id
+                ->where('id', $booking->id) 
                 ->update([
                     'is_claimed' => 1
                 ]);
 
-            // Re-count final total claimed records for this student
+            // count final total claimed records for this student
             $claimedCount = DB::table('bookings')
                 ->where('student_id', $booking->student_id)
                 ->where('is_claimed', 1)
@@ -105,11 +112,11 @@ class CreditController extends Controller
                 'status' => 'success',
                 'message' => 'Module claimed successfully.',
                 'claimed_count' => $claimedCount,
-                'total_required' => 4, // Keeps 4 here so your Flutter UI progress indicator ring can scale to 25%, 50%, etc.
+                'total_required' => 4, 
             ], 200);
 
         } catch (\Exception $e) {
-            // Handle unexpected runtime error exceptions safely without breaking the server instance
+            // Handle unexpected runtime error exceptions  
             return response()->json([
                 'status' => 'error',
                 'message' => 'Server script configuration fault: ' . $e->getMessage()
