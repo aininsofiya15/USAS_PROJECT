@@ -14,6 +14,7 @@ class ModuleController extends Controller
     {
         try {
             
+            // Fetch all modules from the database
             $modules = DB::table('modules')
                 // Select all main module details to display
                 ->select(
@@ -53,6 +54,7 @@ class ModuleController extends Controller
     // 2. Update existing module details 
     public function update(Request $request)
     {
+        // Validate the incoming request data for module update
         $request->validate([
             'id' => 'required|integer|exists:modules,id',
             'activity_name' => 'required|string|max:255',
@@ -103,6 +105,7 @@ class ModuleController extends Controller
     // 3. Create and store a new created module 
     public function store(Request $request)
     {
+        // Validate the incoming request data for new module 
         $validated = $request->validate([
             'activity_name' => 'required|string|max:255',
             'date_time' => 'required|date',

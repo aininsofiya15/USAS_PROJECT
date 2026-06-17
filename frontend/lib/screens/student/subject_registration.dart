@@ -6,6 +6,8 @@ import '../../provider/user_provider.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
 
+
+// Student subject registration page
 class StudentSubjectRegistrationPage extends StatefulWidget {
   const StudentSubjectRegistrationPage({super.key});
 
@@ -20,17 +22,24 @@ class _SubjectRegistrationPageState
 
   late Future<List<SubjectModel>> subjectsFuture;
 
+// Store all available subjects
   List<SubjectModel> allSubjects = [];
+
+  // Store filtered subjects
   List<SubjectModel> filteredSubjects = [];
 
+// Search input controller
   TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
+
+  // Load available subjects
     super.initState();
     subjectsFuture = provider.fetchSubjects();
   }
 
+// Search subjects by name or code
   void searchSubjects(String keyword) {
     setState(() {
       filteredSubjects = allSubjects.where((subject) {

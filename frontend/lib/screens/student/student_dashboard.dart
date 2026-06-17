@@ -7,12 +7,15 @@ import '../../widgets/app_sidebar.dart';
 import 'financial_info.dart';
 import '../../provider/manage_fees_provider.dart';
 import '../../provider/module_provider.dart';
+import '../../provider/student_subject_provider.dart';
 import '../../provider/user_provider.dart';
 import 'attendance_records.dart';
 import 'module_booking.dart';
 import 'subject_registration.dart';
 
+// Student dashboard main page
 class StudentDashboard extends StatefulWidget {
+   // Logged-in student name
   final String name;
   const StudentDashboard({super.key, required this.name});
 
@@ -21,9 +24,16 @@ class StudentDashboard extends StatefulWidget {
 }
 
 class _StudentDashboardState extends State<StudentDashboard> {
+  final StudentSubjectProvider _studentSubjectProvider = StudentSubjectProvider();
+  int _registeredSubjectCredits = 0;
+
   @override
   void initState() {
+
+     // Load dashboard data after page is rendered
     super.initState();
+
+    // Retrieve dashboard information
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = Provider.of<UserProvider>(context, listen: false).userId;
       final feesProvider = Provider.of<FeesManagementProvider>(context, listen: false);
@@ -31,9 +41,26 @@ class _StudentDashboardState extends State<StudentDashboard> {
       feesProvider.fetchStudentPortalDashboardData(userId.toString());
       Provider.of<ModuleProvider>(context, listen: false)
           .fetchStudentBookings(userId.toString());
+      _loadRegisteredSubjectCredits(userId);
     });
   }
 
+  Future<void> _loadRegisteredSubjectCredits(int userId) async {
+    try {
+      final subjects = await _studentSubjectProvider.fetchRegisteredSubjects(userId);
+      final totalCredit = subjects.fold<int>(
+        0,
+        (sum, subject) => sum + subject.creditHours,
+      );
+
+      if (!mounted) return;
+      setState(() => _registeredSubjectCredits = totalCredit);
+    } catch (e) {
+      debugPrint("Failed to load registered subject credits: $e");
+    }
+  }
+
+// Display access blocked dialog for students with unpaid fees
   void _showAccessBlockedDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -101,8 +128,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
+      // Listen for dashboard updates
       body: Consumer<FeesManagementProvider>(
         builder: (context, provider, child) {
+          // Show loading indicator while data is loading
           if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -198,7 +227,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       _buildProgressCard("Curriculum Progress", curriculumProgress),
                       _buildStatCard(
                           "Total Credit\nCurrent Sem",
-                          provider.totalCreditsCurrentSem.toString()),
+                          _registeredSubjectCredits.toString()),
                       _buildUpcomingDueDateCard(provider.upcomingDueDateStr), // ✅ Use new method
                     ],
                   ),

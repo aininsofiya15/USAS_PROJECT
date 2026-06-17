@@ -23,6 +23,7 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
 
   // Track expansion state for each unique activity name
   final Map<String, bool> _isExpanded = {};
+  final Set<int> _pendingBookingModuleIds = {};
 
   @override
   void initState() {
@@ -276,18 +277,24 @@ class _StudentActivitiesPageState extends State<StudentActivitiesPage> {
           Align(
             alignment: Alignment.centerRight,
             child: ElevatedButton(
-              onPressed: (currentSelectedSlot.registeredCount >= currentSelectedSlot.capacity) 
+              onPressed: (currentSelectedSlot.registeredCount >= currentSelectedSlot.capacity ||
+                      _pendingBookingModuleIds.contains(currentSelectedSlot.id))
                   ? null 
                   : () async {
                       final moduleProvider = Provider.of<ModuleProvider>(context, listen: false);
                       int liveUserId = Provider.of<UserProvider>(context, listen: false).userId;
+                      final moduleId = currentSelectedSlot.id!;
+
+                      setState(() => _pendingBookingModuleIds.add(moduleId));
 
                       bool success = await moduleProvider.applyToModule(
-                        moduleId: currentSelectedSlot.id!,
+                        moduleId: moduleId,
                         studentId: liveUserId.toString(),
                       );
 
                       if (!mounted) return;
+
+                      setState(() => _pendingBookingModuleIds.remove(moduleId));
 
                       if (success) {
                         showResultDialog(
