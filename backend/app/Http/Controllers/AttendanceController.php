@@ -548,12 +548,12 @@ public function submitAttendance(Request $request)
             ->exists();
 
         if (!$alreadyRecorded) {
-            // FIXED: Added 'submitted_time' to fulfill your table's database schema constraints
+            // 🔑 FIXED: Changed to now() so that it sends a full 'YYYY-MM-DD HH:MM:SS' string instead of just the time component!
             DB::table('attendance_records')->insert([
                 'attendance_id'  => $request->attendance_id,
                 'student_id'     => $request->student_id,
                 'status'         => 'Present',
-                'submitted_time' => now()->toTimeString(), // Sends current time format e.g., '17:34:26'
+                'submitted_time' => now(), // Generates standard full database timestamp
                 'created_at'     => now(),
                 'updated_at'     => now(),
             ]);
@@ -571,44 +571,60 @@ public function submitAttendance(Request $request)
     }
 }
 
-public function getSubmittedAttendanceRecords($studentId)
+public function getSubmittedAttendanceRecords(Request $request, $studentId)
 {
     try {
-        // 1. Get Curriculum Attendance Records
-        $curriculum = DB::table('attendances')
-            ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
-            ->join('sections', 'attendances.section_id', '=', 'sections.section_id')
+        $dateFilter = $request->query('dateFilter');
+
+        // 1. Build Curriculum Query using 'class_attendances' sub-table
+        $curriculumQuery = DB::table('attendance_records')
+            ->join('class_attendances', 'attendance_records.attendance_id', '=', 'class_attendances.attendance_id')
+            ->join('sections', 'class_attendances.section_id', '=', 'sections.section_id')
             ->join('subjects', 'sections.subject_id', '=', 'subjects.subject_id')
             ->where('attendance_records.student_id', $studentId)
-            ->where('attendance_records.status', 'Present')
+            ->whereIn('attendance_records.status', ['Present', 'present', 'Late', 'late'])
             ->select(
-                'subjects.subject_code as display_name', // e.g., BCY3083
-                'attendances.class_type as lecture_lab', 
-                'attendances.date',                      
-                'attendances.time',
-                DB::raw("'Curriculum' as attendance_type") // Label tag identifier
+                'subjects.subject_code as display_name', 
+                'class_attendances.class_type as lecture_lab', 
+                'class_attendances.date as date',              
+                'class_attendances.time as time',              
+                DB::raw("'Curriculum' as attendance_type") 
             );
 
-        // 2. Get Co-Curriculum Attendance Records (Unified via UNION)
-        // Adjust the table and column names to match your precise co-curriculum structure
-        $records = DB::table('modules')
-            ->join('bookings', 'modules.id', '=', 'bookings.module_id')
-            ->where('bookings.student_id', $studentId)
-            ->where('bookings.status', 'Present') // Or wherever you store verified co-curr attendance
+        // 2. Build Co-Curriculum Query using 'module_attendances' linked via 'attendance_records'
+        // 🔑 FIXED: Changed the entry table from bookings to attendance_records to prevent column crashes
+        $coCurriculumQuery = DB::table('attendance_records')
+            ->join('module_attendances', 'attendance_records.attendance_id', '=', 'module_attendances.attendance_id')
+            ->join('modules', 'module_attendances.module_id', '=', 'modules.id')
+            ->where('attendance_records.student_id', $studentId)
+            ->whereIn('attendance_records.status', ['Present', 'present', 'Late', 'late']) 
             ->select(
-                'modules.activity_name as display_name', // e.g., KAYAKING ADVENTURE
-                DB::raw("'Activity' as lecture_lab"),    // Placeholder for table cell consistency
-                DB::raw("DATE(modules.date_time) as date"),
-                DB::raw("TIME(modules.date_time) as time"),
-                DB::raw("'Co-Curriculum' as attendance_type") // Label tag identifier
-            )
-            ->union($curriculum) // Combine queries
+                'modules.activity_name as display_name', 
+                DB::raw("'Activity' as lecture_lab"),    
+                'module_attendances.date as date',             
+                'module_attendances.time as time',             
+                DB::raw("'Co-Curriculum' as attendance_type") 
+            );
+
+        // 3. Apply the exact query date filter if present
+        if (!empty($dateFilter)) {
+            $curriculumQuery->where('class_attendances.date', $dateFilter);
+            $coCurriculumQuery->where('module_attendances.date', $dateFilter);
+        }
+
+        // 4. Combine both subqueries via UNION ALL
+        $combinedRecords = $curriculumQuery->unionAll($coCurriculumQuery);
+        
+        // 5. Wrap in a master subquery wrapper to apply global sorting order cleanly
+        $finalResults = DB::table(DB::raw("({$combinedRecords->toSql()}) as combined"))
+            ->mergeBindings($combinedRecords) 
             ->orderBy('date', 'desc')
+            ->orderBy('time', 'desc')
             ->get();
 
         return response()->json([
             'success' => true,
-            'data' => $records
+            'data' => $finalResults
         ], 200);
 
     } catch (\Exception $e) {
@@ -618,6 +634,5 @@ public function getSubmittedAttendanceRecords($studentId)
         ], 500);
     }
 }
-
-
 }
+

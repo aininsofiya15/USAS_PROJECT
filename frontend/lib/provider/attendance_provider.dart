@@ -600,10 +600,10 @@ Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async
   notifyListeners();
 
   try {
-    // Construct the endpoint URI dynamically with an optional date parameter string
-    String url = "${Api.baseUrl}/student/attendance-history/$studentId";
+    String url = "${Api.baseUrl}/attendance/records/$studentId";
+    
     if (dateFilter != null) {
-      url += "?date=$dateFilter";
+      url += "?dateFilter=$dateFilter"; 
     }
 
     final response = await http.get(

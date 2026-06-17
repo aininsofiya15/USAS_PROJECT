@@ -102,6 +102,7 @@ class _AttendanceSubmissionPageState extends State<AttendanceSubmissionPage> {
         return;
       }
 
+      // Sends matching structural arguments straight to your provider handler
       final result = await provider.submitAttendance(
         attendanceId: attendanceId,
         studentId: studentId,
@@ -164,7 +165,6 @@ class _AttendanceSubmissionPageState extends State<AttendanceSubmissionPage> {
   Widget build(BuildContext context) {
     final provider = Provider.of<AttendanceProvider>(context);
     
-    // Auto layout switch logic
     bool renderCoCurriculumLayout = widget.isCoCurriculum || 
                                     widget.sessionData.containsKey('activity_name') || 
                                     !widget.sessionData.containsKey('section_name');
@@ -237,7 +237,6 @@ class _AttendanceSubmissionPageState extends State<AttendanceSubmissionPage> {
     );
   }
 
-  // --- HERE IS THE METHOD YOU NEEDED ---
   Widget _buildCoCurriculumDetails() {
     String displayActivity = (widget.sessionData['activity_name'] ?? widget.subjectName ?? "CO-CURRICULUM").toString().toUpperCase();
     String displayDate = widget.sessionData['date'] ?? "N/A";
@@ -252,7 +251,6 @@ class _AttendanceSubmissionPageState extends State<AttendanceSubmissionPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Visual confirmation element showing target ID
         Text("DEBUG ACTIVE TARGET ID: $rawId", style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12)),
         const SizedBox(height: 10),
         Text(displayActivity, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
