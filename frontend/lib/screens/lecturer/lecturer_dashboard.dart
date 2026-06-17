@@ -31,6 +31,7 @@ class LecturerBody extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: const Color(0xFFCBAAAA), width: 1.5), 
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.03),
@@ -43,7 +44,7 @@ class LecturerBody extends StatelessWidget {
                 decoration: InputDecoration(
                   hintText: 'Search',
                   hintStyle: TextStyle(color: Colors.grey),
-                  prefixIcon: SizedBox(), // Keeps spacer layout clean
+                  prefixIcon: SizedBox(), 
                   suffixIcon: Icon(Icons.search, color: Colors.black54),
                   border: InputBorder.none,
                   contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
@@ -63,41 +64,52 @@ class LecturerBody extends StatelessWidget {
             ),
             const SizedBox(height: 15),
 
-            // Horizontal Categories Cards Row
-            Row(
-              children: [
-                Expanded(
-                  child: _buildCategoryCard(
-                    context,
-                    imageAsset: 'assets/student_attendance_icon.png', // Update with your local image asset path
-                    fallbackIcon: Icons.calendar_month,
-                    title: "Student Attendance",
-                    iconColor: Colors.orange,
-                    onTap: () {
-                      Navigator.push(
-                        context, 
-                        MaterialPageRoute(builder: (context) => const AddAttendancePage()),
-                      );
-                    },
-                  ),
+            // --- FIGMA FIXED MATCH: Deeper, High-Contrast Dark Pink Panel ---
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              decoration: BoxDecoration(
+                color: const Color(0xFFDEC3C3), // Noticeably darker base pink background fill
+                borderRadius: BorderRadius.circular(28), 
+                border: Border.all(
+                  color: const Color(0xFFCBAAAA), // Stronger matching border outline framing
+                  width: 1.5,
                 ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: _buildCategoryCard(
-                    context,
-                    imageAsset: 'assets/attendance_records_icon.png', // Update with your local image asset path
-                    fallbackIcon: Icons.assignment_turned_in_outlined,
-                    title: "Attendance Records",
-                    iconColor: Colors.purple,
-                    onTap: () {
-                      Navigator.push(
-                        context, 
-                        MaterialPageRoute(builder: (context) => const ViewAttendanceRecords()),
-                      );
-                    },
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _buildFigmaCategoryCard(
+                      context,
+                      imageAsset: 'assets/student_attendance_icon.png', 
+                      fallbackIcon: Icons.calendar_month,
+                      title: "Student Attendance",
+                      iconColor: Colors.orange,
+                      onTap: () {
+                        Navigator.push(
+                          context, 
+                          MaterialPageRoute(builder: (context) => const AddAttendancePage()),
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: _buildFigmaCategoryCard(
+                      context,
+                      imageAsset: 'assets/attendance_records_icon.png', 
+                      fallbackIcon: Icons.assignment_turned_in_outlined,
+                      title: "Attendance Records",
+                      iconColor: Colors.purple,
+                      onTap: () {
+                        Navigator.push(
+                          context, 
+                          MaterialPageRoute(builder: (context) => const ViewAttendanceRecords()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 30),
 
@@ -115,10 +127,11 @@ class LecturerBody extends StatelessWidget {
             // Insights Graph Container
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(15),
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: const Color(0xFFCBAAAA), width: 1.5), 
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.04),
@@ -138,14 +151,13 @@ class LecturerBody extends StatelessWidget {
                       color: Colors.black87,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  // Displays your analytical chart graphic asset
+                  const SizedBox(height: 15),
+                  
                   Image.asset(
-                    'assets/attendance_chart.png', // Update with your chart image asset path
+                    'assets/attendance_chart.png', 
                     height: 180,
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
-                      // Fallback placeholder widget if chart asset is unlinked
                       return Container(
                         height: 180,
                         color: Colors.grey.withOpacity(0.1),
@@ -164,8 +176,7 @@ class LecturerBody extends StatelessWidget {
     );
   }
 
-  // Helper builder for custom rounded Category Selection layout panels
-  Widget _buildCategoryCard(
+  Widget _buildFigmaCategoryCard(
     BuildContext context, {
     required String imageAsset,
     required IconData fallbackIcon,
@@ -175,44 +186,45 @@ class LecturerBody extends StatelessWidget {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(18),
       child: Container(
-        padding: const EdgeInsets.all(15),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFEAEA), // Light tinted background context layout accent
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.black.withOpacity(0.05)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 3), // Stronger clean drop pop over the dark container background background
+            ),
+          ],
         ),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                imageAsset,
-                height: 45,
-                errorBuilder: (context, error, stackTrace) => Icon(
-                  fallbackIcon, 
-                  size: 40, 
-                  color: iconColor,
-                ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              imageAsset,
+              height: 55, 
+              width: 55,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) => Icon(
+                fallbackIcon, 
+                size: 42, 
+                color: iconColor,
               ),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600, 
-                  fontSize: 13, 
-                  color: Color(0xFF1E293B),
-                ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold, 
+                fontSize: 11.5, 
+                color: Color(0xFF1E293B),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
