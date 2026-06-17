@@ -26,6 +26,28 @@ class _StudentListPageState extends State<StudentListPage> {
     );
   }
 
+  String _formatDateTime(String dateTime, String? description) {
+    String _toAmPm(String time) {
+      final parts = time.split(':');
+      int hour = int.parse(parts[0]);
+      final minute = parts[1];
+      final period = hour >= 12 ? 'PM' : 'AM';
+      hour = hour % 12;
+      if (hour == 0) hour = 12;
+      return '$hour:$minute $period';
+    }
+
+    final endTimeMatch =
+        RegExp(r'\[end_time:(\d{2}:\d{2})\]').firstMatch(description ?? '');
+    if (endTimeMatch != null && dateTime.length >= 16) {
+      final datePart = dateTime.substring(0, 10);
+      final startTime = _toAmPm(dateTime.substring(11, 16));
+      final endTime = _toAmPm(endTimeMatch.group(1)!);
+      return "$datePart  $startTime - $endTime";
+    }
+    return dateTime;
+  }
+
   @override
   Widget build(BuildContext context) {
     final moduleProvider = Provider.of<ModuleProvider>(context);
@@ -104,7 +126,8 @@ class _StudentListPageState extends State<StudentListPage> {
           const SizedBox(height: 14),
           _infoText(
               "Current Registration: $studentCount / ${widget.module.capacity} Students"),
-          _infoText("Class Date: ${widget.module.dateTime}"),
+          _infoText(
+              "Class Date: ${_formatDateTime(widget.module.dateTime, widget.module.description)}"),
           _infoText("Venue: ${widget.module.venue}"),
           _infoText("Lecturer Name: ${widget.module.lecturerName}"),
         ],
@@ -175,15 +198,16 @@ class _StudentListPageState extends State<StudentListPage> {
             ),
           ),
           const SizedBox(height: 16),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 18),
+          // Header row — aligned to match student rows
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
-              children: [
-                SizedBox(width: 42),
+              children: const [
+                SizedBox(width: 46), // avatar width (34) + gap (12)
                 Expanded(
                   child: Text(
                     "Student Name",
-                    textAlign: TextAlign.center,
+                    textAlign: TextAlign.left,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -192,7 +216,7 @@ class _StudentListPageState extends State<StudentListPage> {
                   ),
                 ),
                 SizedBox(
-                  width: 72,
+                  width: 80,
                   child: Text(
                     "Matric ID",
                     textAlign: TextAlign.center,
@@ -203,7 +227,7 @@ class _StudentListPageState extends State<StudentListPage> {
                     ),
                   ),
                 ),
-                SizedBox(width: 32),
+                SizedBox(width: 32), // delete button space
               ],
             ),
           ),
@@ -248,12 +272,12 @@ class _StudentListPageState extends State<StudentListPage> {
 
   Widget _buildStudentRow(dynamic student) {
     return Container(
-      height: 58,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       color: Colors.white,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Avatar
           Container(
             width: 34,
             height: 34,
@@ -269,6 +293,7 @@ class _StudentListPageState extends State<StudentListPage> {
             ),
           ),
           const SizedBox(width: 12),
+          // Name — left-aligned, same baseline as avatar center
           Expanded(
             child: Text(
               student['student_name'] ?? "Unknown",
@@ -277,13 +302,14 @@ class _StudentListPageState extends State<StudentListPage> {
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
               ),
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ),
           const SizedBox(width: 8),
+          // Matric ID
           SizedBox(
-            width: 72,
+            width: 80,
             child: Text(
               student['matric_id'] ?? "-",
               textAlign: TextAlign.center,
@@ -296,6 +322,7 @@ class _StudentListPageState extends State<StudentListPage> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          // Delete button
           SizedBox(
             width: 32,
             height: 32,
