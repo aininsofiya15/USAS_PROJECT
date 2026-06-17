@@ -98,18 +98,18 @@ class _EditStudentModuleAttendanceState extends State<EditStudentModuleAttendanc
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8FDF9), 
+      backgroundColor: const Color(0xFFD1FFF3),
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
           decoration: BoxDecoration(
-            color: const Color(0xFFC2F0E5), 
-            borderRadius: BorderRadius.circular(24),
+            color: const Color(0xFFB9F6F0),
+            borderRadius: BorderRadius.circular(34),
           ),
           child: Column(
             children: [
@@ -128,15 +128,15 @@ class _EditStudentModuleAttendanceState extends State<EditStudentModuleAttendanc
                 ),
                 child: Column(
                   children: [
-                    _buildModuleRow("Student ID:", widget.matricNo), // Displays readable matric no (e.g. CB23024)
+                    _buildModuleRow("Student ID:", widget.matricNo, isValueBold: true), 
                     const SizedBox(height: 12),
-                    _buildModuleRow("Student Name:", widget.studentName, isLongText: true),
+                    _buildModuleRow("Student Name:", widget.studentName, isLongText: true, isValueBold: true), 
                     const SizedBox(height: 12),
-                    _buildModuleRow("Module:", widget.moduleName.toUpperCase(), isLongText: true), 
+                    _buildModuleRow("Module:", widget.moduleName.toUpperCase(), isLongText: true, isValueBold: true), 
                     const SizedBox(height: 12),
-                    _buildModuleRow("Date:", widget.date),
+                    _buildModuleRow("Date:", widget.date, isValueBold: true), 
                     const SizedBox(height: 12),
-                    _buildModuleRow("Time:", widget.time),
+                    _buildModuleRow("Time:", widget.time, isValueBold: true), // 🟢 Bold Font Applied to Time
                     const SizedBox(height: 12),
                     _buildModuleRow("Current Status:", widget.currentStatus, isStatus: true),
                   ],
@@ -232,9 +232,9 @@ class _EditStudentModuleAttendanceState extends State<EditStudentModuleAttendanc
     );
   }
 
-  Widget _buildModuleRow(String label, String value, {bool isStatus = false, bool isLongText = false}) {
+  Widget _buildModuleRow(String label, String value, {bool isStatus = false, bool isLongText = false, bool isValueBold = false}) {
     Color textColor = Colors.black87;
-    FontWeight weight = FontWeight.normal;
+    FontWeight weight = isValueBold ? FontWeight.bold : FontWeight.normal; 
     
     if (isStatus) {
       weight = FontWeight.bold;

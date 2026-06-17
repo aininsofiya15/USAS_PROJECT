@@ -386,47 +386,66 @@ public function getAdabModules(Request $request)
      * Create a new module attendance session
      */
     public function storeModuleAttendance(Request $request)
-    {
-        $request->validate([
-            'module_id'  => 'required|integer',
-            'geo_lat'    => 'required',
-            'geo_long'   => 'required',
-            // Made date and time optional in validation to prevent 500 errors 
-            // if your Flutter app doesn't send them for modules.
-            'date'       => 'nullable|date',
-            'time'       => 'nullable',
+{
+    $request->validate([
+        'module_id' => 'required|integer',
+        'geo_lat'   => 'required',
+        'geo_long'  => 'required',
+        'date'      => 'nullable|date',
+        'time'      => 'nullable',
+    ]);
+
+    $requestedDate = $request->date ?? now()->toDateString();
+    $requestedTime = $request->time 
+        ? date('H:i:s', strtotime($request->time)) 
+        : now()->toTimeString();
+
+    // ── Duplicate check: same module, same date, within 2-hour window ──
+    $existingDuplicate = DB::table('module_attendances')
+        ->where('module_id', $request->module_id)
+        ->where('date', $requestedDate)
+        ->where(function ($query) use ($requestedTime) {
+            $query->where('time', '<=', $requestedTime)
+                  ->whereRaw('ADDTIME(time, "05:00:00") > ?', [$requestedTime]);
+        })
+        ->first();
+
+    if ($existingDuplicate) {
+        $expirationTime = date('h:i A', strtotime('+2 hours', strtotime($existingDuplicate->time)));
+
+        return response()->json([
+            'success'    => false,
+            'message'    => "An attendance code for this module has already been released and is still active until {$expirationTime}.",
+            'expires_at' => $expirationTime,
+        ], 409);
+    }
+
+    return DB::transaction(function () use ($request, $requestedDate, $requestedTime) {
+        $code = strtoupper(Str::random(6));
+
+        $attendance = Attendance::create([
+            'attendance_code' => $code,
+            'geo_lat'         => $request->geo_lat,
+            'geo_long'        => $request->geo_long,
+            'geo_radius'      => 500,
         ]);
 
-        return DB::transaction(function () use ($request) {
-            // 1. Create the General Attendance (Code & GPS)
-            $code = strtoupper(Str::random(6));
-            
-            $attendance = Attendance::create([
-                'attendance_code' => $code,
-                'geo_lat'         => $request->geo_lat,
-                'geo_long'        => $request->geo_long,
-                'geo_radius'      => 500,
-            ]);
+        DB::table('module_attendances')->insert([
+            'attendance_id' => $attendance->id,
+            'module_id'     => $request->module_id,
+            'date'          => $requestedDate,
+            'time'          => $requestedTime,
+            'created_at'    => now(),
+            'updated_at'    => now(),
+        ]);
 
-            // 2. Create the Specific Module Attendance
-            // This links the module to the generated attendance
-            DB::table('module_attendances')->insert([
-                'attendance_id' => $attendance->id,
-                'module_id'     => $request->module_id,
-                // If Flutter sends the date/time, use it. Otherwise, default to exactly now.
-                'date'          => $request->date ?? now()->toDateString(),
-                'time'          => $request->time ? date('H:i:s', strtotime($request->time)) : now()->toTimeString(),
-                'created_at'    => now(),
-                'updated_at'    => now(),
-            ]);
-    
-            return response()->json([
-                'success'       => true,
-                'code'          => $code,
-                'attendance_id' => $attendance->id
-            ], 201);
-        });
-    }
+        return response()->json([
+            'success'       => true,
+            'code'          => $code,
+            'attendance_id' => $attendance->id,
+        ], 201);
+    });
+}
 
     public function updateStudentModuleAttendance(Request $request)
 {
