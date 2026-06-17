@@ -12,6 +12,8 @@ class Api {
   static String getAdminClaims(String filter) => "$baseUrl/pusat-adab/credit-claims?filter=$filter";
   static String approveAdminClaim(int claimId) => "$baseUrl/pusat-adab/credit-claims/$claimId/approve";
   static String rejectAdminClaim(int claimId) => "$baseUrl/pusat-adab/credit-claims/$claimId/reject";
+
+  
   // Faculty Registrar
   static String registerSubject ="$baseUrl/register-subject";
   static String subjects ="$baseUrl/subjects";

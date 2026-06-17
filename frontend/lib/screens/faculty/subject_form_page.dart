@@ -5,6 +5,7 @@ import '../../widgets/header.dart';
 
 class SubjectFormPage extends StatefulWidget {
 
+// Selected subject for edit mode
   final Map? subject;
 
   const SubjectFormPage({
@@ -27,20 +28,28 @@ class _SubjectFormPageState extends State<SubjectFormPage> {
   static const Color kHint        = Color(0xFFBFB49A);
   static const Color kText        = Color(0xFF1A1208);
 
+// Subject information controllers
   final TextEditingController nameController    = TextEditingController();
   final TextEditingController codeController    = TextEditingController();
   final TextEditingController creditController  = TextEditingController();
   final TextEditingController sectionController = TextEditingController();
 
+
+// Store lecturer list from API
   List lecturers = [];
+
+  // Store sections and labs
   List<Map<String, dynamic>> sections = [];
 
+// Available days for lab schedule
   static const List<String> _days = [
     'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'
   ];
 
   @override
 void initState() {
+
+  // Load lecturers and subject data
   super.initState();
   loadLecturers();
 
@@ -52,11 +61,13 @@ void initState() {
   }
 }
 
+// Retrieve lecturer list from backend
   void loadLecturers() async {
     var data = await RegistrarSubjectProvider().getLecturers();
     setState(() => lecturers = data);
   }
 
+// Clear all form fields
   void _resetForm() {
     nameController.clear();
     codeController.clear();
@@ -166,6 +177,7 @@ void initState() {
       );
 
   // ── Field label ────────────────────────────────────────────────────────────
+  // Display field label
   Widget _label(String text, {IconData? icon}) => Padding(
         padding: const EdgeInsets.only(bottom: 6),
         child: Row(
@@ -212,6 +224,7 @@ void initState() {
   }
 
   // ── Lecturer dropdown ──────────────────────────────────────────────────────
+  // Build lecturer selection dropdown
   Widget _buildLecturerDropdown(Map<String, dynamic> section) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

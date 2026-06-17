@@ -6,8 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Lab extends Model
 {
+    // Primary key for labs table
     protected $primaryKey = 'lab_id';
 
+    // Fields allowed for mass assignment
     protected $fillable = [
 
         'section_id',
@@ -18,6 +20,7 @@ class Lab extends Model
         'schedule_time',
     ];
 
+    // Relationship: Lab belongs to a section
     public function section()
     {
         return $this->belongsTo(
@@ -25,14 +28,15 @@ class Lab extends Model
             'section_id',
             'section_id'
         );
-    } 
+    }
 
+    // Relationship: Lab has many registrations
     public function registrations()
-{
-    return $this->hasMany(
-        Registration::class,
-        'lab_id',
-        'lab_id'
-    );
-}
+    {
+        return $this->hasMany(
+            Registration::class,
+            'lab_id',
+            'lab_id'
+        );
+    }
 }

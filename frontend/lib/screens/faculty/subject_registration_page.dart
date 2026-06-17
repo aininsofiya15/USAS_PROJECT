@@ -7,7 +7,10 @@ import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
 
 class SubjectRegistrationPage extends StatefulWidget {
+
+  // Subject registration main page
   const SubjectRegistrationPage({super.key});
+
 
   @override
   State<SubjectRegistrationPage> createState() =>
@@ -15,9 +18,14 @@ class SubjectRegistrationPage extends StatefulWidget {
 }
 
 class _SubjectRegistrationPageState extends State<SubjectRegistrationPage> {
+  
+// Search input controller
   TextEditingController searchController = TextEditingController();
 
+// Store all subjects from API
   List subjects = [];
+
+  // Store filtered subjects for search
   List filteredSubjects = [];
 
   // ── Admin theme colours (amber/orange) ────────────────────────────────────
@@ -27,6 +35,7 @@ class _SubjectRegistrationPageState extends State<SubjectRegistrationPage> {
   static const Color kCardBorder  = Color(0xFFFDE68A); // amber-200
   static const Color kAccentBg    = Color(0xFFFEF3C7); // amber-100
 
+// Retrieve all subjects from backend
   Future<void> fetchSubjects() async {
     var url = Uri.parse("http://10.0.2.2:8000/api/subjects");
     var response = await http.get(url);

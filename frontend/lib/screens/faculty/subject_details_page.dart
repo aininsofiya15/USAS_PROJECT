@@ -6,8 +6,10 @@ import '../../widgets/header.dart';
 import 'subject_form_page.dart';
 import '../../provider/registrar_subject_provider.dart';
 
+// Subject details page
 class SubjectDetailsPage extends StatefulWidget {
 
+// Selected subject from subject list
   final Map subject;
 
   const SubjectDetailsPage({
@@ -23,14 +25,19 @@ class SubjectDetailsPage extends StatefulWidget {
 class _SubjectDetailsPageState
     extends State<SubjectDetailsPage> {
 
+ // Store subject details from API
   Map? subjectDetails;
 
+// Store all sections for the subject
   List sections = [];
 
+ // Store labs for selected section
   List labs = [];
 
+// Track selected section
   int? selectedSectionId;
 
+// Retrieve subject details from backend
   Future<void> fetchSubjectDetails() async {
 
     var response = await http.get(
@@ -64,11 +71,13 @@ class _SubjectDetailsPageState
   @override
   void initState() {
 
+// Load subject details when page starts
     super.initState();
 
     fetchSubjectDetails();
   }
 
+// Build Subject Details page UI
   @override
   Widget build(BuildContext context) {
 
@@ -155,6 +164,8 @@ class _SubjectDetailsPageState
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
+
+      // Navigate to Edit Subject page
       onPressed: () {
   Navigator.push(
     context,
@@ -176,6 +187,8 @@ class _SubjectDetailsPageState
         backgroundColor: Colors.red,
         foregroundColor: Colors.white,
       ),
+
+      // Deactivate selected subject
       onPressed: () async {
 
   var response =

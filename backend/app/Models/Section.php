@@ -2,26 +2,24 @@
 
 namespace App\Models;
 
-
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Registration;
 use App\Models\Lab;
 
-
-
 class Section extends Model
 {
+    // Primary key for sections table
     protected $primaryKey = 'section_id';
 
+    // Fields allowed for mass assignment
     protected $fillable = [
 
         'lecturer_id',
         'subject_id',
         'section_no',
-        
     ];
 
-    /// LECTURER
+    // Relationship: Section belongs to a lecturer
     public function lecturer()
     {
         return $this->belongsTo(
@@ -30,7 +28,7 @@ class Section extends Model
         );
     }
 
-    /// SUBJECT
+    // Relationship: Section belongs to a subject
     public function subject()
     {
         return $this->belongsTo(
@@ -40,7 +38,7 @@ class Section extends Model
         );
     }
 
-    /// ATTENDANCE
+    // Relationship: Section has many attendance records
     public function attendances()
     {
         return $this->hasMany(
@@ -50,7 +48,7 @@ class Section extends Model
         );
     }
 
-    /// REGISTRATIONS
+    // Relationship: Section has many registrations
     public function registrations()
     {
         return $this->hasMany(
@@ -60,12 +58,13 @@ class Section extends Model
         );
     }
 
+    // Relationship: Section has many labs
     public function labs()
-{
-    return $this->hasMany(
-        Lab::class,
-        'section_id',
-        'section_id'
-    );
-}
+    {
+        return $this->hasMany(
+            Lab::class,
+            'section_id',
+            'section_id'
+        );
+    }
 }
