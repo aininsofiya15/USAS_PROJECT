@@ -123,6 +123,7 @@ Route::post('/attendance/update/{id}', [AttendanceController::class, 'updateStud
 //PUSAT ADAB ROUTES
 Route::get('/get-adab-modules', [AttendanceController::class, 'getAdabModules']);
 Route::post('/module-attendance/store', [AttendanceController::class, 'storeModuleAttendance']);
+Route::post('/attendance/update-location', [AttendanceController::class, 'updateModuleAttendanceDetails']);
 
 //STUDENT ROUTES
 Route::get('/student/dashboard/{studentId}', [AttendanceController::class, 'fetchStudentClassModule']);

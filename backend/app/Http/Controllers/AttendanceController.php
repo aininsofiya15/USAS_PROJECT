@@ -423,6 +423,51 @@ public function getAdabModules(Request $request)
         });
     }
 
+    public function updateModuleAttendanceDetails(Request $request)
+{
+    // 1. Validate the incoming payload
+    $request->validate([
+        'module_id' => 'required|integer', // This is treating the incoming ID as the attendance ID
+        'geo_lat'   => 'required|numeric',
+        'geo_long'  => 'required|numeric',
+    ]);
+
+    try {
+        $attendanceId = $request->input('module_id'); // Using the passed ID directly as the primary key
+        $geoLat       = $request->input('geo_lat');
+        $geoLong      = $request->input('geo_long');
+
+        // 2. Direct update on the attendances table by 'id'
+        $updated = DB::table('attendances')
+            ->where('id', $attendanceId)
+            ->update([
+                'geo_lat'    => $geoLat,
+                'geo_long'   => $geoLong,
+                'updated_at' => now(),
+            ]);
+
+        if ($updated === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "No attendance session found with ID: " . $attendanceId
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Module attendance geolocation details updated successfully.'
+        ], 200);
+
+    } catch (\Exception $e) {
+        Log::error("Error updating attendance: " . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Internal server error encountered.'
+        ], 500);
+    }
+}
+
+
 
 //STUDENT
 

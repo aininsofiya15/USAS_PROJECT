@@ -7,6 +7,8 @@ import 'attendance_record_list.dart';
 import '../../widgets/header.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
+import 'edit_module_attendance_details.dart';
+
 
 class ModuleAttendanceSelectionPage extends StatefulWidget {
   const ModuleAttendanceSelectionPage({super.key});
@@ -136,8 +138,20 @@ class _ModuleAttendanceSelectionPageState
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               // ── Edit button ──────────────────────────────────────────
-              _actionButton("Edit", const Color(0xFF00CC66), () {
-                // TODO: wire up your edit navigation
+              _actionButton("Edit", const Color(0xFF00CC66), () async {
+                final refresh = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditModuleAttendancePage(
+                      module: module,
+                    ),
+                  ),
+                );
+
+                // Automatically updates and refreshes lists if data saved successfully
+                if (refresh == true) {
+                  _loadData();
+                }
               }),
               const SizedBox(width: 8),
               // ── View Attendance button ───────────────────────────────

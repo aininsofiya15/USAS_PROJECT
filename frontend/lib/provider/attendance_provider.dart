@@ -128,7 +128,7 @@ class AttendanceProvider with ChangeNotifier {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           'section_id': sectionId,
-          'lab_name': labName, // <--- MAKE SURE THIS IS SENT
+          'lab_name': labName, 
           'geo_lat': lat,
           'geo_long': lng,
           'radius': 500,
@@ -451,15 +451,15 @@ Future<bool> updateStudentAttendance({
     required int moduleId,
     required double lat,
     required double lng,
-    String? date, // Optional: your Laravel controller handles it if missing
-    String? time, // Optional: your Laravel controller handles it if missing
+    required String date,
+    required String time,
   }) async {
     _isLoading = true;
     notifyListeners();
 
     try {
       final response = await http.post(
-        Uri.parse(Api.generateModuleAttendance), // Make sure this is in your Api class!
+        Uri.parse(Api.generateModuleAttendance), 
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
@@ -468,19 +468,26 @@ Future<bool> updateStudentAttendance({
           'module_id': moduleId,
           'geo_lat': lat,
           'geo_long': lng,
-          // Only send date and time if they are provided
-          if (date != null) 'date': date,
-          if (time != null) 'time': time,
+          'radius': 500, // Fixed validation perimeter setting
+          'date': date,
+          'time': time,
         }),
       );
 
-      // 201 is Created, 200 is OK (standard Laravel success codes)
+      // 1. Success case: New code generated cleanly
       if (response.statusCode == 201 || response.statusCode == 200) {
         final resData = jsonDecode(response.body);
         return resData['code']?.toString();
+      } 
+      
+      // 2. Duplicate validation block case: An active session already exists
+      if (response.statusCode == 409) {
+        debugPrint("Validation Warning: Module attendance already exists within this window.");
+        return "DUPLICATE"; // Send this explicit keyword back to your UI form screen
       } else {
         debugPrint("Server Error [${response.statusCode}]: ${response.body}");
       }
+      
     } catch (e) {
       debugPrint("Error generating module attendance: $e");
     } finally {
@@ -489,6 +496,42 @@ Future<bool> updateStudentAttendance({
     }
     return null;
   }
+
+  Future<bool> updateModuleAttendanceDetails({
+  required int moduleId,
+  required double lat,
+  required double lng,
+}) async {
+  try {
+    // Using 10.0.2.2 to route to your local machine's localhost from the Android emulator
+    final url = Uri.parse("http://10.0.2.2:8000/api/attendance/update-location");
+
+    final response = await http.post(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: jsonEncode({
+        "module_id": moduleId,
+        "geo_lat": lat,
+        "geo_long": lng,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['success'] == true) {
+        return true;
+      }
+    }
+    return false;
+  } catch (e) {
+    debugPrint("Provider Error: $e");
+    return false;
+  }
+}
+
 
 
   //Student

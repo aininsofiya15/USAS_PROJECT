@@ -6,31 +6,42 @@ import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../provider/attendance_provider.dart';
 import '../../domain/module.dart';
-import 'release_module_attendance.dart';
 
-class GenerateModuleAttendanceCode extends StatefulWidget {
+class EditModuleAttendancePage extends StatefulWidget {
   final Module module;
 
-  const GenerateModuleAttendanceCode({
+  const EditModuleAttendancePage({
     super.key,
     required this.module,
   });
 
   @override
-  State<GenerateModuleAttendanceCode> createState() => _GenerateModuleAttendanceCodeState();
+  State<EditModuleAttendancePage> createState() => _EditModuleAttendancePageState();
 }
 
-class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceCode> {
-  double? _currentLat;
-  double? _currentLong;
+class _EditModuleAttendancePageState extends State<EditModuleAttendancePage> {
+  double? _updatedLat;
+  double? _updatedLong;
   bool _isFetchingLocation = false;
+  bool _isUpdating = false;
+  bool _hasInitializedCoords = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AttendanceProvider>(context, listen: false)
-          .fetchModuleDetails(widget.module.id ?? 0);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = Provider.of<AttendanceProvider>(context, listen: false);
+      await provider.fetchModuleDetails(widget.module.id ?? 0);
+      
+      // Pull current active coordinates safely from the provider dictionary store
+      final moduleDetails = provider.moduleDetails ?? {};
+      if (mounted && moduleDetails.isNotEmpty) {
+        setState(() {
+          _updatedLat = double.tryParse(moduleDetails['geo_lat']?.toString() ?? '');
+          _updatedLong = double.tryParse(moduleDetails['geo_long']?.toString() ?? '');
+          _hasInitializedCoords = true;
+        });
+      }
     });
   }
 
@@ -73,12 +84,12 @@ class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceC
 
         if (mounted) {
           setState(() {
-            _currentLat = position.latitude;
-            _currentLong = position.longitude;
+            _updatedLat = position.latitude;
+            _updatedLong = position.longitude;
           });
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Highly accurate location captured!"), 
+              content: Text("Highly accurate location updated!"), 
               backgroundColor: Colors.green
             ),
           );
@@ -101,139 +112,64 @@ class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceC
     }
   }
 
-  // --- FORM SUBMISSION HANDLING WITH DUPLICATE CHECK MANAGEMENT ---
-  void _submitForm() async {
-    if (_currentLat == null || _currentLong == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fetch your location first!"), 
-          backgroundColor: Colors.red
-        ),
-      );
-      return;
-    }
-
-    // 1. Show loading overlay while checking backend validation rules
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+  // --- SAVE ACTION: Calls your Controller/Provider Method ---
+  void _saveUpdatedLocation() async {
+  if (_updatedLat == null || _updatedLong == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Please fetch an updated location first!"), 
+        backgroundColor: Colors.red
+      ),
     );
-
-    final provider = Provider.of<AttendanceProvider>(context, listen: false);
-
-    // Split date and time from fields cleanly
-    String rawDateTime = widget.module.dateTime ?? ""; 
-    String datePart = rawDateTime;
-    String timePart = rawDateTime;
-
-    if (rawDateTime.contains(' ')) {
-      List<String> parts = rawDateTime.split(' ');
-      datePart = parts[0]; 
-      timePart = parts[1]; 
-    }
-
-    // 2. SAFE SUBMISSION PATHWAY: Fire code generator
-    if (!mounted) return;
-    final String? responseCode = await provider.generateModuleAttendance(
-      moduleId: widget.module.id ?? 0,
-      lat: _currentLat!,
-      lng: _currentLong!,
-      date: datePart,
-      time: timePart,
-    );
-
-    if (!mounted) return;
-    Navigator.pop(context); // Dismiss loading overlay spinner
-
-    // 4. SERVER-SIDE FALLBACK INTERCEPT
-    if (responseCode == "DUPLICATE") {
-      _showDuplicateWarningDialog(context);
-    } 
-    else if (responseCode != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => ReleaseModuleAttendanceCodePage(
-            module: widget.module,
-            code: responseCode,
-          ),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Failed to process transaction. Please try again."), 
-          backgroundColor: Colors.red
-        ),
-      );
-    }
+    return;
   }
 
-  // --- DUPLICATE WARNING MODAL WINDOW ---
-  void _showDuplicateWarningDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.warning_rounded,
-                  color: Colors.red,
-                  size: 60,
-                ),
-                const SizedBox(height: 15),
-                const Text(
-                  "An attendance code for this class session has already been released.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF22C55E),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      "Back to Dashboard",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+  setState(() => _isUpdating = true);
+
+  final provider = Provider.of<AttendanceProvider>(context, listen: false);
+  final moduleDetails = provider.moduleDetails ?? {};
+
+  // Get the actual attendance ID (fallback to module ID if not found)
+  final int targetAttendanceId = moduleDetails['id'] ?? (widget.module.id ?? 0);
+
+  bool isSuccess = await provider.updateModuleAttendanceDetails(
+    moduleId: targetAttendanceId, // This now correctly passes 40 instead of the module id!
+    lat: _updatedLat!,
+    lng: _updatedLong!,
+  );
+
+  if (!mounted) return;
+  setState(() => _isUpdating = false);
+
+  if (isSuccess) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Geolocation details saved successfully!"), 
+        backgroundColor: Colors.green
+      ),
+    );
+    Navigator.pop(context, true); 
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Failed to update details. Please check your network connection."), 
+        backgroundColor: Colors.red
+      ),
     );
   }
+}
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<AttendanceProvider>(context);
     final moduleDetails = provider.moduleDetails ?? {}; 
+
+    // Sync fallback once when network details come alive, if not touched yet
+    if (!_hasInitializedCoords && moduleDetails.isNotEmpty) {
+      _updatedLat = double.tryParse(moduleDetails['geo_lat']?.toString() ?? '');
+      _updatedLong = double.tryParse(moduleDetails['geo_long']?.toString() ?? '');
+      _hasInitializedCoords = true;
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFD1FFF3), 
@@ -245,7 +181,7 @@ class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceC
         child: Column(
           children: [
             const Text(
-              "Module Attendance", 
+              "Edit Module Attendance", 
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)
             ),
             const SizedBox(height: 20),
@@ -284,7 +220,7 @@ class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceC
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        "Helvetica Geolocation:", 
+                        "Update Geolocation:", 
                         style: TextStyle(fontWeight: FontWeight.bold)
                       ),
                       TextButton.icon(
@@ -292,18 +228,18 @@ class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceC
                         icon: _isFetchingLocation 
                           ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.my_location, size: 18),
-                        label: Text(_isFetchingLocation ? "Fetching..." : "Get Location"),
+                        label: Text(_isFetchingLocation ? "Fetching..." : "Refresh GPS"),
                         style: TextButton.styleFrom(foregroundColor: const Color(0xFF3F51B5)),
                       ),
                     ],
                   ),
                   
-                  if (_currentLat != null)
+                  if (_updatedLat != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: Text(
-                        "Captured: ${_currentLat!.toStringAsFixed(5)}, ${_currentLong!.toStringAsFixed(5)}",
-                        style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                        "Current Coordinates: ${_updatedLat!.toStringAsFixed(5)}, ${_updatedLong!.toStringAsFixed(5)}",
+                        style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12),
                       ),
                     ),
 
@@ -325,17 +261,16 @@ class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceC
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _submitForm, 
+                      onPressed: _isUpdating ? null : _saveUpdatedLocation, 
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF007BFF),
+                        backgroundColor: const Color(0xFF22C55E), 
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         elevation: 0,
                       ),
-                      child: const Text(
-                        "GENERATE CODE", 
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
-                      ),
+                      child: _isUpdating
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text("UPDATE ATTENDANCE DETAILS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
