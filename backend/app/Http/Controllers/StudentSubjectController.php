@@ -8,7 +8,12 @@ use Illuminate\Support\Facades\DB;
 
 class StudentSubjectController extends Controller
 {
-    /// GET ALL SUBJECTS
+    /**
+     * ==========================================================
+     * Retrieve all active subjects together with sections,
+     * labs and current registered student count.
+     * ==========================================================
+     */
     public function getSubjects()
     {
         $subjects = Subject::with([
@@ -48,9 +53,15 @@ class StudentSubjectController extends Controller
         ]);
     }
 
-    /// GET REGISTERED SUBJECTS
+    /**
+     * ==========================================================
+     * Retrieve all active registered subjects for
+     * selected student.
+     * ==========================================================
+     */
     public function getRegisteredSubjects($student_id)
     {
+        // Sync approved curriculum claims before displaying
         $this->syncApprovedCreditClaims($student_id);
 
         $registrations = DB::table('registration')
@@ -89,7 +100,7 @@ class StudentSubjectController extends Controller
                 'labs.lab_name',
 
                 'labs.schedule_day',
-                
+
                 'labs.schedule_time'
             )
 
@@ -113,8 +124,12 @@ class StudentSubjectController extends Controller
         ]);
     }
 
-    // AININ CREDIT CLAIM DISPLAY
-    
+    /**
+     * ==========================================================
+     * Automatically register approved curriculum
+     * subjects into registration table.
+     * ==========================================================
+     */
     private function syncApprovedCreditClaims($studentId)
     {
         $approvedClaims = DB::table('credit_claims')
@@ -123,6 +138,8 @@ class StudentSubjectController extends Controller
             ->get();
 
         foreach ($approvedClaims as $claim) {
+
+            // Check if subject already registered
             $alreadyRegistered = DB::table('registration')
                 ->where('student_id', $claim->student_id)
                 ->where('subject_id', $claim->subject_id)
@@ -133,10 +150,12 @@ class StudentSubjectController extends Controller
                 continue;
             }
 
+            // Get default section
             $section = DB::table('sections')
                 ->where('subject_id', $claim->subject_id)
                 ->first();
 
+            // Auto insert registration
             DB::table('registration')->insert([
                 'student_id'    => $claim->student_id,
                 'subject_id'    => $claim->subject_id,
@@ -148,11 +167,21 @@ class StudentSubjectController extends Controller
         }
     }
 
-    /// REGISTER SUBJECT
-    public function registerSubject(
-        Request $request
-    )
+    /**
+     * ==========================================================
+     * Register student into selected subject and lab.
+     * Includes validation:
+     * - Duplicate registration
+     * - Credit hour limit
+     * - Schedule conflict
+     * ==========================================================
+     */
+    public function registerSubject(Request $request)
     {
+        /**
+         * SDD Validation:
+         * CHECK DUPLICATE REGISTRATION
+         */
         $exists = DB::table('registration')
 
             ->where(
@@ -172,7 +201,6 @@ class StudentSubjectController extends Controller
 
             ->exists();
 
-        /// PREVENT DUPLICATE
         if ($exists) {
 
             return response()->json([
@@ -182,126 +210,131 @@ class StudentSubjectController extends Controller
                 'message' =>
                     'Subject already registered'
             ]);
-        } 
+        }
 
-        /// CHECK TOTAL CREDIT HOUR
-$currentCredit = DB::table('registration')
+        /**
+         
+         * CHECK CREDIT LIMIT
+        
 
-    ->join(
-        'subjects',
-        'registration.subject_id',
-        '=',
-        'subjects.subject_id'
-    )
+        $currentCredit = DB::table('registration')
 
-    ->where(
-        'registration.student_id',
-        $request->student_id
-    )
+            ->join(
+                'subjects',
+                'registration.subject_id',
+                '=',
+                'subjects.subject_id'
+            )
 
-    ->where(
-        'registration.status',
-        'active'
-    )
+            ->where(
+                'registration.student_id',
+                $request->student_id
+            )
 
-    ->sum('subjects.credit_hours');
+            ->where(
+                'registration.status',
+                'active'
+            )
 
+            ->sum('subjects.credit_hours');
 
-/// GET NEW SUBJECT CREDIT
-$newSubject = DB::table('subjects')
+        $newSubject = DB::table('subjects')
 
-    ->where(
-        'subject_id',
-        $request->subject_id
-    )
+            ->where(
+                'subject_id',
+                $request->subject_id
+            )
 
-    ->first();
+            ->first();
 
-
-/// LIMIT 20 CREDIT
-if (($currentCredit + $newSubject->credit_hours) > 20) {
-
-    return response()->json([
-
-        'success' => false,
-
-        'message' =>
-            'Maximum 20 credit hours exceeded'
-    ], 400);
-}
-
-/// GET NEW LAB
-$newLab = DB::table('labs')
-
-    ->where(
-        'lab_id',
-        $request->lab_id
-    )
-
-    ->first();
-
-
-/// GET EXISTING REGISTERED LABS
-$existingLabs = DB::table('registration')
-
-    ->join(
-        'labs',
-        'registration.lab_id',
-        '=',
-        'labs.lab_id'
-    )
-
-    ->where(
-        'registration.student_id',
-        $request->student_id
-    )
-
-    ->where(
-        'registration.status',
-        'active'
-    )
-
-    ->select(
-
-        'labs.schedule_day',
-
-        'labs.schedule_time'
-    )
-
-    ->get();
-
-
-/// CHECK CONFLICT
-foreach ($existingLabs as $lab) {
-
-    /// SAME DAY
-    if (
-
-        strtolower($lab->schedule_day) ==
-        strtolower($newLab->schedule_day)
-
-    ) {
-
-        /// SAME TIME
-        if (
-
-            strtolower($lab->schedule_time) ==
-            strtolower($newLab->schedule_time)
-
-        ) {
+        // Maximum 20 credit hours
+        if (($currentCredit + $newSubject->credit_hours) > 20) {
 
             return response()->json([
 
                 'success' => false,
 
                 'message' =>
-
-                    'Schedule conflict detected'
+                    'Maximum 20 credit hours exceeded'
             ], 400);
         }
-    }
-}
-        /// INSERT REGISTRATION
+
+        /**
+         * SDD Validation:
+         * CHECK SCHEDULE CONFLICT
+         * Equivalent:
+         * checkScheduleConflict(student_id, lab_id)
+         */
+
+        $newLab = DB::table('labs')
+
+            ->where(
+                'lab_id',
+                $request->lab_id
+            )
+
+            ->first();
+
+        $existingLabs = DB::table('registration')
+
+            ->join(
+                'labs',
+                'registration.lab_id',
+                '=',
+                'labs.lab_id'
+            )
+
+            ->where(
+                'registration.student_id',
+                $request->student_id
+            )
+
+            ->where(
+                'registration.status',
+                'active'
+            )
+
+            ->select(
+
+                'labs.schedule_day',
+
+                'labs.schedule_time'
+            )
+
+            ->get();
+
+        foreach ($existingLabs as $lab) {
+
+            if (
+
+                strtolower($lab->schedule_day) ==
+                strtolower($newLab->schedule_day)
+
+            ) {
+
+                if (
+
+                    strtolower($lab->schedule_time) ==
+                    strtolower($newLab->schedule_time)
+
+                ) {
+
+                    return response()->json([
+
+                        'success' => false,
+
+                        'message' =>
+
+                            'Schedule conflict detected'
+                    ], 400);
+                }
+            }
+        }
+
+        /**
+         
+         * Insert into registration table
+         */
         DB::table('registration')
 
             ->insert([
@@ -323,7 +356,9 @@ foreach ($existingLabs as $lab) {
                 'registered_at' => now(),
             ]);
 
-        /// INCREASE LAB ENROLLED
+        /**
+         * UPDATE LAB ENROLLED COUNT
+         */
         DB::table('labs')
 
             ->where(
@@ -342,7 +377,12 @@ foreach ($existingLabs as $lab) {
         ]);
     }
 
-    /// DROP SUBJECT
+    /**
+     * ==========================================================
+     * Remove registered subject and
+     * release lab slot.
+     * ==========================================================
+     */
     public function dropSubject($registration_id)
     {
         $registration = DB::table('registration')
@@ -354,7 +394,9 @@ foreach ($existingLabs as $lab) {
 
             ->first();
 
-        /// DECREASE LAB ENROLLED
+        /**
+         * DECREASE LAB ENROLLED COUNT
+         */
         DB::table('labs')
 
             ->where(
@@ -364,7 +406,9 @@ foreach ($existingLabs as $lab) {
 
             ->decrement('enrolled');
 
-        /// UPDATE STATUS
+        /**
+         * UPDATE REGISTRATION STATUS
+         */
         DB::table('registration')
 
             ->where(
