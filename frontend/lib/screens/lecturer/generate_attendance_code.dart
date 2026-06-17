@@ -112,7 +112,6 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
         return;
       }
 
-      // 1. Show loading overlay while checking backend validation rules
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -133,12 +132,9 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
       if (!mounted) return;
       Navigator.pop(context); // Dismiss loading overlay spinner
 
-      // 2. INTERCEPT DUPLICATE: Show warning modal instantly on this page!
       if (responseCode == "DUPLICATE") {
         _showDuplicateWarningDialog(context);
       } 
-      
-      // 3. SUCCESS: Proceed to release page only if code is unique
       else if (responseCode != null) {
         Navigator.push(
           context,
@@ -192,7 +188,6 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      // Return to the first route in the stack, typically the dashboard
                       Navigator.of(context).popUntil((route) => route.isFirst);
                     },
                     style: ElevatedButton.styleFrom(
@@ -223,96 +218,184 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3D8DA),
+      backgroundColor: const Color(0xFFFDF2F2), 
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         child: Column(
           children: [
-            const Text("Attendance", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.all(25),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [const BoxShadow(color: Colors.black12, blurRadius: 10)],
+                color: const Color(0xFFDEC3C3), 
+                borderRadius: BorderRadius.circular(24),
+                border: null, 
               ),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildInfoRow("Subject:", widget.subjectName),
-                    _buildInfoRow("Section:", widget.sectionNo),
-                    
-                    const SizedBox(height: 20),
-                    _buildLabel("Lecture/Lab:"),
-                    _buildLabDropdown(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    "Attendance", 
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
+                  ),
+                  const SizedBox(height: 20),
 
-                    _buildLabel("Date:"),
-                    _buildInputField(controller: _dateController, hint: "Select Date", icon: Icons.calendar_month, onTap: _pickDate),
-
-                    _buildLabel("Time:"),
-                    _buildInputField(controller: _timeController, hint: "Select Time", icon: Icons.access_time, onTap: _pickTime),
-
-                    // --- GEOLOCATION SECTION ---
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildLabel("Geolocation:"),
-                        TextButton.icon(
-                          onPressed: _isFetchingLocation ? null : _getCurrentLocation,
-                          icon: _isFetchingLocation 
-                            ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.my_location, size: 18),
-                          label: Text(_isFetchingLocation ? "Fetching..." : "Get Location"),
-                          style: TextButton.styleFrom(foregroundColor: const Color(0xFF3F51B5)),
+                  // White Form container sheet card wrapper
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    
-                    if (_currentLat != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                          "Captured: ${_currentLat!.toStringAsFixed(5)}, ${_currentLong!.toStringAsFixed(5)}",
-                          style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
-                      ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildInfoRow("Subject:", widget.subjectName),
+                          _buildInfoRow("Section:", widget.sectionNo),
+                          
+                          const SizedBox(height: 10),
+                          
+                          // Lecture/Lab Inline Row
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6.0),
+                            child: Row(
+                              children: [
+                                const Expanded(
+                                  flex: 4,
+                                  child: Text("Lecture/Lab:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
+                                ),
+                                Expanded(
+                                  flex: 5,
+                                  child: _buildLabDropdown(),
+                                ),
+                              ],
+                            ),
+                          ),
 
-                    // Map Placeholder (Static Image)
-                    Container(
-                      height: 120,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey.shade300),
-                        image: const DecorationImage(
-                          image: NetworkImage('https://static-maps.yandex.ru/1.x/?lang=en_US&ll=101.14,4.48&z=13&l=map&size=450,200'),
-                          fit: BoxFit.cover,
-                        ),
+                          // Date Inline Row
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6.0),
+                            child: Row(
+                              children: [
+                                const Expanded(
+                                  flex: 4,
+                                  child: Text("Date:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
+                                ),
+                                Expanded(
+                                  flex: 5,
+                                  child: _buildInputField(controller: _dateController, hint: "Select Date", icon: Icons.calendar_month, onTap: _pickDate),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Time Inline Row
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6.0),
+                            child: Row(
+                              children: [
+                                const Expanded(
+                                  flex: 4,
+                                  child: Text("Time:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
+                                ),
+                                Expanded(
+                                  flex: 5,
+                                  child: _buildInputField(controller: _timeController, hint: "Select Time", icon: Icons.access_time, onTap: _pickTime),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // --- GEOLOCATION SECTION ---
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("Geolocation:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
+                                  const Text("(Select on Map)", style: TextStyle(fontSize: 12, color: Colors.black54)),
+                                ],
+                              ),
+                              TextButton.icon(
+                                onPressed: _isFetchingLocation ? null : _getCurrentLocation,
+                                icon: _isFetchingLocation 
+                                  ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2))
+                                  : const Icon(Icons.my_location, size: 18),
+                                label: Text(_isFetchingLocation ? "Fetching..." : "Get Location"),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: const Color(0xFF3F51B5),
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                              ),
+                            ],
+                          ),
+                          
+                          const SizedBox(height: 10),
+                          
+                          if (_currentLat != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Text(
+                                "Captured: ${_currentLat!.toStringAsFixed(5)}, ${_currentLong!.toStringAsFixed(5)}",
+                                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                              ),
+                            ),
+
+                          // Map Placeholder
+                          Container(
+                            height: 130,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.grey.shade300),
+                              image: const DecorationImage(
+                                image: NetworkImage('https://static-maps.yandex.ru/1.x/?lang=en_US&ll=101.14,4.48&z=13&l=map&size=450,200'),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 25),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _submitForm,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF007BFF),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                elevation: 1,
+                              ),
+                              child: const Text(
+                                "GENERATE CODE", 
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-
-                    const SizedBox(height: 25),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _submitForm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF007BFF),
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        child: const Text("GENERATE CODE", 
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -342,7 +425,8 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
               hint: const Text("Select Type"),
               items: menuItems,
               onChanged: (val) => setState(() => _selectedLab = val),
-              decoration: const InputDecoration(border: InputBorder.none),
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
+              decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 10)),
               validator: (v) => v == null ? "Required" : null,
             ),
           ),
@@ -354,31 +438,28 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
   Widget _buildInfoRow(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),
     child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(flex: 2, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold))),
-        Expanded(flex: 3, child: Text(value, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w500))),
+        Expanded(flex: 4, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black))),
+        Expanded(flex: 5, child: Text(value, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black))),
       ],
     ),
   );
 
-  Widget _buildLabel(String text) => Padding(
-    padding: const EdgeInsets.only(top: 10, bottom: 5),
-    child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
-  );
-
   Widget _buildInputField({required TextEditingController controller, required String hint, required IconData icon, VoidCallback? onTap}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(color: const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(8)),
       child: TextFormField(
         controller: controller,
         readOnly: true,
         onTap: onTap,
+        style: const TextStyle(fontSize: 14, color: Colors.black87),
         decoration: InputDecoration(
           hintText: hint,
-          suffixIcon: Icon(icon, color: Colors.black54),
+          suffixIcon: Icon(icon, color: Colors.black54, size: 20),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         ),
         validator: (v) => v == null || v.isEmpty ? "Required" : null,
       ),

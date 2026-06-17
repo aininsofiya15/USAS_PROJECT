@@ -22,7 +22,6 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
     _loadLecturerData();
   }
 
-  // Extracted core fetch routine for re-usability on pull-to-refresh action
   void _loadLecturerData() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = Provider.of<UserProvider>(context, listen: false);
@@ -30,8 +29,6 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
 
       if (currentLecturerId != null) {
         debugPrint("🔔 ATTEMPTING NETWORK FETCH FOR LECTURER ID: $currentLecturerId");
-        debugPrint("💡 REMINDER: Ensure your backend uses the 10.0.2.2 endpoint inside Emulators rather than localhost/127.0.0.1!");
-        
         Provider.of<AttendanceProvider>(context, listen: false)
             .fetchLecturerSubjects(currentLecturerId);
       } else {
@@ -43,7 +40,7 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3D8DA),
+      backgroundColor: const Color(0xFFFDF2F2), 
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
@@ -55,7 +52,6 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
           }
 
           // 2. Network/API Connection Failure Fallback
-          // (Checks an error message property if you added one to your provider class)
           final bool hasNetworkError = provider.subjects.isEmpty && 
               (provider.toString().toLowerCase().contains('error') || 
                provider.toString().toLowerCase().contains('exception'));
@@ -75,7 +71,7 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      "Could not communicate with the backend application. Verify that your Laravel service is actively running and that your base endpoint URL matches your local setup.",
+                      "Could not communicate with the backend application. Verify that your Laravel service is actively running.",
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 13, color: Colors.black54),
                     ),
@@ -97,7 +93,7 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
             return RefreshIndicator(
               onRefresh: () async => _loadLecturerData(),
               child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(), // Allows pull-to-refresh even when empty
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: [
                   SizedBox(height: MediaQuery.of(context).size.height * 0.35),
                   const Center(
@@ -115,7 +111,7 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
             );
           }
 
-          // 4. Content State (Group flat backend records by unique subject IDs)
+          // 4. Content State
           final Map<int, List<Subject>> groupedSubjects = {};
           for (var s in provider.subjects) {
             groupedSubjects.putIfAbsent(s.subjectId, () => []).add(s);
@@ -125,20 +121,55 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
             onRefresh: () async => _loadLecturerData(),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
               child: Column(
                 children: [
-                  const Text(
-                    "Attendance Panel",
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                  // Main Content Panel enclosing everything up to the Attendance Header title
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDEC3C3), // Darker pink background fill
+                      borderRadius: BorderRadius.circular(24),
+                      border: null, // No outer border line outline
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Title now inside the pink background container
+                        const Text(
+                          "Attendance",
+                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Semester details text row layout now inside the pink container
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                          child: Row(
+                            children: const [
+                              Text(
+                                "Semester:",
+                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black),
+                              ),
+                              SizedBox(width: 20),
+                              Text(
+                                "252026 SEM II",
+                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 25),
+
+                        // Dynamic generation of inside white subject cards
+                        ...groupedSubjects.entries.map((entry) {
+                          final List<Subject> subjectSections = entry.value;
+                          return _buildSubjectCard(subjectSections);
+                        }),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 25),
-                  
-                  // Build subject cards dynamically
-                  ...groupedSubjects.entries.map((entry) {
-                    final List<Subject> subjectSections = entry.value;
-                    return _buildSubjectCard(subjectSections);
-                  }),
                 ],
               ),
             ),
@@ -155,45 +186,43 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
           )
         ],
       ),
       child: Column(
         children: [
-          // Header Row for Subject Metadata
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
+            alignment: Alignment.center,
             child: Text(
               "${firstSubject.subjectCode} ${firstSubject.subjectName}".toUpperCase(),
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: Color(0xFF3F51B5),
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+                color: Color(0xFF3F51B5), 
+                fontWeight: FontWeight.w800, // Clean extra bold text
+                fontSize: 16.0,              // Clear large subject font text size
                 letterSpacing: 0.5,
               ),
             ),
           ),
+          const Divider(height: 1, color: Color(0xFFEEEEEE)),
           
-          // Section interaction buttons
           Padding(
-            padding: const EdgeInsets.all(15.0),
+            padding: const EdgeInsets.all(14.0),
             child: Column(
               children: sections.map((sec) {
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: 8.0),
                   child: SizedBox(
                     width: double.infinity,
+                    height: 42,
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.push(
@@ -208,17 +237,16 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF007BFF),
+                        backgroundColor: const Color(0xFF007AFF), 
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 2,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        elevation: 0,
                       ),
                       child: Text(
                         "SECTION ${sec.sectionNo}",
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.0),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
                       ),
                     ),
                   ),

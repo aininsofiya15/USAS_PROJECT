@@ -6,6 +6,7 @@ import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../provider/attendance_provider.dart';
 import '../../provider/user_provider.dart';
+import 'view_attendance_records.dart';
 
 class EditAttendanceDetails extends StatefulWidget {
   final int attendanceId;
@@ -91,6 +92,92 @@ class _EditAttendanceDetailsState extends State<EditAttendanceDetails> {
     }
   }
 
+  // --- POPUP DIALOG ROUTINE ROUTING TO VIEW ATTENDANCE RECORDS ---
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.0),
+          ),
+          elevation: 5,
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Circular check icon layout
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.black, width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    size: 32,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                // Dialog descriptive text block
+                const Text(
+                  "Attendance details updated successfully!",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Styled Green OK Button routing to ViewAttendanceRecords
+                SizedBox(
+                  width: 110,
+                  height: 36,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      // 1. Dismiss the dialog box first
+                      Navigator.pop(context); 
+                      
+                      // 2. Navigate to ViewAttendanceRecords page
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ViewAttendanceRecords(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981), // Vivid Emerald Green
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 2,
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // --- LOGIC: Fetch Current GPS ---
   Future<void> _getCurrentLocation() async {
     setState(() => _isFetchingLocation = true);
@@ -109,9 +196,11 @@ class _EditAttendanceDetailsState extends State<EditAttendanceDetails> {
           _currentLat = position.latitude;
           _currentLong = position.longitude;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Location updated!"), backgroundColor: Colors.green),
-        );
+        
+        // Triggers the custom popup alert upon successful tracking retrieval
+        if (mounted) {
+          _showSuccessDialog();
+        }
       }
     } catch (e) {
       debugPrint("Location error: $e");
@@ -146,7 +235,7 @@ class _EditAttendanceDetailsState extends State<EditAttendanceDetails> {
         provider.fetchAttendanceHistory(userId);
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Changes Saved!"), backgroundColor: Colors.green),
+          const SnackBar(content: Text("Changes Saved permanently!"), backgroundColor: Colors.green),
         );
       }
     }
@@ -155,109 +244,186 @@ class _EditAttendanceDetailsState extends State<EditAttendanceDetails> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3D8DA),
+      backgroundColor: const Color(0xFFFDF2F2), // Matches GenerateAttendanceCode view background
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: _isLoading 
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
               child: Column(
                 children: [
-                  const Text("Edit Attendance", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 20),
                   Container(
-                    padding: const EdgeInsets.all(25),
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                      color: const Color(0xFFDEC3C3), 
+                      borderRadius: BorderRadius.circular(24),
+                      border: null, 
                     ),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Updated to use the local state variables
-                          _buildInfoRow("Subject:", _displaySubjectName),
-                          _buildInfoRow("Section:", _displaySectionNo),
-                          
-                          const SizedBox(height: 20),
-                          _buildLabel("Lecture/Lab:"),
-                          _buildLabDropdown(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "Edit Attendance", 
+                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
+                        ),
+                        const SizedBox(height: 20),
 
-                          _buildLabel("Date:"),
-                          _buildInputField(
-                            controller: _dateController, 
-                            hint: "Select Date", 
-                            icon: Icons.calendar_month, 
-                            onTap: _pickDate
-                          ),
-
-                          _buildLabel("Time:"),
-                          _buildInputField(
-                            controller: _timeController, 
-                            hint: "Select Time", 
-                            icon: Icons.access_time, 
-                            onTap: _pickTime
-                          ),
-
-                          // --- GEOLOCATION SECTION ---
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildLabel("Geolocation:"),
-                              TextButton.icon(
-                                onPressed: _isFetchingLocation ? null : _getCurrentLocation,
-                                icon: _isFetchingLocation 
-                                  ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2))
-                                  : const Icon(Icons.my_location, size: 18),
-                                label: Text(_isFetchingLocation ? "Fetching..." : "Update Location"),
-                                style: TextButton.styleFrom(foregroundColor: const Color(0xFF3F51B5)),
+                        // White Form container sheet card wrapper
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
-                          
-                          if (_currentLat != null)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Text(
-                                "Recorded: ${_currentLat!.toStringAsFixed(5)}, ${_currentLong!.toStringAsFixed(5)}",
-                                style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
-                              ),
-                            ),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildInfoRow("Subject:", _displaySubjectName),
+                                _buildInfoRow("Section:", _displaySectionNo),
+                                
+                                const SizedBox(height: 10),
+                                
+                                // Lecture/Lab Inline Row layout setup
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                  child: Row(
+                                    children: [
+                                      const Expanded(
+                                        flex: 4,
+                                        child: Text("Lecture/Lab:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
+                                      ),
+                                      Expanded(
+                                        flex: 5,
+                                        child: _buildLabDropdown(),
+                                      ),
+                                    ],
+                                  ),
+                                ),
 
-                          // Map Placeholder (Static Image)
-                          Container(
-                            height: 120,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.grey.shade300),
-                              image: const DecorationImage(
-                                image: NetworkImage('https://static-maps.yandex.ru/1.x/?lang=en_US&ll=101.14,4.48&z=13&l=map&size=450,200'),
-                                fit: BoxFit.cover,
-                              ),
+                                // Date Inline Row structure
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                  child: Row(
+                                    children: [
+                                      const Expanded(
+                                        flex: 4,
+                                        child: Text("Date:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
+                                      ),
+                                      Expanded(
+                                        flex: 5,
+                                        child: _buildInputField(controller: _dateController, hint: "Select Date", icon: Icons.calendar_month, onTap: _pickDate),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Time Inline Row structure
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 6.0),
+                                  child: Row(
+                                    children: [
+                                      const Expanded(
+                                        flex: 4,
+                                        child: Text("Time:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
+                                      ),
+                                      Expanded(
+                                        flex: 5,
+                                        child: _buildInputField(controller: _timeController, hint: "Select Time", icon: Icons.access_time, onTap: _pickTime),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 12),
+
+                                // --- GEOLOCATION SECTION WITH DUAL OVERVIEW ---
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text("Geolocation:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black)),
+                                        const Text("(Select on Map)", style: TextStyle(fontSize: 12, color: Colors.black54)),
+                                      ],
+                                    ),
+                                    TextButton.icon(
+                                      onPressed: _isFetchingLocation ? null : _getCurrentLocation,
+                                      icon: _isFetchingLocation 
+                                        ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2))
+                                        : const Icon(Icons.my_location, size: 18),
+                                      label: Text(_isFetchingLocation ? "Fetching..." : "Update Location"),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: const Color(0xFF3F51B5),
+                                        padding: EdgeInsets.zero,
+                                        minimumSize: Size.zero,
+                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                
+                                const SizedBox(height: 10),
+                                
+                                if (_currentLat != null)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 10),
+                                    child: Text(
+                                      "Recorded: ${_currentLat!.toStringAsFixed(5)}, ${_currentLong!.toStringAsFixed(5)}",
+                                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                                    ),
+                                  ),
+
+                                // Map Placeholder (Static Image Widget Box)
+                                Container(
+                                  height: 130,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.grey.shade300),
+                                    image: const DecorationImage(
+                                      image: NetworkImage('https://static-maps.yandex.ru/1.x/?lang=en_US&ll=101.14,4.48&z=13&l=map&size=450,200'),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 25),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: _saveChanges,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF007BFF),
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      elevation: 1,
+                                    ),
+                                    child: const Text(
+                                      "SAVE CHANGES", 
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-
-                          const SizedBox(height: 25),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: _saveChanges,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF007BFF),
-                                padding: const EdgeInsets.symmetric(vertical: 15),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                              child: const Text("SAVE CHANGES", 
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -279,7 +445,6 @@ class _EditAttendanceDetailsState extends State<EditAttendanceDetails> {
           return DropdownMenuItem(value: lab.labName, child: Text(lab.labName));
         }).toList());
 
-        // Safety fallback: Ensure the retrieved DB value actually exists in the dropdown list
         bool exists = _selectedLab == null || menuItems.any((item) => item.value == _selectedLab);
         if (!exists) {
           menuItems.add(DropdownMenuItem(value: _selectedLab, child: Text("$_selectedLab (Current)")));
@@ -295,7 +460,8 @@ class _EditAttendanceDetailsState extends State<EditAttendanceDetails> {
               hint: const Text("Select Type"),
               items: menuItems,
               onChanged: (val) => setState(() => _selectedLab = val),
-              decoration: const InputDecoration(border: InputBorder.none),
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
+              decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 10)),
               validator: (v) => v == null ? "Required" : null,
             ),
           ),
@@ -307,31 +473,28 @@ class _EditAttendanceDetailsState extends State<EditAttendanceDetails> {
   Widget _buildInfoRow(String label, String value) => Padding(
     padding: const EdgeInsets.symmetric(vertical: 8),
     child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(flex: 2, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold))),
-        Expanded(flex: 3, child: Text(value, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w500))),
+        Expanded(flex: 4, child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black))),
+        Expanded(flex: 5, child: Text(value, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: Colors.black87))),
       ],
     ),
   );
 
-  Widget _buildLabel(String text) => Padding(
-    padding: const EdgeInsets.only(top: 10, bottom: 5),
-    child: Text(text, style: const TextStyle(fontWeight: FontWeight.bold)),
-  );
-
   Widget _buildInputField({required TextEditingController controller, required String hint, required IconData icon, VoidCallback? onTap}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(color: const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(8)),
       child: TextFormField(
         controller: controller,
         readOnly: true,
         onTap: onTap,
+        style: const TextStyle(fontSize: 14, color: Colors.black87),
         decoration: InputDecoration(
           hintText: hint,
-          suffixIcon: Icon(icon, color: Colors.black54),
+          suffixIcon: Icon(icon, color: Colors.black54, size: 20),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         ),
         validator: (v) => v == null || v.isEmpty ? "Required" : null,
       ),
