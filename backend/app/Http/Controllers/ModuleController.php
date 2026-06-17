@@ -53,6 +53,19 @@ class ModuleController extends Controller
     // 2. Update existing module details 
     public function update(Request $request)
     {
+        $request->validate([
+            'id' => 'required|integer|exists:modules,id',
+            'activity_name' => 'required|string|max:255',
+            'date_time' => 'required|date',
+            'capacity' => 'required|integer|min:1',
+            'venue' => 'required|string|max:255',
+            'lecturer_name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'whatsapp_link' => 'nullable|string|max:255',
+            'pic_contact' => 'nullable|string|max:255',
+            'status' => 'required|in:draft,published',
+        ]);
+
         // Get the module ID from the request to update
         $id = $request->input('id');
 
@@ -90,15 +103,30 @@ class ModuleController extends Controller
     // 3. Create and store a new created module 
     public function store(Request $request)
     {
+        $validated = $request->validate([
+            'activity_name' => 'required|string|max:255',
+            'date_time' => 'required|date',
+            'capacity' => 'required|integer|min:1',
+            'venue' => 'required|string|max:255',
+            'lecturer_name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'whatsapp_link' => 'nullable|string|max:255',
+            'pic_contact' => 'nullable|string|max:255',
+            'status' => 'required|in:draft,published',
+        ]);
+
         try {
             // Insert a new module record into the database with the input
             DB::table('modules')->insert([
-                'activity_name' => $request->activity_name,
-                'date_time'     => $request->date_time,
-                'capacity'      => $request->capacity,
-                'venue'         => $request->venue,
-                'lecturer_name' => $request->lecturer_name,
-                'status'        => 'published', // Automatically starts as published state
+                'activity_name' => $validated['activity_name'],
+                'date_time'     => $validated['date_time'],
+                'capacity'      => $validated['capacity'],
+                'venue'         => $validated['venue'],
+                'lecturer_name' => $validated['lecturer_name'],
+                'description'   => $validated['description'] ?? null,
+                'whatsapp_link' => $validated['whatsapp_link'] ?? null,
+                'pic_contact'   => $validated['pic_contact'] ?? null,
+                'status'        => $validated['status'],
                 'created_at'    => now(),
                 'updated_at'    => now(),
             ]);
