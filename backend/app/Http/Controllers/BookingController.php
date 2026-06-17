@@ -13,27 +13,25 @@ class BookingController extends Controller
     public function getStudentBookings($studentId)
     {
         try {
-            // Join bookings with modules table first
+            // Fetch all bookings for the chosen student ID
             $bookings = DB::table('bookings')
                 ->join('modules', 'bookings.module_id', '=', 'modules.id')
                 
-                // 🎯 FIXED LEFT JOINS: Stepping through your real ER diagram tables path cleanly
+                // join  module_attendances and attendances tables to get attendance records for the specific student
                 ->leftJoin('module_attendances', 'modules.id', '=', 'module_attendances.module_id')
                 ->leftJoin('attendances', 'module_attendances.attendance_id', '=', 'attendances.id')
-                
-                // Left join the records but match BOTH the attendance ID AND this specific student's ID
                 ->leftJoin('attendance_records', function($join) use ($studentId) {
                     $join->on('attendances.id', '=', 'attendance_records.attendance_id')
                          ->on('bookings.student_id', '=', 'attendance_records.student_id');
                 })
                 
-                // Filter records by the logged-in student's ID
+                // Filter records to only display bookings for the logged in student
                 ->where('bookings.student_id', $studentId)
                 
-                // Select attributes to display for your Flutter model fields layout map
+                // Select attributes to display 
                 ->select(
                     'bookings.id as booking_id', 
-                    'modules.id as id', // Added so your Flutter Module object factory matches keys
+                    'modules.id as id',
                     'modules.activity_name',
                     'modules.date_time',
                     'modules.venue',
@@ -41,6 +39,7 @@ class BookingController extends Controller
                     DB::raw('MAX(attendance_records.status) as attendance_status'),
                     DB::raw('MAX(attendance_records.marks) as total_marks')
                 )
+                // Group by booking and module attributes to avoid duplicate rows
                 ->groupBy(
                     'bookings.id',
                     'modules.id',
@@ -69,15 +68,17 @@ class BookingController extends Controller
     // 2. Student apply module
     public function applyToModule(Request $request)
     {
+        // Validate request data
         $request->validate([
             'module_id' => 'required|integer',
             'student_id' => 'required|integer',
         ]);
 
+        // Extract module and student IDs from the request
         $moduleId = $request->input('module_id');
         $studentId = $request->input('student_id');
 
-        // Fetch the target module details first
+        // Fetch the chosen module details 
         $targetModule = DB::table('modules')->where('id', $moduleId)->first();
         if (!$targetModule) {
             return response()->json(['message' => 'Module session not found!'], 404);
@@ -91,11 +92,12 @@ class BookingController extends Controller
                 ->lockForUpdate()
                 ->exists();
 
+            // Check if the student has already booked the module
             if ($sameSessionAlreadyBooked) {
                 return response()->json(['message' => 'Already registered for this module!'], 400);
             }
 
-            // 🎯 FIXED QUERY: Matches your phpMyAdmin 'attendances' table columns exactly
+            // Check if the student has already booked a module with the same activity name and is not marked absent
             $alreadyBooked = DB::table('bookings')
                 ->join('modules', 'bookings.module_id', '=', 'modules.id')
                 ->where('bookings.student_id', $studentId)
@@ -129,6 +131,7 @@ class BookingController extends Controller
                 })
                 ->count();
 
+            // If the student has already booked 4, return an error message
             if ($activeBookingCount >= 4) {
                 return response()->json([
                     'message' => 'You can only register up to 4 modules. If one module is marked absent, you may register another module.'
@@ -138,11 +141,12 @@ class BookingController extends Controller
             // Lock the row for capacity verification safely
             $moduleLock = DB::table('modules')->where('id', $moduleId)->lockForUpdate()->first();
 
+            // Check if the module is full
             if (($moduleLock->capacity - $moduleLock->current_registration) <= 0) {
                 return response()->json(['message' => 'Module full!'], 400);
             }
 
-            // Insert the new booking row data cleanly
+            // Insert the new booking into the bookings database
             DB::table('bookings')->insert([
                 'student_id' => $studentId,
                 'module_id' => $moduleId,
@@ -151,7 +155,7 @@ class BookingController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // Increment the current registration count counter
+            // Increment the current registration count 
             DB::table('modules')->where('id', $moduleId)->increment('current_registration', 1);
 
             return response()->json(['message' => 'Module added successfully!'], 200);
@@ -168,7 +172,7 @@ class BookingController extends Controller
             // Remove the choosen module out of database table
             DB::table('bookings')->where('id', $id)->delete();
 
-            // Recalculate remaining active bookings for the specific module 
+            // Recalculate remaining bookings for the specific module 
             $remainingRegistration = DB::table('bookings')
                 ->where('module_id', $booking->module_id)
                 ->count();
@@ -188,6 +192,7 @@ class BookingController extends Controller
                 'current_registration' => $remainingRegistration,
             ], 200);
         }
+        
         // If booking not found, display error message
         return response()->json(['message' => 'Booking not found'], 404);
     }

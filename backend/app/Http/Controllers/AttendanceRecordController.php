@@ -12,6 +12,7 @@ class AttendanceRecordController extends Controller
     // 1. Fetch published modules 
     public function fetchPusatAdabModules()
     {
+        // Fetch all published modules from the database
         $modules = Module::where('status', 'published')
             ->select('id', 'activity_name', 'date_time', 'venue', 'lecturer_name', 'status')
             ->get();
@@ -23,13 +24,13 @@ class AttendanceRecordController extends Controller
     public function getPresentStudents($moduleId)
     {
         try {
+            // Validate module existence
             $moduleInfo = DB::table('modules')->where('id', $moduleId)->first();
             if (!$moduleInfo) {
                 return response()->json(['message' => 'Module session not found'], 404);
             }
 
-            // 🎯 DIRECT SHORTCUT QUERY: Bypasses deep booking string comparisons
-            // It grabs attendance records directly via the module bridge links
+            // Fetch students who have attendance records for the the module
             $students = DB::table('attendance_records')
                 ->join('attendances', 'attendance_records.attendance_id', '=', 'attendances.id')
                 ->join('module_attendances', 'attendances.id', '=', 'module_attendances.attendance_id')
@@ -47,6 +48,7 @@ class AttendanceRecordController extends Controller
                 )
                 ->get();
 
+            // Display module info and student attendance list 
             return response()->json([
                 'data' => [
                     'module' => $moduleInfo,
@@ -63,13 +65,16 @@ class AttendanceRecordController extends Controller
     public function updateStudentGrade(Request $request, $recordId)
     {
         try {
+            // Validate the marks format
             $request->validate([
                 'marks' => 'required|numeric|min:0|max:100',
             ]);
 
+            // Determine grade category based on marks
             $marks = $request->input('marks');
             $gradeCategory = 'Fail';
 
+            // Assign grade category based on marks
             if ($marks >= 80) {
                 $gradeCategory = 'Excellent';
             } elseif ($marks >= 60) {
@@ -78,8 +83,10 @@ class AttendanceRecordController extends Controller
                 $gradeCategory = 'Pass';
             }
 
+            // Fetch the attendance record to ensure it exists
             $record = DB::table('attendance_records')->where('id', $recordId)->first();
             
+            // If the record does not exist, return an error message
             if (!$record) {
                 return response()->json([
                     'status' => 'error',
@@ -87,6 +94,7 @@ class AttendanceRecordController extends Controller
                 ], 404);
             }
 
+            // Update the  marks and grade category
             DB::table('attendance_records')
                 ->where('id', $recordId)
                 ->update([
@@ -95,17 +103,19 @@ class AttendanceRecordController extends Controller
                     'updated_at' => now(),
                 ]);
 
+            // Return a success response 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Student records graded successfully!',
                 'data' => [
                     'record_id' => (int)$recordId,
-                    'student_id' => $record->student_id, // This passes the clean User ID integer back
+                    'student_id' => $record->student_id, 
                     'marks' => $marks,
                     'grade_category' => $gradeCategory
                 ]
             ], 200);
 
+        // Handle validation errors
         } catch (ValidationException $ve) {
             return response()->json([
                 'status' => 'validation_error',

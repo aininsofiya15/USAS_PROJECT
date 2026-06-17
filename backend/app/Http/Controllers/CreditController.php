@@ -10,7 +10,7 @@ class CreditController extends Controller
     // 1. Student submit final credit claim 
     public function submitFinalCredit(Request $request)
     {
-        // Validate student id parameters
+        // Validate student id 
         $request->validate([
             'student_id' => 'required|string', // Validates incoming ID payload string safely
         ]);
@@ -33,6 +33,7 @@ class CreditController extends Controller
             ->where('subject_id', $subject->subject_id)
             ->first();
 
+        // If a claim already exists, return a error message
         if ($existingClaim) {
             return response()->json([
                 'message' => 'You have already submitted a claim for this credit hour.',
@@ -49,6 +50,7 @@ class CreditController extends Controller
             'updated_at' => now(),
         ]);
 
+        // Return a success response
         return response()->json(['message' => 'Credit claim submitted successfully!'], 201);
     }
 
@@ -56,11 +58,14 @@ class CreditController extends Controller
     public function claimIndividualModule($id)
     {
         try {
+
+            // set the total required modules for claiming = 4
             $totalRequired = 4;
 
-            // Retrieve booking record by ID
+            // Retrieve booking record of the student 
             $booking = DB::table('bookings')->where('id', $id)->first();
 
+            // If booking record not found, return an error message
             if (!$booking) {
                 return response()->json([
                     'status' => 'error',
@@ -70,21 +75,21 @@ class CreditController extends Controller
 
             // Count total active module bookings exclude absences
             $activeBookingCount = DB::table('bookings')
-                // Check for bookings belonging to this integer user ID (9)
+
+                // Check for bookings of the student
                 ->where('bookings.student_id', $booking->student_id)
-                // 🎯 RE-ADDED ABSENCE CHECK: Exclude rows where student status is 'absent'
+                // Exclude rows where student status is 'absent'
                 ->whereNotExists(function ($query) {
                     $query->select(DB::raw(1))
                         ->from('attendances')
                         ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
                         ->whereColumn('attendances.booking_id', 'bookings.id')
-                        // Maps using the integer user account ID consistently
                         ->whereColumn('attendance_records.student_id', 'bookings.student_id')
                         ->whereRaw('LOWER(attendance_records.status) = ?', ['absent']);
                 })
                 ->count();
 
-            // Enforce minimum required modules check
+            // Enforce minimum required modules check 
             if ($activeBookingCount < $totalRequired) {
                 return response()->json([
                     'status' => 'error',
@@ -111,6 +116,7 @@ class CreditController extends Controller
                 ->where('is_claimed', 1)
                 ->count();
 
+            // Return a success response with claimed count and total required
             return response()->json([
                 'status' => 'success',
                 'message' => 'Module claimed successfully.',
@@ -129,12 +135,14 @@ class CreditController extends Controller
     // 3. Fetch credit claim status records for a student
     public function getClaimStatus($studentId)
     {
+        // Query the credit_claims table for the student
         $claim = DB::table('credit_claims')
             ->join('subjects', 'credit_claims.subject_id', '=', 'subjects.subject_id')
             ->where('credit_claims.student_id', $studentId)
             ->select('subjects.subject_code', 'subjects.subject_name', 'credit_claims.status')
             ->first();
 
+        // Return the claim status if found
         if ($claim) {
             return response()->json([
                 'status' => 'exists',
@@ -146,6 +154,7 @@ class CreditController extends Controller
             ], 200);
         }
 
+        // If no claim record found, return a response indicating none
         return response()->json([
             'status' => 'none',
             'data' => null
@@ -200,14 +209,17 @@ class CreditController extends Controller
     // 5. Pusat adab update claim status and auto-register student into course if claim is approved
     public function updateStatus($id)
     {
+        // Set the claim record by id
         $claim = DB::table('credit_claims')->where('id', $id)->first();
 
+        // Validate claim existence
         if (!$claim) {
             return response()->json(['message' => 'Claim record not found.'], 404);
         }
 
         DB::transaction(function () use ($claim, $id) {
             
+        // Update the claim status to approved 
             if ($claim->status !== 'approved') {
                 DB::table('credit_claims')
                     ->where('id', $id)
@@ -217,18 +229,22 @@ class CreditController extends Controller
                     ]);
             }
 
+            // Fetch the section_id for the subject being claimed
             $section = DB::table('sections')
                 ->where('subject_id', $claim->subject_id)
                 ->first();
-            
+
+            // If no section found, default to section_id = 1
             $sectionId = $section ? $section->section_id : 1; 
 
+            // Check if the student is already registered for the subject
             $alreadyRegistered = DB::table('registration')
                 ->where('student_id', $claim->student_id)
                 ->where('subject_id', $claim->subject_id)
                 ->where('status', 'active')
                 ->exists();
 
+            // If not already registered, insert a new registration record
             if (!$alreadyRegistered) {
                 DB::table('registration')->insert([
                     'student_id'    => $claim->student_id,
@@ -241,6 +257,7 @@ class CreditController extends Controller
             }
         });
 
+        
         return response()->json([
             'status' => 'success',
             'message' => 'Application approved and student auto-registered into the course successfully.'
