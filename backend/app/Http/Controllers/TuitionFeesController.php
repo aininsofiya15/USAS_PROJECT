@@ -190,19 +190,18 @@ class TuitionFeesController extends Controller
                     'students.student_id',
                     'students.course_name',
                     'students.program',
-                    'fees.total_invoice',      // Added this field
+                    'fees.total_invoice',
                     'fees.outstanding_amount',
                     'fees.status',
-                    // Subquery to calculate total payment from payments table
-                    \DB::raw('(SELECT SUM(amount) FROM payments WHERE student_id = students.student_id) as total_payment')
+                    // ✅ Fixed: Use total_payment instead of amount
+                    \DB::raw('(SELECT SUM(total_payment) FROM payments WHERE student_id = students.student_id AND status = "Success") as total_payment')
                 )
                 ->first();
 
             if (!$student) {
-                return response()->json(null, 200); 
+                return response()->json(['error' => 'Student not found'], 404); 
             }
 
-            // Convert to array to ensure we return clean JSON
             return response()->json($student);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
@@ -471,21 +470,52 @@ class TuitionFeesController extends Controller
         }
     }
 
-    public function getFinancialReportTotals()
+    public function getFinancialReportTotals(Request $request)
     {
         try {
-            // Calculate total amount collected from students with 'paid' status
-            $totalPaid = \DB::table('fees')
-                ->where('status', 'paid')
-                ->sum('total_invoice'); 
-
-            // Calculate the total sum of all outstanding balances
-            $totalOutstanding = \DB::table('fees')
-                ->sum('outstanding_amount');
+            // ✅ Get date range from request
+            $startDate = $request->query('start_date');
+            $endDate = $request->query('end_date');
+            
+            // Build payment query with date filter
+            $paymentQuery = DB::table('payments')->where('status', 'Success');
+            
+            if ($startDate && $endDate) {
+                $paymentQuery->whereBetween('payment_date', [$startDate, $endDate]);
+            }
+            
+            // Calculate total paid from payments within date range
+            $totalPaid = $paymentQuery->sum('total_payment');
+            
+            // Calculate outstanding balance (from fees table - not date dependent)
+            $totalOutstanding = DB::table('fees')->sum('outstanding_amount');
+            
+            // Count blocked students
+            $blockedCount = DB::table('students')->where('is_blocked', true)->count();
+            
+            // Count online banking and card payments within date range
+            $onlineBankingCount = DB::table('payments')
+                ->where('status', 'Success')
+                ->where('payment_method', 'Internet Banking');
+                
+            $cardCount = DB::table('payments')
+                ->where('status', 'Success')
+                ->where('payment_method', 'Credit Card/Debit Card');
+                
+            if ($startDate && $endDate) {
+                $onlineBankingCount->whereBetween('payment_date', [$startDate, $endDate]);
+                $cardCount->whereBetween('payment_date', [$startDate, $endDate]);
+            }
+            
+            $onlineBankingCount = $onlineBankingCount->count();
+            $cardCount = $cardCount->count();
 
             return response()->json([
                 'total_paid' => (float)$totalPaid,
                 'total_outstanding' => (float)$totalOutstanding,
+                'blocked_count' => $blockedCount,
+                'online_banking_count' => $onlineBankingCount,
+                'card_payment_count' => $cardCount,
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

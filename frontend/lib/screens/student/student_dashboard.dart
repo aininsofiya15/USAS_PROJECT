@@ -248,7 +248,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF1565C0),
+                  color: Colors.black87,
                   height: 1.2,
                 ),
                 textAlign: TextAlign.center,

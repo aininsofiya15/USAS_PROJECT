@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import '../../config/api.dart';
 
 class NotificationModel {
-  final String notificationId; // Changed from 'id' to 'notificationId'
+  final String notificationId;
   final int userId;
   final String title;
   final String message;
@@ -55,7 +55,8 @@ class NotificationPage extends StatefulWidget {
 
 class _NotificationPageState extends State<NotificationPage> {
   String _selectedTab = 'All';
-  List<NotificationModel> _notifications = [];
+  List<NotificationModel> _allNotifications = [];
+  List<NotificationModel> _displayNotifications = [];
   bool _isLoading = false;
   int _unreadCount = 0;
 
@@ -74,10 +75,10 @@ class _NotificationPageState extends State<NotificationPage> {
       bottomNavigationBar: const UsasBottomNav(),
       body: Column(
         children: [
-          // Blue background header area (matches prototype)
+          // Header with title and unread count - Background #C1DBFF
           Container(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-            color: const Color(0xFFC1DBFF),
+            color: const Color(0xFFE3EFF8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -109,9 +110,9 @@ class _NotificationPageState extends State<NotificationPage> {
             ),
           ),
 
-          // Tab Bar - All | Unread (Centered with border radius) - White background
+          // Tab Bar - All | Unread - Background #E3EFF8 (same as body)
           Container(
-            color: Colors.white,
+            color: const Color(0xFFE3EFF8),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Center(
               child: Row(
@@ -125,22 +126,24 @@ class _NotificationPageState extends State<NotificationPage> {
             ),
           ),
 
-          // Divider
-          Divider(height: 1, color: Colors.grey.shade300),
+          // ❌ REMOVED: Divider line
 
-          // Notification List
+          // Notification List - Background #E3EFF8
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _notifications.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        itemCount: _notifications.length,
-                        itemBuilder: (context, index) {
-                          return _buildNotificationCard(_notifications[index]);
-                        },
-                      ),
+            child: Container(
+              color: const Color(0xFFE3EFF8),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _displayNotifications.isEmpty
+                      ? _buildEmptyState()
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          itemCount: _displayNotifications.length,
+                          itemBuilder: (context, index) {
+                            return _buildNotificationCard(_displayNotifications[index]);
+                          },
+                        ),
+            ),
           ),
         ],
       ),
@@ -201,23 +204,25 @@ class _NotificationPageState extends State<NotificationPage> {
         final List<dynamic> notificationsData = data['notifications'] ?? [];
         
         setState(() {
-          _notifications = notificationsData
+          _allNotifications = notificationsData
               .map((json) => NotificationModel.fromJson(json))
               .toList()
             ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
-          _unreadCount = _notifications.where((n) => !n.isRead).length;
+          _unreadCount = _allNotifications.where((n) => !n.isRead).length;
           _filterNotifications();
         });
       } else {
         setState(() {
-          _notifications = [];
+          _allNotifications = [];
+          _displayNotifications = [];
           _unreadCount = 0;
         });
       }
     } catch (e) {
       print('Error fetching notifications: $e');
       setState(() {
-        _notifications = [];
+        _allNotifications = [];
+        _displayNotifications = [];
         _unreadCount = 0;
       });
     } finally {
@@ -229,14 +234,14 @@ class _NotificationPageState extends State<NotificationPage> {
   void _filterNotifications() {
     setState(() {
       if (_selectedTab == 'All') {
-        // Show all notifications - don't filter
+        _displayNotifications = List.from(_allNotifications);
       } else if (_selectedTab == 'Unread') {
-        _notifications = _notifications.where((n) => !n.isRead).toList();
+        _displayNotifications = _allNotifications.where((n) => !n.isRead).toList();
       }
     });
   }
 
-  // ✅ Mark a Single Notification as Read - Called when user clicks/taps a notification
+  // Mark a Single Notification as Read
   Future<void> _markAsRead(String notificationId) async {
     try {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
@@ -257,21 +262,21 @@ class _NotificationPageState extends State<NotificationPage> {
 
       if (response.statusCode == 200) {
         setState(() {
-          // Update the notification in the list
-          final index = _notifications.indexWhere((n) => n.notificationId == notificationId);
-          if (index != -1) {
-            _notifications[index] = NotificationModel(
-              notificationId: _notifications[index].notificationId,
-              userId: _notifications[index].userId,
-              title: _notifications[index].title,
-              message: _notifications[index].message,
-              type: _notifications[index].type,
+          final allIndex = _allNotifications.indexWhere((n) => n.notificationId == notificationId);
+          if (allIndex != -1) {
+            _allNotifications[allIndex] = NotificationModel(
+              notificationId: _allNotifications[allIndex].notificationId,
+              userId: _allNotifications[allIndex].userId,
+              title: _allNotifications[allIndex].title,
+              message: _allNotifications[allIndex].message,
+              type: _allNotifications[allIndex].type,
               isRead: true,
-              timestamp: _notifications[index].timestamp,
-              receiptNo: _notifications[index].receiptNo,
-              amount: _notifications[index].amount,
+              timestamp: _allNotifications[allIndex].timestamp,
+              receiptNo: _allNotifications[allIndex].receiptNo,
+              amount: _allNotifications[allIndex].amount,
             );
-            _unreadCount = _notifications.where((n) => !n.isRead).length;
+            _unreadCount = _allNotifications.where((n) => !n.isRead).length;
+            _filterNotifications();
           }
         });
       }
@@ -280,13 +285,12 @@ class _NotificationPageState extends State<NotificationPage> {
     }
   }
 
-  // ✅ Build Individual Notification Card - Clickable to mark as read
+  // Build Individual Notification Card
   Widget _buildNotificationCard(NotificationModel notification) {
     final isUnread = !notification.isRead;
 
     return GestureDetector(
       onTap: () {
-        // ✅ When user taps on notification, mark it as read if unread
         if (isUnread) {
           _markAsRead(notification.notificationId);
         }
@@ -308,7 +312,7 @@ class _NotificationPageState extends State<NotificationPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Title with bullet point and color
+            // Title with color #076EFF
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -335,7 +339,7 @@ class _NotificationPageState extends State<NotificationPage> {
             ),
             const SizedBox(height: 6),
             
-            // Message with indentation
+            // Message
             Padding(
               padding: const EdgeInsets.only(left: 16),
               child: Text(

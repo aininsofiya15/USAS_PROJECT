@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart'; // Import this for currency formatting
+import 'package:intl/intl.dart';
 import '../../provider/manage_fees_provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
+import '../../widgets/app_sidebar.dart';
 import '../payment_history.dart';
 
 class StudentTuitionOverviewPage extends StatefulWidget {
@@ -15,7 +16,6 @@ class StudentTuitionOverviewPage extends StatefulWidget {
 }
 
 class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage> {
-  // Helper to format numbers to RM format
   String formatCurrency(dynamic amount) {
     final double value = double.tryParse(amount?.toString() ?? '0') ?? 0.0;
     return NumberFormat.currency(symbol: 'RM ', decimalDigits: 2).format(value);
@@ -24,9 +24,10 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => 
-      Provider.of<FeesManagementProvider>(context, listen: false).fetchStudentDetail(widget.userId)
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<FeesManagementProvider>(context, listen: false)
+          .fetchStudentDetail(widget.userId);
+    });
   }
 
   @override
@@ -34,13 +35,47 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
     return Scaffold(
       backgroundColor: const Color(0xFFDCF8C6),
       appBar: const UsasHeader(),
+      drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: Consumer<FeesManagementProvider>(
         builder: (context, provider, child) {
-          if (provider.isLoading) return const Center(child: CircularProgressIndicator());
+          if (provider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
           
           final data = provider.selectedStudentDetail;
-          if (data == null) return const Center(child: Text("Data not found"));
+          final errorMessage = provider.errorMessage;
+          
+          if (data == null || data.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.person_off,
+                    size: 64,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    errorMessage.isNotEmpty ? errorMessage : "Student data not found",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF004D73),
+                    ),
+                    child: const Text("Go Back", style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            );
+          }
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -61,21 +96,15 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
                 
                 const SizedBox(height: 20),
 
-                // Card 2: Fee Summary (DYNAMIC VERSION)
+                // Card 2: Fee Summary
                 _buildInfoCard("Fee Summary", [
-                  // 1. Total Invoice from 'total_invoice' field
-                  _buildDetailRow(
-                    "Total Invoice", 
-                    formatCurrency(data['total_invoice']), 
-                    isBlue: false
-                  ), 
+                  _buildDetailRow("Total Invoice", formatCurrency(data['total_invoice']), isBlue: false),
                   
-                  // 2. Total Payment from 'total_payment' field (UNDERLINE REMOVED HERE)
                   _buildDetailRow(
                     "Total Payment", 
                     formatCurrency(data['total_payment']), 
                     isBlue: true,
-                    showUnderline: false, // Explicitly turned off underline
+                    showUnderline: false,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -88,17 +117,8 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
                     },
                   ), 
                   
-                  // 3. Outstanding from 'outstanding_amount' field
-                  _buildDetailRow(
-                    "Outstanding", 
-                    formatCurrency(data['outstanding_amount'])
-                  ),
-
-                  // 4. Status
-                  _buildDetailRow(
-                    "Status", 
-                    data['status']?.toString().toUpperCase() ?? "UNKNOWN"
-                  ),
+                  _buildDetailRow("Outstanding", formatCurrency(data['outstanding_amount'])),
+                  _buildDetailRow("Status", data['status']?.toString().toUpperCase() ?? "UNKNOWN"),
                 ]),
               ],
             ),
@@ -128,12 +148,11 @@ class _StudentTuitionOverviewPageState extends State<StudentTuitionOverviewPage>
     );
   }
 
-  // FIXED METHOD: Added showUnderline option to prevent automatic underlining
   Widget _buildDetailRow(
     String label, 
     dynamic value, {
     bool isBlue = false, 
-    bool showUnderline = false, // Set to false by default
+    bool showUnderline = false,
     VoidCallback? onTap,
   }) {
     return Padding(

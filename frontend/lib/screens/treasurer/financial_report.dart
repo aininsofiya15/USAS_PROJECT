@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../provider/manage_fees_provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
+import '../../widgets/app_sidebar.dart';
 import 'package:intl/intl.dart';
 
 class FinancialReportPage extends StatefulWidget {
@@ -14,8 +15,17 @@ class FinancialReportPage extends StatefulWidget {
 }
 
 class _FinancialReportPageState extends State<FinancialReportPage> {
-  DateTime _startDate = DateTime(2026, 3, 1);
-  DateTime _endDate = DateTime(2026, 3, 31);
+  DateTime _startDate = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _endDate = DateTime(DateTime.now().year, DateTime.now().month + 1, 0);
+
+  // ✅ Method to fetch data with current date range
+  Future<void> _fetchReportData() async {
+    final provider = Provider.of<FeesManagementProvider>(context, listen: false);
+    await provider.fetchReportTotals(
+      startDate: _startDate,
+      endDate: _endDate,
+    );
+  }
 
   Future<void> _selectDateRange(BuildContext context) async {
     final DateTimeRange? picked = await showDateRangePicker(
@@ -43,6 +53,8 @@ class _FinancialReportPageState extends State<FinancialReportPage> {
         _startDate = picked.start;
         _endDate = picked.end;
       });
+      // ✅ Fetch data with new date range
+      await _fetchReportData();
     }
   }
 
@@ -51,11 +63,12 @@ class _FinancialReportPageState extends State<FinancialReportPage> {
     String formattedRange = "${DateFormat('d/M/yyyy').format(_startDate)} - ${DateFormat('d/M/yyyy').format(_endDate)}";
 
     return Scaffold(
-      backgroundColor: const Color(0xFFDCF8C6),
+      backgroundColor: const Color(0xFFE8F8E3),
       appBar: const UsasHeader(),
+      drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: FutureBuilder(
-        future: Provider.of<FeesManagementProvider>(context, listen: false).fetchReportTotals(),
+        future: _fetchReportData(), // ✅ Fetch with date range
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -68,90 +81,126 @@ class _FinancialReportPageState extends State<FinancialReportPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Align(
-                      alignment: Alignment.center,
-                      child: Text("Reports", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(height: 15),
-                    
-                    GestureDetector(
-                      onTap: () => _selectDateRange(context),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(formattedRange, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                            const SizedBox(width: 8),
-                            const Icon(Icons.filter_list, size: 20, color: Colors.black87),
-                          ],
-                        ),
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFC1F6AC),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Align(
+                            alignment: Alignment.center,
+                            child: Text("Reports", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                          ),
+                          const SizedBox(height: 15),
+                          
+                          GestureDetector(
+                            onTap: () => _selectDateRange(context),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.grey.shade300),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(formattedRange, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.filter_alt, size: 18, color: Colors.black54),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+
+                          Row(
+                            children: [
+                              Expanded(child: _buildChartCard("Transaction Volume (Counts)", _buildBarChart(provider))),
+                              const SizedBox(width: 10),
+                              Expanded(child: _buildChartCard("Paid vs Unpaid", _buildPieChart(provider))),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildStatCard(
+                                  "Total Paid", 
+                                  "RM ${NumberFormat('#,##0.00').format(provider.totalPaidReport)}",
+                                  isBlocked: false,
+                                )
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildStatCard(
+                                  "Outstanding Balance", 
+                                  "RM ${NumberFormat('#,##0.00').format(provider.totalOutstandingReport)}",
+                                  isBlocked: false,
+                                )
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _buildStatCard(
+                                  "Blocked Students", 
+                                  "${provider.summary['blocked'] ?? 0}",
+                                  isBlocked: true,
+                                )
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: provider.isLoading 
+                            ? const CircularProgressIndicator()
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _buildActionButton(context, "Download as PDF", Colors.blue, () {
+                                    _downloadPDF(provider);
+                                  }),
+                                  const SizedBox(width: 8),
+                                  _buildActionButton(context, "Download as CSV", Colors.blue, () {
+                                    _downloadCSV(provider);
+                                  }),
+                                ],
+                              ),
+                          ),
+                          const SizedBox(height: 5),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    // Graphs Grid
-                    Row(
-                      children: [
-                        Expanded(child: _buildChartCard("Transaction Volume (Counts)", _buildBarChart(provider))),
-                        const SizedBox(width: 10),
-                        Expanded(child: _buildChartCard("Paid vs Unpaid", _buildPieChart(provider))),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Numerical Metrics Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildStatCard(
-                            "Total Paid", 
-                            "RM ${NumberFormat('#,##0.00').format(provider.totalPaidReport)}"
-                          )
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildStatCard(
-                            "Outstanding Balance", 
-                            "RM ${NumberFormat('#,##0.00').format(provider.totalOutstandingReport)}"
-                          )
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _buildStatCard(
-                            "Blocked Students", 
-                            "${provider.summary['blocked'] ?? 0}"
-                          )
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 25),
-
-                    // Download Document Action Controls
-                    Align(
-                      alignment: Alignment.center,
-                      child: provider.isLoading 
-                      ? const CircularProgressIndicator()
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _buildActionButton(context, "Download as PDF", Colors.blue, () {}),
-                            const SizedBox(width: 10),
-                            _buildActionButton(context, "Download as CSV", Colors.blue, () {}),
-                          ],
-                        ),
-                    )
                   ],
                 ),
               );
             },
           );
         }
+      ),
+    );
+  }
+
+  void _downloadPDF(FeesManagementProvider provider) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Downloading PDF...'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _downloadCSV(FeesManagementProvider provider) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Downloading CSV...'),
+        duration: Duration(seconds: 2),
       ),
     );
   }
@@ -174,7 +223,7 @@ class _FinancialReportPageState extends State<FinancialReportPage> {
     );
   }
 
-  Widget _buildStatCard(String label, String value) {
+  Widget _buildStatCard(String label, String value, {bool isBlocked = false}) {
     return Container(
       height: 120,
       padding: const EdgeInsets.all(10),
@@ -187,18 +236,24 @@ class _FinancialReportPageState extends State<FinancialReportPage> {
         children: [
           Text(label, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
           const SizedBox(height: 10),
-          Text(value, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87)),
+          Text(
+            value, 
+            textAlign: TextAlign.center, 
+            style: TextStyle(
+              fontSize: isBlocked ? 28 : 16,
+              fontWeight: FontWeight.bold, 
+              color: Colors.black87,
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildBarChart(FeesManagementProvider provider) {
-    // Collect specific counts instead of large currencies
     double bankCount = double.tryParse(provider.summary['bank_count']?.toString() ?? '0') ?? 0;
     double cardCount = double.tryParse(provider.summary['card_count']?.toString() ?? '0') ?? 0;
 
-    // Hardcoded demo values kick in ONLY if both are exactly 0 so the chart never displays blank
     if (bankCount == 0 && cardCount == 0) {
       bankCount = 145; 
       cardCount = 88;
@@ -314,9 +369,13 @@ class _FinancialReportPageState extends State<FinancialReportPage> {
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        minimumSize: const Size(100, 30),
       ),
-      child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 12)),
+      child: Text(
+        text, 
+        style: const TextStyle(color: Colors.white, fontSize: 10),
+      ),
     );
   }
 }

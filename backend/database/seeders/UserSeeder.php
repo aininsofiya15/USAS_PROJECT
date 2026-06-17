@@ -45,7 +45,7 @@ class UserSeeder extends Seeder
                 $customId = 'TR-' . str_pad($user->id, 3, '0', STR_PAD_LEFT);
 
                 DB::table('treasurers')->updateOrInsert(
-                    ['id' => $user->id], // PK linking to users.id
+                    ['id' => $user->id],
                     [
                         'treasurer_id' => $customId, 
                         'department' => $randomDept, 
@@ -56,9 +56,9 @@ class UserSeeder extends Seeder
             }
         }
 
-        // --- 2. 45 Prototype Students ---
+        // --- 2. 50 Students (35 Original + 15 New) ---
         $students = [
-            // ... (Your previous 35 students here)
+            // Original 35 Students
             ['name' => 'Nur Aqilah', 'email' => 'aqilah@umpsa.edu.my'],
             ['name' => 'Norfardilla', 'email' => 'dilla@umpsa.edu.my'],
             ['name' => 'Amir Mustaqim', 'email' => 'amir@umpsa.edu.my'],
@@ -95,7 +95,7 @@ class UserSeeder extends Seeder
             ['name' => 'Nabila Razali', 'email' => 'nabila@umpsa.edu.my'],
             ['name' => 'Azman Ali', 'email' => 'azman@umpsa.edu.my'],
             
-            // --- New 10 Computing-focused Students ---
+            // --- 15 NEW Students ---
             ['name' => 'Fakhrul Razi', 'email' => 'fakhrul@umpsa.edu.my'],
             ['name' => 'Nurul Ainani', 'email' => 'ainani@umpsa.edu.my'],
             ['name' => 'Chew Kar Heng', 'email' => 'karheng@umpsa.edu.my'],
@@ -106,6 +106,11 @@ class UserSeeder extends Seeder
             ['name' => 'Nurul Syuhada', 'email' => 'syuhada@umpsa.edu.my'],
             ['name' => 'Lim Wei Kiat', 'email' => 'weikiat@umpsa.edu.my'],
             ['name' => 'Farah Adiba', 'email' => 'adiba@umpsa.edu.my'],
+            ['name' => 'Ahmad Zaki', 'email' => 'zaki@umpsa.edu.my'],
+            ['name' => 'Nur Fatihah', 'email' => 'fatihah@umpsa.edu.my'],
+            ['name' => 'Muhammad Ikhwan', 'email' => 'ikhwan@umpsa.edu.my'],
+            ['name' => 'Siti Khadijah', 'email' => 'khadijah@umpsa.edu.my'],
+            ['name' => 'Mohd Faiz', 'email' => 'faiz@umpsa.edu.my'],
         ];
 
         foreach ($students as $s) {

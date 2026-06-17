@@ -334,10 +334,22 @@ class FeesManagementProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        selectedStudentDetail = json.decode(response.body); 
+        final data = json.decode(response.body);
+        // ✅ Check if data is not null and not empty
+        if (data != null && data.isNotEmpty) {
+          selectedStudentDetail = data;
+        } else {
+          errorMessage = 'No data found for this student';
+          selectedStudentDetail = null;
+        }
+      } else {
+        errorMessage = 'Failed to load student details';
+        selectedStudentDetail = null;
       }
     } catch (e) {
       debugPrint("Fetch Error: $e");
+      errorMessage = 'Network error: ${e.toString()}';
+      selectedStudentDetail = null;
     } finally {
       isLoading = false;
       notifyListeners();
@@ -482,14 +494,27 @@ class FeesManagementProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchReportTotals() async {
+  Future<void> fetchReportTotals({DateTime? startDate, DateTime? endDate}) async {
     isLoading = true;
     errorMessage = '';
     notifyListeners();
 
     try {
+      // Build URL with date parameters
+      String url = '${Api.baseUrl}/treasurer/report-totals';
+      Map<String, String> queryParams = {};
+      
+      if (startDate != null && endDate != null) {
+        queryParams['start_date'] = DateFormat('yyyy-MM-dd').format(startDate);
+        queryParams['end_date'] = DateFormat('yyyy-MM-dd').format(endDate);
+      }
+      
+      if (queryParams.isNotEmpty) {
+        url += '?' + queryParams.entries.map((e) => '${e.key}=${e.value}').join('&');
+      }
+
       final response = await http.get(
-        Uri.parse('${Api.baseUrl}/treasurer/report-totals'),
+        Uri.parse(url),
         headers: _headers,
       );
 

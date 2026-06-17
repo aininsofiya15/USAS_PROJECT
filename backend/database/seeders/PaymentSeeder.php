@@ -16,7 +16,7 @@ class PaymentSeeder extends Seeder
 
         $students = DB::table('students')->get();
         $methods = ['Internet Banking', 'Credit Card/Debit Card'];
-        $statuses = ['Success', 'Success', 'Success', 'Success', 'Failed']; // 80% Success, 20% Failed
+        $statuses = ['Success', 'Success', 'Success', 'Success', 'Failed'];
 
         foreach ($students as $student) {
             $fee = DB::table('fees')->where('student_id', $student->student_id)->first();
@@ -25,33 +25,25 @@ class PaymentSeeder extends Seeder
             $program = $student->program ?? 'Bachelor Degree';
             $courseName = $student->course_name ?? 'Bachelor Degree';
             
-            // Determine base tuition fee based on program type
             $baseTuitionFee = $this->getBaseTuitionFee($program, $courseName);
             
-            // Get student's intake year from matric number (e.g., CB23027 -> 23, BTE23029 -> 23)
             preg_match('/\d{2}/', $student->student_id, $matches);
             $intakeYear = isset($matches[0]) ? (int) $matches[0] : 23;
             
-            // For each semester, create one payment record
             for ($semLoop = 1; $semLoop <= $currentSem; $semLoop++) {
                 $loopYear = (int) ceil($semLoop / 2);
                 $semesterNum = ($semLoop % 2 == 0) ? 2 : 1;
                 
-                // Determine academic year based on student's intake year
                 $academicYearStart = $intakeYear + $loopYear - 1;
                 $academicYearStr = $academicYearStart . '/' . ($academicYearStart + 1);
                 
-                // Determine payment amount and description based on semester
                 if ($semLoop == 1) {
-                    // First semester - Registration + Tuition Fees (most expensive)
                     $amount = $baseTuitionFee * 1.3;
                     $desc = "Registration and Tuition Fees for Year 1 Semester 1 (" . $program . ") Entry " . $academicYearStr;
                 } else {
-                    // For Year 2 and above, randomly choose between hostel or rental house
                     $isHostel = $this->isHostelStudent($student->student_id, $semLoop);
                     
                     if ($isHostel) {
-                        // Stay in hostel (with accommodation fees)
                         $accommodationFee = $this->getAccommodationFee($student->student_id, $semLoop);
                         $amount = $baseTuitionFee + $accommodationFee;
                         $roomDetails = $this->generateRoomDetails();
@@ -59,28 +51,23 @@ class PaymentSeeder extends Seeder
                                 " Semester " . $semesterNum . " " . $academicYearStr . 
                                 " (" . $roomDetails['room_number'] . " - " . $roomDetails['college'] . ")";
                     } else {
-                        // Rental house (tuition fees only)
                         $amount = $baseTuitionFee;
                         $desc = $program . " Tuition Fees for Year " . $loopYear . 
                                 " Semester " . $semesterNum . " " . $academicYearStr;
                     }
                 }
 
-                // Generate payment ID in format: RP2301-09788
                 $paymentYearShort = $intakeYear;
                 $semesterPadded = str_pad($semLoop, 2, '0', STR_PAD_LEFT);
                 $randomNumber = str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
                 $paymentId = 'RP' . $paymentYearShort . $semesterPadded . '-' . $randomNumber;
 
-                // Randomly assign status (80% Success, 20% Failed)
                 $status = $statuses[array_rand($statuses)];
                 
-                // If status is Failed, set amount to 0 (or partial payment)
                 if ($status == 'Failed') {
                     $amount = rand(0, 1) == 0 ? 0 : round($amount * 0.5, 2);
                 }
 
-                // Payment date - older semesters have older dates (6 months apart)
                 $paymentDate = now()->subMonths(($currentSem - $semLoop) * 6)->setHour(9)->setMinute(0)->setSecond(0);
 
                 DB::table('payments')->insert([
@@ -96,8 +83,28 @@ class PaymentSeeder extends Seeder
                     'updated_at'     => now(),
                 ]);
             }
+
+            for ($month = 1; $month <= 6; $month++) {
+                $paymentDate = "2026-" . str_pad($month, 2, '0', STR_PAD_LEFT) . "-" . rand(1, 28);
+                $paymentId = 'RP26' . str_pad($month, 2, '0', STR_PAD_LEFT) . '-' . str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
+                $amount = rand(800, 3000);
+                
+                DB::table('payments')->insert([
+                    'payment_id'     => $paymentId,
+                    'student_id'     => $student->student_id,
+                    'fee_id'         => $fee->fee_id ?? 1,
+                    'total_payment'  => $amount,
+                    'payment_desc'   => 'Tuition Fee Payment - ' . date('F Y', strtotime($paymentDate)),
+                    'payment_method' => $methods[array_rand($methods)],
+                    'status'         => 'Success',
+                    'payment_date'   => $paymentDate,
+                    'created_at'     => $paymentDate,
+                    'updated_at'     => now(),
+                ]);
+            }
         }
     }
+
 
     /**
      * Get base tuition fee based on program type
