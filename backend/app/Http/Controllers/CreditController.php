@@ -7,33 +7,40 @@ use Illuminate\Support\Facades\DB;
 
 class CreditController extends Controller
 {
-    // 1. Student submit final credit claim 
+// 1. Student submit final credit claim 
     public function submitFinalCredit(Request $request)
     {
-        // Validate student id 
         $request->validate([
-            'student_id' => 'required|string', // Validates incoming ID payload string safely
+            'student_id' => 'required', 
         ]);
 
         $studentId = $request->input('student_id');
 
-        // Retrieve subject row for Co-Curriculum
         $subject = DB::table('subjects')
             ->where('subject_code', 'UQA2002')
             ->first();
 
-        // Validate subject existence
         if (!$subject) {
             return response()->json(['message' => 'UQA2002 Co-Curriculum subject row not found in database.'], 404);
         }
 
-        // Check if student has already submitted a claim for this subject
+        $claimedModulesCount = DB::table('bookings')
+            ->where('student_id', $studentId)
+            ->where('is_claimed', 1)
+            ->count();
+
+        if ($claimedModulesCount < 4) {
+            return response()->json([
+                'message' => 'Not eligible to claim credit. You must claim all 4 modules first.',
+                'claimed_count' => $claimedModulesCount
+            ], 400);
+        }
+
         $existingClaim = DB::table('credit_claims')
             ->where('student_id', $studentId)
             ->where('subject_id', $subject->subject_id)
             ->first();
 
-        // If a claim already exists, return a error message
         if ($existingClaim) {
             return response()->json([
                 'message' => 'You have already submitted a claim for this credit hour.',
@@ -41,7 +48,6 @@ class CreditController extends Controller
             ], 409); 
         }
 
-        // Insert new credit claim record into database
         DB::table('credit_claims')->insert([
             'student_id' => $studentId,
             'subject_id' => $subject->subject_id,
@@ -50,88 +56,67 @@ class CreditController extends Controller
             'updated_at' => now(),
         ]);
 
-        // Return a success response
         return response()->json(['message' => 'Credit claim submitted successfully!'], 201);
     }
 
-    // 2. Student claim individual module 
-    public function claimIndividualModule($id)
+// 2. Student claim individual module 
+    public function claimIndividualModule(Request $request, $id)
     {
         try {
+            // 🎯 CAPTURE: Get the logged-in student's user ID from the request payload (e.g., 9)
+            $studentId = $request->input('student_id');
 
-            // set the total required modules for claiming = 4
-            $totalRequired = 4;
+            // 🎯 SEARCH LAYER: Find the unclaimed booking row using the module_id and student_id together!
+            // This prevents mismatches if Flutter passes a module_id (like 1 for Memanah) instead of a booking primary key id.
+            $booking = DB::table('bookings')
+                ->where('module_id', $id)
+                ->where('student_id', $studentId)
+                ->where('is_claimed', 0)
+                ->first();
 
-            // Retrieve booking record of the student 
-            $booking = DB::table('bookings')->where('id', $id)->first();
+            // Fallback safety check: If Flutter actually did pass the exact booking table primary key 'id'
+            if (!$booking) {
+                $booking = DB::table('bookings')->where('id', $id)->first();
+            }
 
-            // If booking record not found, return an error message
+            // If no booking record row matches, return a clear 404 warning message safely
             if (!$booking) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Booking record row reference target not found.'
+                    'message' => "Unclaimed booking record row reference matching Module ID ($id) for Student ($studentId) not found."
                 ], 404);
             }
 
-            // Count total active module bookings exclude absences
-            $activeBookingCount = DB::table('bookings')
-
-                // Check for bookings of the student
-                ->where('bookings.student_id', $booking->student_id)
-                // Exclude rows where student status is 'absent'
-                ->whereNotExists(function ($query) {
-                    $query->select(DB::raw(1))
-                        ->from('attendances')
-                        ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
-                        ->whereColumn('attendances.booking_id', 'bookings.id')
-                        ->whereColumn('attendance_records.student_id', 'bookings.student_id')
-                        ->whereRaw('LOWER(attendance_records.status) = ?', ['absent']);
-                })
-                ->count();
-
-            // Enforce minimum required modules check 
-            if ($activeBookingCount < $totalRequired) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Not eligible to claim. Insufficient module.',
-                    'claimed_count' => DB::table('bookings')
-                        ->where('student_id', $booking->student_id)
-                        ->where('is_claimed', 1)
-                        ->count(),
-                    'total_required' => $totalRequired,
-                ], 400);
-            }
-
-            // Update the booking record to mark the module as claimed
+            // Update the unique booking record to mark the module as claimed
             DB::table('bookings')
-                ->where('id', $id)
+                ->where('id', $booking->id) // Safely updates the correct resolved row id
                 ->update([
-                    'is_claimed' => 1,
-                    'updated_at' => now()
+                    'is_claimed' => 1
                 ]);
 
-            // Re-count final total claimed records
+            // Re-count final total claimed records for this student
             $claimedCount = DB::table('bookings')
                 ->where('student_id', $booking->student_id)
                 ->where('is_claimed', 1)
                 ->count();
 
-            // Return a success response with claimed count and total required
+            // Return success message with number of claimed modules and balance required modules for claim the credit
             return response()->json([
                 'status' => 'success',
                 'message' => 'Module claimed successfully.',
                 'claimed_count' => $claimedCount,
-                'total_required' => $totalRequired,
+                'total_required' => 4, // Keeps 4 here so your Flutter UI progress indicator ring can scale to 25%, 50%, etc.
             ], 200);
 
         } catch (\Exception $e) {
+            // Handle unexpected runtime error exceptions safely without breaking the server instance
             return response()->json([
                 'status' => 'error',
                 'message' => 'Server script configuration fault: ' . $e->getMessage()
             ], 500);
         }
     }
-    
+
     // 3. Fetch credit claim status records for a student
     public function getClaimStatus($studentId)
     {
