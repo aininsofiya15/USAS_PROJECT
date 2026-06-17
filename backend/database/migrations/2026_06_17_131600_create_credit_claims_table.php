@@ -12,21 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('credit_claims', function (Blueprint $table) {
-            $table->id(); // Primary Key auto-increment (id)
+            $table->id(); 
             
-            // Foreign Key tracking the integer User Account index
-            $table->unsignedBigInteger('student_id');
+            // 🎯 FIX: Changed from unsignedBigInteger to string to accept Matric Numbers!
+            $table->string('student_id'); 
             
-            // Foreign Key tracking the integer Subject index mapping to UQA2002
             $table->unsignedBigInteger('subject_id');
-            
-            // Status constraint defaulting to 'pending' as defined in CreditController
             $table->string('status')->default('pending'); 
-            
-            $table->timestamps(); // Generates created_at and updated_at columns
+            $table->timestamps();
 
-            // Optional: Define Foreign Key Constraints to protect data integrity
-            $table->foreign('student_id')->references('id')->on('users')->onDelete('cascade');
+            // 🎯 FIX: Comment out or remove this constraint since student_id is now a text string
+            // $table->foreign('student_id')->references('id')->on('users')->onDelete('cascade');
+            
             $table->foreign('subject_id')->references('subject_id')->on('subjects')->onDelete('cascade');
         });
     }
