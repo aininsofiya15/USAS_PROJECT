@@ -57,33 +57,37 @@ class AttendanceProvider with ChangeNotifier {
 
   /// Fetches subjects for academic classes
   Future<void> fetchLecturerSubjects(int lecturerId) async {
-    _isLoading = true;
-    notifyListeners();
+  _isLoading = true;
+  notifyListeners();
 
-    // 🔑 Uses 10.0.2.2 to bridge back to your computer's 127.0.0.1 environment from the emulator
-    final String url = "http://10.0.2.2:8000/api/lecturer/subjects/$lecturerId";
+  try {
+    // ━ Uses the unified dynamic mapping string helper pattern cleanly
+    final response = await http.get(
+      Uri.parse(Api.lecturerSubjects(lecturerId))
+    );
 
-    try {
-      final response = await http.get(Uri.parse(url));
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        if (responseData['success'] == true) {
-          final List<dynamic> dataList = responseData['data'];
-          _subjects = dataList.map((item) => Subject.fromJson(item)).toList();
-        }
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> responseData = json.decode(response.body);
+      if (responseData['success'] == true) {
+        final List<dynamic> dataList = responseData['data'];
+        _subjects = dataList.map((item) => Subject.fromJson(item)).toList();
       } else {
-        debugPrint("Server error status code: ${response.statusCode}");
+        _subjects = [];
+        debugPrint("API explicitly returned success value as false.");
       }
-    } catch (error) {
-      debugPrint("Network exception encountered during fetch: $error");
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+    } else {
+      _subjects = [];
+      debugPrint("Server error status code returned: ${response.statusCode}");
     }
+  } catch (error) {
+    _subjects = [];
+    debugPrint("Network exception encountered during fetch: $error");
+  } finally {
+    _isLoading = false;
+    notifyListeners();
   }
+}
 
-  
   Future<void> fetchLabsForSection(int sectionId) async {
     _isLoading = true;
     _availableLabs = [];
@@ -133,10 +137,18 @@ class AttendanceProvider with ChangeNotifier {
         }),
       );
 
+      // 1. Success case: New code generated cleanly
       if (response.statusCode == 201) {
         final resData = jsonDecode(response.body);
         return resData['code'];
       }
+      
+      // 2. Duplicate validation block case: An active session already exists
+      if (response.statusCode == 409) {
+        debugPrint("Validation Warning: Attendance already exists within this 2-hour window.");
+        return "DUPLICATE"; // Send this explicit keyword back to your UI form screen
+      }
+      
     } catch (e) {
       debugPrint("Error generating attendance: $e");
     } finally {

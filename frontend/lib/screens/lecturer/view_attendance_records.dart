@@ -27,23 +27,39 @@ class _ViewAttendanceRecordsState extends State<ViewAttendanceRecords> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3D8DA),
-      appBar: const UsasHeader(),
-      drawer: const AppSidebar(),
-      bottomNavigationBar: const UsasBottomNav(),
-      body: Consumer<AttendanceProvider>(
-        builder: (context, provider, child) {
-          return Padding(
+Widget build(BuildContext context) {
+  return Scaffold(
+    // Updated to a richer, deeper pastel pink to match your design perfectly
+    backgroundColor: const Color(0xFFF9DFE1), 
+    appBar: const UsasHeader(),
+    drawer: const AppSidebar(),
+    bottomNavigationBar: const UsasBottomNav(),
+    body: Consumer<AttendanceProvider>(
+      builder: (context, provider, child) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
             padding: const EdgeInsets.all(15.0),
             child: Column(
               children: [
-                const Text("Attendance Records", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text(
+                  "Attendance Records", 
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                ),
                 const SizedBox(height: 15),
                 Container(
                   padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+                  decoration: BoxDecoration(
+                    color: Colors.white, 
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.02),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -65,15 +81,10 @@ class _ViewAttendanceRecordsState extends State<ViewAttendanceRecords> {
                           ],
                           rows: provider.attendanceHistory.map((item) {
                             return DataRow(cells: [
-                              // Safe Subject Code
                               DataCell(Text(item['subject_code']?.toString() ?? 'N/A')),
-                              
-                              // Check both class_type (from DB) and lecture_lab (from previous code)
                               DataCell(Text((item['class_type'] ?? item['lecture_lab'])?.toString() ?? 'N/A')),
-                              
                               DataCell(Text(item['date']?.toString() ?? 'N/A')),
                               DataCell(Text(item['time']?.toString() ?? 'N/A')),
-                              
                               DataCell(Row(
                                 children: [
                                   _actionButton("Edit", Colors.green, () {
@@ -81,17 +92,12 @@ class _ViewAttendanceRecordsState extends State<ViewAttendanceRecords> {
                                       context,
                                       MaterialPageRoute(
                                         builder: (context) => EditAttendanceDetails(
-                                          // SAFE PARSING: Prevents the red screen crash if the ID is missing
                                           attendanceId: int.tryParse(item['attendance_id']?.toString() ?? '0') ?? 0,
-                                          
-                                          // Safely pass the subject name and section
                                           subjectName: item['subject_name']?.toString() ?? "Unknown",
                                           sectionNo: item['section_no']?.toString() ?? "N/A",
-                                          
-                                          // SAFE PARSING: Prevents the red screen crash
                                           sectionId: int.tryParse(item['section_id']?.toString() ?? '0') ?? 0,
-                                        ), // EditAttendanceDetails
-                                      ), // MaterialPageRoute
+                                        ),
+                                      ),
                                     );
                                   }),
                                   const SizedBox(width: 5),
@@ -120,11 +126,12 @@ class _ViewAttendanceRecordsState extends State<ViewAttendanceRecords> {
                 ),
               ],
             ),
-          );
-        },
-      ),
-    );
-  }
+          ),
+        );
+      },
+    ),
+  );
+}
 
   Widget _buildSearchField() {
     return Container(

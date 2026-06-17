@@ -3,10 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TuitionFeesController;
-use App\Http\Controllers\Api\ModuleController;
-use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\AttendanceController;
-use App\Http\Controllers\Api\AttendanceRecordController;
+use App\Http\Controllers\AttendanceRecordController;
 use App\Models\Subject; 
 use App\Http\Controllers\RegistrarSubjectController;
 use App\Http\Controllers\StudentSubjectController;
@@ -62,16 +62,58 @@ Route::get('/credit-claims/status/{studentId}', [CreditController::class, 'getCl
 //---------------------------------------------------------------------------------------
 
 
-//YAYA 
+//---------------------------------------------------------------------------------------//
+// YAYA - MANAGE SUBJECT REGISTRATION
+
+// FACULTY REGISTRAR ROUTES
+
+// Create a new subject with sections and labs
 Route::post('/register-subject', [RegistrarSubjectController::class, 'registerSubject']);
+
+// Retrieve all subjects
 Route::get('/subjects', [RegistrarSubjectController::class, 'getSubjects']); 
+
+// Retrieve lecturer list for section assignment
 Route::get('/lecturers', [RegistrarSubjectController::class, 'getLecturers']);
+
+// Retrieve subject details including sections, labs and registrations
 Route::get('/subject-details/{id}', [RegistrarSubjectController::class, 'getSubjectDetails']);
-Route::get('/student/subjects',[StudentSubjectController::class, 'getSubjects']);
-Route::get('/student/registered-subjects/{student_id}',[StudentSubjectController::class,'getRegisteredSubjects']);
-Route::post('/student/register-subject',[StudentSubjectController::class,'registerSubject']);
-Route::put('/student/drop-subject/{registration_id}',[StudentSubjectController::class,'dropSubject']);
-Route::get('/total-subjects', function () { return response()->json(['totalSubjects' => Subject::count()]);});
+
+// Retrieve total number of subjects
+Route::get('/total-subjects', function () {
+    return response()->json([
+        'totalSubjects' => Subject::count()
+    ]);
+});
+
+// Update subject
+Route::put(
+    '/subject/{id}',
+    [RegistrarSubjectController::class, 'updateSubject']
+);
+
+// Delete subject
+Route::delete(
+    '/subject/{id}',
+    [RegistrarSubjectController::class, 'deleteSubject']
+);
+
+
+
+// STUDENT ROUTES
+
+// Retrieve available subjects for registration
+Route::get('/student/subjects', [StudentSubjectController::class, 'getSubjects']);
+
+// Retrieve registered subjects for selected student
+Route::get('/student/registered-subjects/{student_id}', [StudentSubjectController::class, 'getRegisteredSubjects']);
+
+// Register student into selected subject and lab
+Route::post('/student/register-subject', [StudentSubjectController::class, 'registerSubject']);
+
+// Drop registered subject
+Route::put('/student/drop-subject/{registration_id}', [StudentSubjectController::class, 'dropSubject']);
+
 //-----------------------------------------------------------------------------
 
 

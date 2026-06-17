@@ -14,7 +14,10 @@ class RegistrarSubjectProvider {
     required String totalSection,
     required List sections,
 
-  }) async {
+  }) 
+  
+  
+  async {
 
     print("========== API CALLED ==========");
 
@@ -94,6 +97,44 @@ try {
       };
     }
   }
+
+
+Future updateSubject({
+  required int subjectId,
+  required String subjectName,
+  required String subjectCode,
+  required String creditHours,
+}) async {
+
+  var response = await http.put(
+    Uri.parse("${Api.baseUrl}/subject/$subjectId"),
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: jsonEncode({
+      "subject_name": subjectName,
+      "subject_code": subjectCode,
+      "credit_hours": creditHours,
+    }),
+  );
+
+  return jsonDecode(response.body);
+}
+
+Future deleteSubject(dynamic subjectId) async {
+
+  var response = await http.delete(
+    Uri.parse("${Api.baseUrl}/subject/$subjectId"),
+  );
+
+  print(response.statusCode);
+  
+
+  print(response.body);
+
+return {};
+}
 
   Future getLecturers() async {
 

@@ -12,29 +12,37 @@ class ModuleAttendanceSelectionPage extends StatefulWidget {
   const ModuleAttendanceSelectionPage({super.key});
 
   @override
-  State<ModuleAttendanceSelectionPage> createState() => _ModuleAttendanceSelectionPageState();
+  State<ModuleAttendanceSelectionPage> createState() =>
+      _ModuleAttendanceSelectionPageState();
 }
 
-class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectionPage> {
+class _ModuleAttendanceSelectionPageState
+    extends State<ModuleAttendanceSelectionPage> {
   DateTime? selectedDate;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AttendanceProvider>(context, listen: false).fetchPusatAdabModules();
+      _loadData();
     });
+  }
+
+  void _loadData() {
+    String? dateParam;
+    if (selectedDate != null) {
+      dateParam = DateFormat('yyyy-MM-dd').format(selectedDate!);
+    }
+
+    Provider.of<AttendanceProvider>(context, listen: false)
+        .getAdabModules(selectedDate: dateParam);
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<AttendanceProvider>(context);
 
-    final displayedModules = provider.pusatAdabModules.where((module) {
-      if (selectedDate == null) return true;
-      String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
-      return module.dateTime.contains(formattedDate);
-    }).toList();
+    final displayedModules = provider.pusatAdabModules;
 
     return Scaffold(
       backgroundColor: const Color(0xFFD1FFF3),
@@ -53,13 +61,15 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
           Expanded(
             child: provider.isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: displayedModules.length,
-                    itemBuilder: (context, index) {
-                      return _buildModuleCard(displayedModules[index]);
-                    },
-                  ),
+                : displayedModules.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: displayedModules.length,
+                        itemBuilder: (context, index) {
+                          return _buildModuleCard(displayedModules[index]);
+                        },
+                      ),
           ),
         ],
       ),
@@ -90,7 +100,10 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
                 firstDate: DateTime(2025),
                 lastDate: DateTime(2030),
               );
-              if (picked != null) setState(() => selectedDate = picked);
+              if (picked != null) {
+                setState(() => selectedDate = picked);
+                _loadData();
+              }
             },
           ),
         ],
@@ -152,12 +165,38 @@ class _ModuleAttendanceSelectionPageState extends State<ModuleAttendanceSelectio
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 15),
         ),
         onPressed: onTap,
-        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
+        child: Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontSize: 11),
+        ),
       ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.search_off, size: 64, color: Colors.black26),
+        const SizedBox(height: 10),
+        const Text(
+          "No modules found for this selection.",
+          style: TextStyle(color: Colors.black45),
+        ),
+        TextButton(
+          onPressed: () {
+            setState(() => selectedDate = null);
+            _loadData();
+          },
+          child: const Text("Reset Filter"),
+        ),
+      ],
     );
   }
 }

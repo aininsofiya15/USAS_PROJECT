@@ -4,7 +4,13 @@ import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
 
 class SubjectFormPage extends StatefulWidget {
-  const SubjectFormPage({super.key});
+
+  final Map? subject;
+
+  const SubjectFormPage({
+    super.key,
+    this.subject,
+  });
 
   @override
   State<SubjectFormPage> createState() => _SubjectFormPageState();
@@ -34,10 +40,17 @@ class _SubjectFormPageState extends State<SubjectFormPage> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    loadLecturers();
+void initState() {
+  super.initState();
+  loadLecturers();
+
+  if (widget.subject != null) {
+    nameController.text = widget.subject!['subject_name'];
+    codeController.text = widget.subject!['subject_code'];
+    creditController.text =
+        widget.subject!['credit_hours'].toString();
   }
+}
 
   void loadLecturers() async {
     var data = await RegistrarSubjectProvider().getLecturers();
@@ -842,6 +855,30 @@ class _SubjectFormPageState extends State<SubjectFormPage> {
                   ),
                 ),
                 onPressed: () async {
+                  print("BUTTON PRESSED");
+                if (widget.subject != null) {
+
+  var response =
+      await RegistrarSubjectProvider().updateSubject(
+    subjectId: widget.subject!['subject_id'],
+    subjectName: nameController.text,
+    subjectCode: codeController.text,
+    creditHours: creditController.text,
+  );
+
+  if (response["success"] == true) {
+
+    Navigator.pop(context);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Subject Updated"),
+      ),
+    );
+  }
+
+  return;
+}
                   FocusScope.of(context).unfocus();
 
                   List formattedSections = [];

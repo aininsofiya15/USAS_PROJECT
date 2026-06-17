@@ -72,7 +72,35 @@ class AttendanceController extends Controller
             'time'       => 'required',
         ]);
 
-        return DB::transaction(function () use ($request) {
+        // Convert the requested form input time string into a clean standard format (H:i:s)
+        $requestedTime = date('H:i:s', strtotime($request->time));
+
+        // --- NARROWED ACTIVE RE-ENTRY CHECKER ---
+        // Looks ONLY at records matching the requested section and date
+        $existingDuplicate = DB::table('class_attendances')
+            ->where('section_id', $request->section_id)
+            ->where('date', $request->date)
+            ->where(function($query) use ($requestedTime) {
+                // An active block exists if the entry's start time is less than or equal to the requested time,
+                // AND the requested time is within 2 hours of that entry's start time.
+                $query->where('time', '<=', $requestedTime)
+                      ->whereRaw('ADDTIME(time, "02:00:00") > ?', [$requestedTime]);
+            })
+            ->first();
+
+        if ($existingDuplicate) {
+            // Calculate dynamic active termination boundary time display string (e.g., "11:50 AM")
+            $expirationTime = date('h:i A', strtotime('+2 hours', strtotime($existingDuplicate->time)));
+
+            return response()->json([
+                'success' => false,
+                'message' => "An attendance code for this class session has already been released and is still active until {$expirationTime}.",
+                'expires_at' => $expirationTime
+            ], 409);
+        }
+
+        // --- TRANSACTION EXECUTION ---
+        return DB::transaction(function () use ($request, $requestedTime) {
             // 1. Create the General Attendance (Code & GPS)
             $code = strtoupper(Str::random(6));
             
@@ -84,13 +112,12 @@ class AttendanceController extends Controller
             ]);
 
             // 2. Create the Specific Class Attendance
-            // This links the section and the lab name
             DB::table('class_attendances')->insert([
                 'attendance_id' => $attendance->id,
                 'section_id'    => $request->section_id,
-                'class_type'    => $request->lab_name, // "Computer Lab 1", etc.
+                'class_type'    => $request->lab_name, 
                 'date'          => $request->date,
-                'time'          => date('H:i:s', strtotime($request->time)),
+                'time'          => $requestedTime,
                 'created_at'    => now(),
                 'updated_at'    => now(),
             ]);

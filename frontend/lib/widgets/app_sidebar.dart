@@ -163,7 +163,8 @@ class AppSidebar extends StatelessWidget {
                         destination: ViewModulesPage()),
                     _buildSubMenuItem(context, "Add Module", role,
                         destination: ModuleFormPage()),
-                    _buildSubMenuItem(context, "Edit Module", role),
+                    _buildSubMenuItem(context, "Edit Module", role,
+                        destination: ViewModulesPage()),
                     _buildDivider(role),
 
                     _buildMenuItem(context, Icons.note_alt_outlined, "Credit Claim Application", role),
