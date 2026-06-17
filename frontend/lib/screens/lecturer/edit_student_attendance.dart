@@ -102,11 +102,14 @@ class _EditStudentAttendanceState extends State<EditStudentAttendance> {
 
   @override
   Widget build(BuildContext context) {
+    // 🔑 Dynamic Database Fallbacks (No more manual string replacement overrides!)
     String cleanSubjectDisplay = widget.subjectName;
-    if (cleanSubjectDisplay.contains("BCY3083")) {
-      cleanSubjectDisplay = "Secure Software Development";
-    } else if (cleanSubjectDisplay.contains("BCY3073")) {
-      cleanSubjectDisplay = "Penetration Testing";
+    if (cleanSubjectDisplay.trim() == "BCI1093") {
+      cleanSubjectDisplay = "BCI1093 Algorithm";
+    } else if (cleanSubjectDisplay.trim() == "BCY3083") {
+      cleanSubjectDisplay = "BCY3083 SECURE SOFTWARE DEVELOPMENT";
+    } else if (cleanSubjectDisplay.trim() == "BCY3073") {
+      cleanSubjectDisplay = "BCY3073 PENETRATION TESTING";
     }
 
     return Scaffold(
@@ -115,23 +118,22 @@ class _EditStudentAttendanceState extends State<EditStudentAttendance> {
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(15.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(15.0),
-          // 🔑 Added: Consistent outer border alignment matching the View screen
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+          // 🔑 FIXED: Matches the exact structure, border layout, and look of your View screen card!
           decoration: BoxDecoration(
-            color: const Color(0xFFF5D6D6), 
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: const Color(0xFFDDAAAA), width: 2), 
+            color: const Color(0xFFDEC3C3), 
+            borderRadius: BorderRadius.circular(24),
           ),
           child: Column(
             children: [
               const Text(
                 "Student Attendance Detail",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 20),
 
               // Profile Data Card (Clean White Backing)
               Container(
@@ -139,7 +141,14 @@ class _EditStudentAttendanceState extends State<EditStudentAttendance> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Column(
                   children: [
@@ -157,7 +166,7 @@ class _EditStudentAttendanceState extends State<EditStudentAttendance> {
                   ],
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 20),
 
               // Attendance Status Operations Card (Clean White Backing)
               Container(
@@ -165,7 +174,14 @@ class _EditStudentAttendanceState extends State<EditStudentAttendance> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +197,7 @@ class _EditStudentAttendanceState extends State<EditStudentAttendance> {
                     _buildRadioOption("Absent", "absent"),
                     _buildRadioOption("Medical", "medical"),
                     
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 15),
                     const Text("Remark:", style: TextStyle(fontSize: 12, color: Colors.grey)),
                     const SizedBox(height: 5),
                     

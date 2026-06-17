@@ -300,6 +300,7 @@ class AttendanceProvider with ChangeNotifier {
   }
 }
 
+// Keep syncStatusToBackend as your raw network caller if needed elsewhere
 Future<bool> syncStatusToBackend({
   required int attendanceId,
   required String matricNo,
@@ -315,9 +316,9 @@ Future<bool> syncStatusToBackend({
       },
       body: json.encode({
         'attendance_id': attendanceId,
-        'matric_no': matricNo,   // Pass the student's matric number string
-        'status': status,        // 'present', 'late', 'absent', 'medical'
-        'record_id': recordId,    // Will be 0 for students who haven't checked in yet
+        'matric_no': matricNo,
+        'status': status,
+        'record_id': recordId,
       }),
     );
 
@@ -332,15 +333,17 @@ Future<bool> syncStatusToBackend({
   }
 }
 
-
+// Update this primary orchestration method to update the UI local collections!
 Future<bool> updateStudentAttendance({
   required int attendanceId,
   required String matricNo,
   required String status,
   required int recordId,
 }) async {
+  _isLoading = true; // Optional: If you track a general loading state in provider
+  notifyListeners();
+
   try {
-    // Make sure your Api.baseUrl maps correctly to http://127.0.0.1:8000/api or your local device IP
     final response = await http.post(
       Uri.parse('${Api.baseUrl}/attendance/update-status'),
       headers: {
@@ -348,16 +351,26 @@ Future<bool> updateStudentAttendance({
         'Accept': 'application/json',
       },
       body: json.encode({
-        'attendance_id': attendanceId, // 🔑 Must match backend: $request->input('attendance_id')
-        'matric_no': matricNo,         // 🔑 Must match backend: $request->input('matric_no')
-        'status': status,              // 🔑 Must match backend: $request->input('status')
-        'record_id': recordId,          // 🔑 Must match backend: $request->input('record_id')
+        'attendance_id': attendanceId,
+        'matric_no': matricNo,
+        'status': status,
+        'record_id': recordId,
       }),
     );
 
     if (response.statusCode == 200) {
       final responseData = json.decode(response.body);
-      return responseData['success'] == true;
+      
+      if (responseData['success'] == true) {
+        // 🔄 THE FIX: Automatically trigger a re-fetch of your state lists 
+        // This causes the Provider listeners to redraw, swapping the student tab location instantly.
+        await Future.wait([
+          fetchClassPresentStudent(attendanceId),
+          fetchClassNotPresentStudent(attendanceId),
+        ]);
+        
+        return true;
+      }
     }
     
     debugPrint("Server returned error status code: ${response.statusCode}");
@@ -366,6 +379,9 @@ Future<bool> updateStudentAttendance({
   } catch (e) {
     debugPrint("Exception caught during sync: $e");
     return false;
+  } finally {
+    _isLoading = false;
+    notifyListeners(); // Ensures UI updates and loading spinners stop
   }
 }
 
@@ -532,8 +548,53 @@ Future<bool> updateStudentAttendance({
   }
 }
 
+Future<bool> updateStudentModuleAttendance({
+  required int attendanceId,
+  required int recordId,
+  required int studentId,
+  required String status,
+  required String remark,
+}) async {
+  try {
+    final url = Uri.parse('${Api.baseUrl}/module-attendance/update');
 
+    final payload = {
+      'attendance_id': attendanceId,
+      'record_id': recordId,
+      'student_id': studentId,
+      'status': status,
+      'remark': remark,
+    };
 
+    // 🔍 Add this to see exactly what you're sending
+    debugPrint('=== UPDATE MODULE ATTENDANCE ===');
+    debugPrint('URL: $url');
+    debugPrint('Payload: ${jsonEncode(payload)}');
+
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: jsonEncode(payload),
+    );
+
+    // 🔍 Add this to see exactly what Laravel returns
+    debugPrint('Status Code: ${response.statusCode}');
+    debugPrint('Response Body: ${response.body}');
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      await fetchAttendanceDetails(attendanceId);
+      return true;
+    }
+
+    return false;
+  } catch (e) {
+    debugPrint('Error: $e');
+    return false;
+  }
+}
   //Student
 
 List<dynamic> _studentCurriculum = [];
