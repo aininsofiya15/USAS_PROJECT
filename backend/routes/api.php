@@ -3,10 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TuitionFeesController;
-use App\Http\Controllers\Api\ModuleController;
-use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\ModuleController;
+use App\Http\Controllers\BookingController;
 use App\Http\Controllers\AttendanceController;
-use App\Http\Controllers\Api\AttendanceRecordController;
+use App\Http\Controllers\AttendanceRecordController;
 use App\Models\Subject; 
 use App\Http\Controllers\RegistrarSubjectController;
 use App\Http\Controllers\StudentSubjectController;
