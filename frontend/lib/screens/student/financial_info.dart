@@ -4,6 +4,7 @@ import '../../provider/manage_fees_provider.dart';
 import '../../provider/user_provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
+import '../../widgets/app_sidebar.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_stripe/flutter_stripe.dart';
@@ -37,6 +38,7 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFD6EAF8),
       appBar: const UsasHeader(),
+      drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: Consumer<FeesManagementProvider>(
         builder: (context, provider, child) {
@@ -240,14 +242,12 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
 
                 setState(() => _isLoading = true);
 
-                // Map payment method for backend
                 String backendMethod = 'card';
                 if (_selectedMethod == "Internet Banking") {
                   backendMethod = 'fpx';
                 }
 
                 try {
-                  // 1. Create Payment Intent
                   final response = await http.post(
                     Uri.parse('http://10.0.2.2:8000/api/tuition/payment-intent'),
                     headers: {
@@ -261,9 +261,6 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                     }),
                   );
 
-                  print('Response status: ${response.statusCode}');
-                  print('Response body: ${response.body}');
-
                   if (response.statusCode != 200) {
                     final errorData = jsonDecode(response.body);
                     throw Exception(errorData['error'] ?? 'Failed to initialize payment');
@@ -276,7 +273,6 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                     throw Exception('No payment intent secret received');
                   }
 
-                  // 2. Initialize Payment Sheet - CORRECT for flutter_stripe ^13.0.0
                   await Stripe.instance.initPaymentSheet(
                     paymentSheetParameters: SetupPaymentSheetParameters(
                       paymentIntentClientSecret: clientSecret,
@@ -285,10 +281,8 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                     ),
                   );
 
-                  // 3. Present Payment Sheet
                   await Stripe.instance.presentPaymentSheet();
 
-                  // 4. Complete Payment in Database
                   final completeResponse = await http.post(
                     Uri.parse('http://10.0.2.2:8000/api/student/complete-payment'),
                     headers: {
@@ -305,7 +299,6 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                   if (completeResponse.statusCode == 200) {
                     final result = jsonDecode(completeResponse.body);
                     if (result['success'] == true) {
-                      // Refresh data
                       await Provider.of<FeesManagementProvider>(context, listen: false)
                           .fetchStudentFinancialProfile(dynamicUserId);
 

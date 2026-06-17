@@ -403,10 +403,11 @@ class TuitionFeesController extends Controller
                 return response()->json([], 200);
             }
 
-            // 2. Fetch payments
+            // 2. Fetch payments - only Success status
             $history = DB::table('payments')
                 ->where('student_id', $matricId)
-                ->select('payment_id', 'payment_desc', 'total_payment as amount', 'payment_date')
+                ->where('status', 'Success')
+                ->select('payment_id', 'payment_desc', 'total_payment', 'payment_date', 'status')
                 ->orderBy('payment_date', 'desc')
                 ->get();
 
@@ -709,5 +710,200 @@ class TuitionFeesController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Get all notifications for a specific user
+     * Only shows Payment Success, Payment Reminder, and Block Warning for that specific user
+     */
+    public function getUserNotifications($userId)
+    {
+        try {
+            // Get student's matric ID for this specific user
+            $student = DB::table('students')->where('id', $userId)->first();
+            if (!$student) {
+                return response()->json(['notifications' => []]);
+            }
+
+            $matricId = $student->student_id;
+
+            // ✅ Call generateNotifications to create notifications if they don't exist
+            $this->generateNotifications($userId, $matricId);
+
+            // ✅ Return ONLY this user's notifications
+            $notifications = DB::table('notifications')
+                ->where('id', $userId)
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $unreadCount = DB::table('notifications')
+                ->where('id', $userId)
+                ->where('is_read', 0)
+                ->count();
+
+            return response()->json([
+                'notifications' => $notifications,
+                'unread_count' => $unreadCount
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Notification Error for user ' . $userId . ': ' . $e->getMessage());
+            return response()->json([
+                'notifications' => [],
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+ * Generate notifications dynamically and save to database
+ */
+private function generateNotifications($userId, $matricId)
+{
+    // 1. Get Payment Success notifications from payments table
+    $payments = DB::table('payments')
+        ->where('student_id', $matricId)
+        ->where('status', 'Success')
+        ->orderBy('payment_date', 'desc')
+        ->get();
+
+    foreach ($payments as $payment) {
+        $notificationId = 'payment_success_' . $payment->payment_id;
+        
+        // Check if already exists for this user
+        $existing = DB::table('notifications')
+            ->where('notification_id', $notificationId)
+            ->where('id', $userId)
+            ->first();
+        
+        if (!$existing) {
+            DB::table('notifications')->insert([
+                'notification_id' => $notificationId,
+                'id' => $userId,
+                'title' => 'Payment Success',
+                'message' => 'Your payment of RM ' . number_format($payment->total_payment, 2) . ' has been received.',
+                'is_read' => 1,
+                'type' => 'payment_success',
+                'reference_id' => $payment->payment_id,
+                'created_at' => $payment->payment_date ?? now(),
+                'updated_at' => $payment->payment_date ?? now()
+            ]);
+        }
+    }
+
+    // 2. Get Payment Reminder and Block Warning ONLY IF:
+    //    - block date is set
+    //    - block date is in the FUTURE (not today or past)
+    //    - student has unpaid fees
+    $blockSetting = DB::table('block_settings')->orderBy('created_at', 'desc')->first();
+    
+    if ($blockSetting) {
+        $blockDate = $blockSetting->block_date ?? $blockSetting->block_start_date;
+        $blockDateParsed = Carbon::parse($blockDate);
+        $today = Carbon::today();
+        
+        // ✅ Only create notifications if block date is in the future
+        if ($blockDateParsed->isFuture()) {
+            $formattedBlockDate = $blockDateParsed->format('d F Y');
+            
+            // Check if student has unpaid fees
+            $fee = DB::table('fees')->where('student_id', $matricId)->first();
+            
+            if ($fee && $fee->status == 'unpaid' && $fee->outstanding_amount > 0) {
+                // Payment Reminder
+                $reminderId = 'payment_reminder_' . $userId;
+                $existingReminder = DB::table('notifications')
+                    ->where('notification_id', $reminderId)
+                    ->where('id', $userId)
+                    ->first();
+                
+                if (!$existingReminder) {
+                    DB::table('notifications')->insert([
+                        'notification_id' => $reminderId,
+                        'id' => $userId,
+                        'title' => 'Payment Reminder',
+                        'message' => 'Your tuition fee payment is due on ' . $formattedBlockDate . '.',
+                        'is_read' => 0,
+                        'type' => 'payment_reminder',
+                        'reference_id' => null,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+                
+                // Block Warning
+                $warningId = 'block_warning_' . $userId;
+                $existingWarning = DB::table('notifications')
+                    ->where('notification_id', $warningId)
+                    ->where('id', $userId)
+                    ->first();
+                
+                if (!$existingWarning) {
+                    DB::table('notifications')->insert([
+                        'notification_id' => $warningId,
+                        'id' => $userId,
+                        'title' => 'Block Warning',
+                        'message' => 'Your academic access will be blocked after Week 5 (' . $formattedBlockDate . ') if your balance remains unpaid.',
+                        'is_read' => 0,
+                        'type' => 'block_warning',
+                        'reference_id' => null,
+                        'created_at' => now(),
+                        'updated_at' => now()
+                    ]);
+                }
+            }
+        }
+    }
+}
+
+    /**
+     * Mark a notification as read (update is_read to 1)
+     */
+    public function markNotificationAsRead(Request $request, $notificationId)
+    {
+        try {
+            $userId = $request->input('user_id') ?? auth()->id();
+            
+            if (!$userId) {
+                return response()->json(['error' => 'User ID required'], 400);
+            }
+
+            $updated = DB::table('notifications')
+                ->where('notification_id', $notificationId)
+                ->where('id', $userId)
+                ->update(['is_read' => 1]);
+
+            if ($updated) {
+                return response()->json(['success' => true]);
+            }
+
+            return response()->json(['error' => 'Notification not found'], 404);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Mark all notifications as read for a user
+     */
+    public function markAllNotificationsAsRead(Request $request)
+    {
+        try {
+            $userId = $request->input('user_id') ?? auth()->id();
+            
+            if (!$userId) {
+                return response()->json(['error' => 'User ID required'], 400);
+            }
+
+            DB::table('notifications')
+                ->where('id', $userId)
+                ->update(['is_read' => 1]);
+
+            return response()->json(['success' => true]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 }

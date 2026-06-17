@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/credit_provider.dart';
+import '../../provider/module_provider.dart';
 import 'module_form.dart';
 import 'credit_application.dart';
 import 'view_module.dart';
@@ -25,6 +26,7 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CreditProvider>(context, listen: false).fetchAllClaims('all');
+      Provider.of<ModuleProvider>(context, listen: false).fetchModules();
     });
   }
 
@@ -157,6 +159,7 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               children: [
+                // Pending Approvals
                 Consumer<CreditProvider>(
                   builder: (context, creditProvider, child) {
                     final pendingCount = creditProvider.adminClaims
@@ -170,12 +173,45 @@ class _PusatAdabBodyState extends State<PusatAdabBody> {
                     );
                   },
                 ),
-                _buildOverviewStatCard(
-                  title: "Capacity Alert",
-                  value: "95%",
-                  subtext: "Memanah module is almost full.\n2 Seats remaining",
-                  accentColor: Colors.blue,
+
+                // Capacity Alert — dynamic from most-filled module
+                Consumer<ModuleProvider>(
+                  builder: (context, moduleProvider, child) {
+                    final published = moduleProvider.modules
+                        .where((m) =>
+                            m.status.toLowerCase() == 'published' &&
+                            m.capacity > 0)
+                        .toList();
+
+                    if (published.isEmpty) {
+                      return _buildOverviewStatCard(
+                        title: "Capacity Alert",
+                        value: "–",
+                        subtext: "No published\nmodules yet.",
+                        accentColor: Colors.blue,
+                      );
+                    }
+
+                    // Sort by fill ratio descending
+                    published.sort((a, b) =>
+                        (b.registeredCount / b.capacity)
+                            .compareTo(a.registeredCount / a.capacity));
+
+                    final top = published.first;
+                    final percent =
+                        ((top.registeredCount / top.capacity) * 100).round();
+                    final remaining = top.capacity - top.registeredCount;
+
+                    return _buildOverviewStatCard(
+                      title: "Capacity Alert",
+                      value: "$percent%",
+                      subtext:
+                          "${top.activityName} is almost full.\n$remaining seat${remaining == 1 ? '' : 's'} remaining",
+                      accentColor: Colors.blue,
+                    );
+                  },
                 ),
+
                 _buildEmptyOverviewCard(),
               ],
             ),

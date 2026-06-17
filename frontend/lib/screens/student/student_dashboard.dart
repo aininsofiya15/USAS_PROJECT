@@ -26,8 +26,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = Provider.of<UserProvider>(context, listen: false).userId;
-      Provider.of<FeesManagementProvider>(context, listen: false)
-          .fetchStudentPortalDashboardData(userId.toString());
+      final feesProvider = Provider.of<FeesManagementProvider>(context, listen: false);
+      feesProvider.fetchBlockDate();
+      feesProvider.fetchStudentPortalDashboardData(userId.toString());
       Provider.of<ModuleProvider>(context, listen: false)
           .fetchStudentBookings(userId.toString());
     });
@@ -198,18 +199,63 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       _buildStatCard(
                           "Total Credit\nCurrent Sem",
                           provider.totalCreditsCurrentSem.toString()),
-                      _buildStatCard(
-                          "Upcoming\nDue Date",
-                          provider.upcomingDueDateStr,
-                          isDate: true),
+                      _buildUpcomingDueDateCard(provider.upcomingDueDateStr), // ✅ Use new method
                     ],
                   ),
                 ),
+                
                 const SizedBox(height: 16),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildUpcomingDueDateCard(String value) {
+    return Container(
+      width: 155,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.black.withOpacity(0.07), width: 0.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
+            child: const Text(
+              "Upcoming\nDue Date",
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Divider(thickness: 0.5, height: 1, color: Color(0x22000000)),
+          ),
+          Expanded(
+            child: Center(
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1565C0),
+                  height: 1.2,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
