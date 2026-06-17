@@ -8,9 +8,9 @@ use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Api\AttendanceRecordController;
 use App\Models\Subject; 
-use App\Http\Controllers\Api\RegistrarSubjectController;
-use App\Http\Controllers\Api\StudentSubjectController;
-use App\Http\Controllers\Api\CreditController;
+use App\Http\Controllers\RegistrarSubjectController;
+use App\Http\Controllers\StudentSubjectController;
+use App\Http\Controllers\CreditController;
 
 // Login route for all users 
 Route::post('/login', [AuthController::class, 'login']);
@@ -118,7 +118,7 @@ Route::get('/treasurer/report/download-csv', [TuitionFeesController::class, 'dow
 //STUDENT ROUTES
 Route::get('/student/dashboard-status/{student_id}', [TuitionFeesController::class, 'getStudentDashboardStatus']);
 Route::get('/student/financial-details/{id}', [TuitionFeesController::class, 'getStudentFinancialProfile']);
-Route::post('/student/complete-payment', [App\Http\Controllers\TuitionFeesController::class, 'completePayment']);
+Route::post('/student/complete-payment', [TuitionFeesController::class, 'completePayment']);
 Route::get('/student/payment-history/{userId}', [TuitionFeesController::class, 'getPaymentHistory']); 
 Route::post('/student/update-bank', [TuitionFeesController::class, 'updateStudentBank']);
 Route::post('/tuition/payment-intent', [TuitionFeesController::class, 'generateStripeIntent']);
