@@ -5,6 +5,8 @@ import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
 import 'subject_form_page.dart';
 import '../../provider/registrar_subject_provider.dart';
+import '../../widgets/navigation_bar.dart';
+
 
 // Subject details page
 class SubjectDetailsPage extends StatefulWidget {
@@ -86,7 +88,7 @@ class _SubjectDetailsPageState
       appBar: const UsasHeader(),
 
       drawer: const AppSidebar(),
-
+      bottomNavigationBar: const UsasBottomNav(),
       backgroundColor:
           const Color(0xFFFDF9EC),
 

@@ -2,6 +2,7 @@ import '../../provider/registrar_subject_provider.dart';
 import 'package:flutter/material.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
+import '../../widgets/navigation_bar.dart';
 
 class SubjectFormPage extends StatefulWidget {
 
@@ -416,6 +417,7 @@ void initState() {
     return Scaffold(
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
+      bottomNavigationBar: const UsasBottomNav(),
       backgroundColor: kBg,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

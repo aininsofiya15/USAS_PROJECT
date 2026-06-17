@@ -38,10 +38,17 @@ class BookingController extends Controller
                     'modules.date_time',
                     'modules.venue',
                     'bookings.is_claimed',
-                    'attendance_records.status as attendance_status', 
-                    'attendance_records.marks as total_marks'         
+                    DB::raw('MAX(attendance_records.status) as attendance_status'),
+                    DB::raw('MAX(attendance_records.marks) as total_marks')
                 )
-                ->groupBy('bookings.id', 'modules.id', 'modules.activity_name', 'modules.date_time', 'modules.venue', 'bookings.is_claimed', 'attendance_records.status', 'attendance_records.marks')
+                ->groupBy(
+                    'bookings.id',
+                    'modules.id',
+                    'modules.activity_name',
+                    'modules.date_time',
+                    'modules.venue',
+                    'bookings.is_claimed'
+                )
                 ->get();
 
             // Return clean JSON payload response
@@ -77,6 +84,16 @@ class BookingController extends Controller
         }
 
         return DB::transaction(function () use ($targetModule, $moduleId, $studentId) {
+
+            $sameSessionAlreadyBooked = DB::table('bookings')
+                ->where('student_id', $studentId)
+                ->where('module_id', $moduleId)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($sameSessionAlreadyBooked) {
+                return response()->json(['message' => 'Already registered for this module!'], 400);
+            }
 
             // 🎯 FIXED QUERY: Matches your phpMyAdmin 'attendances' table columns exactly
             $alreadyBooked = DB::table('bookings')

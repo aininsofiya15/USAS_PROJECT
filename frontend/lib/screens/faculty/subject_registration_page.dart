@@ -5,6 +5,7 @@ import 'subject_form_page.dart';
 import 'subject_details_page.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
+import '../../widgets/navigation_bar.dart';
 
 class SubjectRegistrationPage extends StatefulWidget {
 
@@ -59,6 +60,7 @@ class _SubjectRegistrationPageState extends State<SubjectRegistrationPage> {
     return Scaffold(
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
+      bottomNavigationBar: const UsasBottomNav(),
       backgroundColor: kBg,
       body: Column(
         children: [
