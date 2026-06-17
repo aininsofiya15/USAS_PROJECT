@@ -68,9 +68,20 @@ class CreditController extends Controller
                 ], 404);
             }
 
-            // Count total active module bookings matching the user reference index
+            // Count total active module bookings exclude absences
             $activeBookingCount = DB::table('bookings')
-                ->where('student_id', $booking->student_id)
+                // Check for bookings belonging to this integer user ID (9)
+                ->where('bookings.student_id', $booking->student_id)
+                // 🎯 RE-ADDED ABSENCE CHECK: Exclude rows where student status is 'absent'
+                ->whereNotExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('attendances')
+                        ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
+                        ->whereColumn('attendances.booking_id', 'bookings.id')
+                        // Maps using the integer user account ID consistently
+                        ->whereColumn('attendance_records.student_id', 'bookings.student_id')
+                        ->whereRaw('LOWER(attendance_records.status) = ?', ['absent']);
+                })
                 ->count();
 
             // Enforce minimum required modules check
@@ -94,6 +105,7 @@ class CreditController extends Controller
                     'updated_at' => now()
                 ]);
 
+            // Re-count final total claimed records
             $claimedCount = DB::table('bookings')
                 ->where('student_id', $booking->student_id)
                 ->where('is_claimed', 1)
@@ -113,7 +125,7 @@ class CreditController extends Controller
             ], 500);
         }
     }
-
+    
     // 3. Fetch credit claim status records for a student
     public function getClaimStatus($studentId)
     {
