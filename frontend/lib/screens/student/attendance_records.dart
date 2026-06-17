@@ -14,7 +14,6 @@ class AttendanceRecordsPage extends StatefulWidget {
 }
 
 class _AttendanceRecordsPageState extends State<AttendanceRecordsPage> {
-  // 🔑 CHANGED: Initialize to display "All History" on load instead of forcing today's date
   String _selectedDateDisplay = "All History";
   String? _backendFilterDate; 
   DateTime _currentPickerStateDate = DateTime.now();
@@ -22,12 +21,10 @@ class _AttendanceRecordsPageState extends State<AttendanceRecordsPage> {
   @override
   void initState() {
     super.initState();
-    
-    // Fetch ALL attendance records initially without any date boundaries
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final studentId = Provider.of<UserProvider>(context, listen: false).userId.toString();
       Provider.of<AttendanceProvider>(context, listen: false)
-          .fetchAttendanceRecord(studentId); // 🔑 No dateFilter parameter passed here!
+          .fetchAttendanceRecord(studentId); 
     });
   }
 
@@ -46,7 +43,7 @@ class _AttendanceRecordsPageState extends State<AttendanceRecordsPage> {
               const Center(
                 child: Text(
                   "Attendance History",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
                 ),
               ),
               const SizedBox(height: 20),
@@ -93,7 +90,7 @@ class _AttendanceRecordsPageState extends State<AttendanceRecordsPage> {
       children: [
         const Text(
           "DATE:",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
         ),
         const SizedBox(width: 15),
         Expanded(
@@ -110,7 +107,7 @@ class _AttendanceRecordsPageState extends State<AttendanceRecordsPage> {
                       colorScheme: const ColorScheme.light(
                         primary: Color(0xFF3F51B5),
                         onPrimary: Colors.white,
-                        onSurface: Colors.black87,
+                        onSurface: Colors.black,
                       ),
                     ),
                     child: child!,
@@ -146,27 +143,24 @@ class _AttendanceRecordsPageState extends State<AttendanceRecordsPage> {
                 children: [
                   Text(
                     _selectedDateDisplay,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black87),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black),
                   ),
-                  
-                  // 🔑 ADDED: Dynamic Clear Filter Button if a specific date query is active
                   _backendFilterDate != null
                       ? IconButton(
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
-                          icon: const Icon(Icons.close, size: 18, color: Colors.redAccent),
+                          icon: const Icon(Icons.close, size: 18, color: Colors.black),
                           onPressed: () {
                             setState(() {
                               _selectedDateDisplay = "All History";
                               _backendFilterDate = null;
                               _currentPickerStateDate = DateTime.now();
                             });
-                            // Re-fetch everything cleanly
                             Provider.of<AttendanceProvider>(context, listen: false)
                                 .fetchAttendanceRecord(studentId);
                           },
                         )
-                      : const Icon(Icons.calendar_month_outlined, size: 20, color: Color(0xFF3F51B5)),
+                      : const Icon(Icons.calendar_month_outlined, size: 20, color: Colors.black),
                 ],
               ),
             ),
@@ -182,14 +176,14 @@ class _AttendanceRecordsPageState extends State<AttendanceRecordsPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.assignment_turned_in_outlined, size: 40, color: Colors.black26),
+            const Icon(Icons.assignment_turned_in_outlined, size: 40, color: Colors.black),
             const SizedBox(height: 10),
             Text(
               _backendFilterDate == null 
                   ? "No attendance records found in history."
                   : "No attendance logs found\nfor $_selectedDateDisplay.",
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.black54, fontSize: 13, height: 1.3),
+              style: const TextStyle(color: Colors.black, fontSize: 13, height: 1.3),
             ),
           ],
         ),
@@ -207,10 +201,10 @@ class _AttendanceRecordsPageState extends State<AttendanceRecordsPage> {
           columnSpacing: 18, 
           horizontalMargin: 8,
           columns: const [
-            DataColumn(label: Text('Subject / Activity', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black87))),
-            DataColumn(label: Text('Lecture/Lab', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black87))),
-            DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black87))),
-            DataColumn(label: Text('Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black87))),
+            DataColumn(label: Text('Subject / Activity', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black))),
+            DataColumn(label: Text('Lecture/Lab', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black))),
+            DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black))),
+            DataColumn(label: Text('Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.black))),
           ],
           rows: records.map((record) {
             bool isCurriculum = record['attendance_type'] == 'Curriculum';
@@ -223,10 +217,10 @@ class _AttendanceRecordsPageState extends State<AttendanceRecordsPage> {
                     record['display_name'] ?? "",
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11, 
                       fontWeight: FontWeight.bold,
-                      color: isCurriculum ? const Color(0xFF3F51B5) : Colors.green.shade700,
+                      color: Colors.black,
                     ),
                   ),
                 ),
@@ -237,13 +231,13 @@ class _AttendanceRecordsPageState extends State<AttendanceRecordsPage> {
                   style: TextStyle(
                     fontSize: 11, 
                     fontWeight: FontWeight.w500,
-                    color: isCurriculum ? Colors.black87 : Colors.black54,
+                    color: Colors.black,
                     fontStyle: isCurriculum ? FontStyle.normal : FontStyle.italic,
                   )
                 )
               ),
-              DataCell(Text(record['date'] ?? "", style: const TextStyle(fontSize: 11, color: Colors.black87))),
-              DataCell(Text(record['time'] ?? "", style: const TextStyle(fontSize: 11, color: Colors.black87))),
+              DataCell(Text(record['date'] ?? "", style: const TextStyle(fontSize: 11, color: Colors.black))),
+              DataCell(Text(record['time'] ?? "", style: const TextStyle(fontSize: 11, color: Colors.black))),
             ]);
           }).toList(),
         ),

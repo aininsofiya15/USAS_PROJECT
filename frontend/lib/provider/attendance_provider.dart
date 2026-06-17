@@ -702,6 +702,35 @@ Future<Map<String, dynamic>> submitAttendance({
   }
 }
 
+// Check if student already submitted for this session
+Future<bool> checkAlreadySubmitted({
+  required int attendanceId,
+  required String studentId,
+}) async {
+  try {
+    final response = await http.get(Uri.parse(
+      '${Api.baseUrl}/attendance/check-submitted/$attendanceId/$studentId',
+    ));
+    final data = jsonDecode(response.body);
+    return data['submitted'] == true;
+  } catch (_) {
+    return false;
+  }
+}
+
+// Check if the attendance session has expired (older than 2 hours)
+Future<bool> checkSessionExpired({required int attendanceId}) async {
+  try {
+    final response = await http.get(Uri.parse(
+      '${Api.baseUrl}/attendance/check-expired/$attendanceId',
+    ));
+    final data = jsonDecode(response.body);
+    return data['expired'] == true;
+  } catch (_) {
+    return false;
+  }
+}
+
 List<dynamic> _historyRecords = [];
 List<dynamic> get historyRecords => _historyRecords;
 

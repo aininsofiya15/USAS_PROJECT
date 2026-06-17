@@ -686,6 +686,27 @@ public function submitAttendance(Request $request)
     }
 }
 
+// Check if already submitted
+public function checkSubmitted($attendanceId, $studentId) {
+    $exists = DB::table('attendance_records')
+        ->where('attendance_id', $attendanceId)
+        ->where('student_id', $studentId)
+        ->exists();
+    return response()->json(['submitted' => $exists]);
+}
+
+// Check if session expired (created > 2 hours ago)
+public function checkExpired($attendanceId) {
+    $session = DB::table('class_attendances')
+        ->where('attendance_id', $attendanceId)
+        ->first();
+    if (!$session) return response()->json(['expired' => true]);
+    
+    $createdAt = strtotime($session->date . ' ' . $session->time);
+    $expired = (time() - $createdAt) > (2 * 60 * 60);
+    return response()->json(['expired' => $expired]);
+}
+
 public function getSubmittedAttendanceRecords(Request $request, $studentId)
 {
     try {
