@@ -132,7 +132,7 @@ class AttendanceRecordController extends Controller
             // Handle input validation errors 
             return response()->json([
                 'status' => 'validation_error',
-                'error' => $ve->errors()->first()
+                'error' => $ve->validator->errors()->first()
             ], 422);
         //  
         } catch (\Exception $e) {
