@@ -75,14 +75,14 @@ class _NotificationPageState extends State<NotificationPage> {
       bottomNavigationBar: const UsasBottomNav(),
       body: Column(
         children: [
-          // Header with title and unread count - Background #C1DBFF
+          // Header with title only - Background #E3EFF8
           Container(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             color: const Color(0xFFE3EFF8),
-            child: Row(
+            child: const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Notifications',
                   style: TextStyle(
                     fontSize: 24,
@@ -90,22 +90,7 @@ class _NotificationPageState extends State<NotificationPage> {
                     color: Colors.black87,
                   ),
                 ),
-                if (_unreadCount > 0)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF004D73),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '$_unreadCount unread',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                // ✅ Removed the "X unread" container
               ],
             ),
           ),
@@ -125,8 +110,6 @@ class _NotificationPageState extends State<NotificationPage> {
               ),
             ),
           ),
-
-          // ❌ REMOVED: Divider line
 
           // Notification List - Background #E3EFF8
           Expanded(

@@ -22,44 +22,45 @@ class StudentFeeSeeder extends Seeder
             $program = $student->program ?? 'Bachelor Degree';
             $courseName = $student->course_name ?? 'Bachelor Degree';
             
-            // Get base tuition fee based on program (same as PaymentSeeder)
+            // Get base tuition fee based on program
             $baseTuitionFee = $this->getBaseTuitionFee($program, $courseName);
             
-            // Calculate total invoice for all semesters (same logic as PaymentSeeder)
+            // ✅ Calculate total invoice for all semesters with proper amounts
             $totalInvoice = 0;
+            $semesterAmounts = [];
             
             for ($sem = 1; $sem <= $currentSem; $sem++) {
                 if ($sem == 1) {
-                    // Semester 1: Registration + Tuition (30% extra)
-                    $semAmount = $baseTuitionFee * 1.3;
+                    // ✅ Registration + Tuition (RM 2,100 - RM 2,800)
+                    $semAmount = $this->getRegistrationAmount($baseTuitionFee);
                 } else {
-                    // Subsequent semesters: Base tuition + accommodation (if applicable)
                     $isHostel = $this->isHostelStudent($student->student_id, $sem);
-                    
                     if ($isHostel) {
-                        $accommodation = $this->getAccommodationFee($student->student_id, $sem);
-                        $semAmount = $baseTuitionFee + $accommodation;
+                        // ✅ Tuition + Accommodation (RM 1,600 - RM 2,300)
+                        $semAmount = $this->getTuitionWithAccommodationAmount($baseTuitionFee);
                     } else {
-                        $semAmount = $baseTuitionFee;
+                        // ✅ Tuition Only (RM 900 - RM 1,700)
+                        $semAmount = $this->getTuitionOnlyAmount($baseTuitionFee);
                     }
                 }
+                $semesterAmounts[$sem] = $semAmount;
                 $totalInvoice += $semAmount;
             }
             
-            // Calculate total paid from payments table (actual payments)
+            // ✅ Calculate total paid from payments table
             $totalPaid = DB::table('payments')
                 ->where('student_id', $student->student_id)
                 ->where('status', 'Success')
                 ->sum('total_payment');
             
-            // If no payments exist yet, use the calculated amount
+            // ✅ If no payments exist, use default calculation
             if ($totalPaid == 0 || $totalPaid == null) {
                 // Some students have outstanding balance (20%)
                 $hasOutstanding = ($index % 5 == 0);
                 if ($hasOutstanding && $currentSem > 0) {
-                    // Outstanding is 40% of the last semester's amount
-                    $lastSemAmount = $this->getLastSemesterAmount($baseTuitionFee, $student->student_id);
-                    $outstanding = round($lastSemAmount * 0.4, 2);
+                    // ✅ Outstanding should be between RM 900 - RM 2,300
+                    $lastSemAmount = $semesterAmounts[$currentSem] ?? $baseTuitionFee;
+                    $outstanding = $this->getOutstandingAmount($lastSemAmount);
                     $totalPaid = $totalInvoice - $outstanding;
                 } else {
                     $totalPaid = $totalInvoice;
@@ -72,9 +73,9 @@ class StudentFeeSeeder extends Seeder
             DB::table('fees')->updateOrInsert(
                 ['student_id' => $student->student_id],
                 [
-                    'total_invoice'      => round($totalInvoice, 2),
-                    'paid_amount'        => round($totalPaid, 2),
-                    'outstanding_amount' => round($outstanding, 2),
+                    'total_invoice'      => $totalInvoice,
+                    'paid_amount'        => $totalPaid,
+                    'outstanding_amount' => $outstanding,
                     'status'             => $status,
                     'created_at'         => now(),
                     'updated_at'         => now(),
@@ -84,25 +85,70 @@ class StudentFeeSeeder extends Seeder
     }
     
     /**
-     * Get base tuition fee based on program type (same as PaymentSeeder)
+     * ✅ Get Registration + Tuition amount (RM 2,100 - RM 2,800)
+     */
+    private function getRegistrationAmount($baseFee)
+    {
+        $multiplier = rand(130, 170) / 100;
+        $amount = $baseFee * $multiplier;
+        return round($amount / 10) * 10;
+    }
+
+    /**
+     * ✅ Get Tuition + Accommodation amount (RM 1,600 - RM 2,300)
+     */
+    private function getTuitionWithAccommodationAmount($baseFee)
+    {
+        $multiplier = rand(80, 115) / 100;
+        $amount = $baseFee * $multiplier;
+        return round($amount / 10) * 10;
+    }
+
+    /**
+     * ✅ Get Tuition Only amount (RM 900 - RM 1,700)
+     */
+    private function getTuitionOnlyAmount($baseFee)
+    {
+        $multiplier = rand(45, 85) / 100;
+        $amount = $baseFee * $multiplier;
+        return round($amount / 10) * 10;
+    }
+
+    /**
+     * ✅ Get Outstanding amount (RM 900 - RM 2,300)
+     */
+    private function getOutstandingAmount($lastSemAmount)
+    {
+        // If last semester amount is high, outstanding is between 1,600 - 2,300
+        // If last semester amount is low, outstanding is between 900 - 1,700
+        if ($lastSemAmount >= 2000) {
+            $amount = rand(1600, 2300);
+        } else {
+            $amount = rand(900, 1700);
+        }
+        return round($amount / 10) * 10;
+    }
+
+    /**
+     * Get base tuition fee based on program type
      */
     private function getBaseTuitionFee($program, $courseName)
     {
         $fees = [
-            'Diploma' => 1500.00,
-            'Bachelor Degree' => 2000.00,
-            'International Dual Degree' => 3500.00,
+            'Diploma' => 1500,
+            'Bachelor Degree' => 2000,
+            'International Dual Degree' => 3500,
         ];
         
-        $baseFee = $fees[$program] ?? 2000.00;
+        $baseFee = $fees[$program] ?? 2000;
         
         if (str_contains($courseName, 'Engineering')) {
-            $baseFee *= 1.15;
+            $baseFee = round($baseFee * 1.15);
         } elseif (str_contains($courseName, 'Computer Science') || str_contains($courseName, 'Cyber Security')) {
-            $baseFee *= 1.10;
+            $baseFee = round($baseFee * 1.10);
         }
         
-        return round($baseFee, 2);
+        return round($baseFee / 10) * 10;
     }
     
     /**
@@ -110,7 +156,6 @@ class StudentFeeSeeder extends Seeder
      */
     private function isHostelStudent($studentId, $semester)
     {
-        // Use a consistent seed based on student ID and semester
         $seed = crc32($studentId . $semester);
         srand($seed);
         return (rand(0, 100) < 60);
@@ -135,18 +180,5 @@ class StudentFeeSeeder extends Seeder
         } else {
             return rand(250, 400);
         }
-    }
-    
-    /**
-     * Get last semester amount for outstanding calculation
-     */
-    private function getLastSemesterAmount($baseTuitionFee, $studentId)
-    {
-        $isHostel = $this->isHostelStudent($studentId, 999); // Use a high number for last semester
-        if ($isHostel) {
-            $accommodation = $this->getAccommodationFee($studentId, 999);
-            return $baseTuitionFee + $accommodation;
-        }
-        return $baseTuitionFee;
     }
 }

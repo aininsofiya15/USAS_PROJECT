@@ -8,10 +8,8 @@ import '../provider/user_provider.dart';
 import '../screens/student/module_booking.dart';
 import 'package:USAS/screens/faculty/subject_registration_page.dart';
 import '../screens/student/my_module_booking.dart';
-import '../screens/pusatAdab/attendance_record_list.dart';
 import '../screens/pusatAdab/module_attendance.dart';
 import '../screens/pusatAdab/attendance_for_module.dart';
-import '../screens/student/student_dashboard.dart';
 import '../screens/student/subject_registration.dart';
 import '../screens/student/credit_claim_status.dart';
 import '../screens/pusatAdab/credit_application.dart';
@@ -163,8 +161,7 @@ class AppSidebar extends StatelessWidget {
                         destination: ViewModulesPage()),
                     _buildSubMenuItem(context, "Add Module", role,
                         destination: ModuleFormPage()),
-                    _buildSubMenuItem(context, "Edit Module", role,
-                        destination: ViewModulesPage()),
+                    _buildSubMenuItem(context, "Edit Module", role),
                     _buildDivider(role),
 
                     _buildMenuItem(context, Icons.note_alt_outlined, "Credit Claim Application", role),

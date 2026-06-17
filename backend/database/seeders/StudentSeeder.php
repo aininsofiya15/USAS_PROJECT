@@ -52,34 +52,39 @@ class StudentSeeder extends Seeder
 
         foreach ($studentUsers as $index => $user) {
             // ✅ Distribute students across faculties
-            if ($index < 10) {
-                // First 10: Faculty of Computing
+            if ($index < 15) {
                 $facultyName = 'Faculty of Computing';
                 $facultyCourses = $coursesWithPrefixes[$facultyName];
                 $courseName = array_rand($facultyCourses);
                 $coursePrefix = $facultyCourses[$courseName];
-            } elseif ($index < 20) {
-                // Next 10: Faculty of Industrial Sciences and Technology
+            } elseif ($index < 30) {
                 $facultyName = 'Faculty of Industrial Sciences and Technology';
                 $facultyCourses = $coursesWithPrefixes[$facultyName];
                 $courseName = array_rand($facultyCourses);
                 $coursePrefix = $facultyCourses[$courseName];
-            } elseif ($index < 35) {
-                // Next 15: Faculty of Chemical and Process Engineering Technology
+            } elseif ($index < 45) {
                 $facultyName = 'Faculty of Chemical and Process Engineering Technology';
                 $facultyCourses = $coursesWithPrefixes[$facultyName];
                 $courseName = array_rand($facultyCourses);
                 $coursePrefix = $facultyCourses[$courseName];
             } else {
-                // Remaining: Faculty of Electrical and Electronics Engineering Technology
                 $facultyName = 'Faculty of Electrical and Electronics Engineering Technology';
                 $facultyCourses = $coursesWithPrefixes[$facultyName];
                 $courseName = array_rand($facultyCourses);
                 $coursePrefix = $facultyCourses[$courseName];
             }
             
-            // ✅ Distribute intake years (23-25)
-            $yearIntake = rand(23, 25);
+            // ✅ More students with 25 (2025/2026 session) for recent data
+            // 60% of students get 25, 30% get 24, 10% get 23
+            $yearRand = rand(1, 100);
+            if ($yearRand <= 60) {
+                $yearIntake = 25; // Most recent session 2025/2026
+            } elseif ($yearRand <= 90) {
+                $yearIntake = 24; // 2024/2025 session
+            } else {
+                $yearIntake = 23; // 2023/2024 session
+            }
+            
             $matricNo = $coursePrefix . $yearIntake . str_pad($index + 1, 3, '0', STR_PAD_LEFT);
             
             $yearPrefix = '0' . rand(1, 4); 
@@ -89,7 +94,12 @@ class StudentSeeder extends Seeder
             $randomDigits = rand(1000, 9999);
             $icNo = $yearPrefix . $month . $day . $stateCode . $randomDigits;
 
-            $currentSemester = rand(1, 6); // Up to Year 3
+            // ✅ For 25 students, set semester to 1 or 2 (Year 1)
+            if ($yearIntake == 25) {
+                $currentSemester = rand(1, 2); // Year 1 Semester 1 or 2
+            } else {
+                $currentSemester = rand(1, 6); // Up to Year 3 for older students
+            }
             $calculatedYear = (int) ceil($currentSemester / 2);
 
             DB::table('students')->insert([

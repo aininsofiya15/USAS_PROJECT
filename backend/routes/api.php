@@ -40,8 +40,6 @@ Route::post('/pusat-adab/credit-claims/{id}/approve', [CreditController::class, 
 // 10. Route to reject a credit claim (Pusat Adab)
 Route::post('/pusat-adab/credit-claims/{id}/reject', [CreditController::class, 'rejectClaim']);
 
-//--------------------------------------------------------------------------------------------------------------------//
-
 // STUDENT ROUTES
 //AININ 
 // -------------------Student Routes----------------------------------------------------
@@ -157,8 +155,8 @@ Route::post('/treasurer/block-settings', [TuitionFeesController::class, 'updateB
 Route::get('/treasurer/report-totals', [TuitionFeesController::class, 'getFinancialReportTotals']);
 Route::get('/treasurer/report/download-pdf', [TuitionFeesController::class, 'downloadFinancialReportPDF']);
 Route::get('/treasurer/report/download-csv', [TuitionFeesController::class, 'downloadFinancialReportCSV']);
+Route::post('/treasurer/block-settings', [TuitionFeesController::class, 'updateBlockSettings']);
 Route::get('/treasurer/block-settings/latest', [TuitionFeesController::class, 'getLatestBlockSettings']);
-
 //STUDENT ROUTES
 Route::get('/student/dashboard-status/{student_id}', [TuitionFeesController::class, 'getStudentDashboardStatus']);
 Route::get('/student/financial-details/{id}', [TuitionFeesController::class, 'getStudentFinancialProfile']);
@@ -169,3 +167,5 @@ Route::post('/tuition/payment-intent', [TuitionFeesController::class, 'generateS
 Route::get('/notifications/{userId}', [TuitionFeesController::class, 'getUserNotifications']);
 Route::post('/notifications/{notificationId}/read', [TuitionFeesController::class, 'markNotificationAsRead']);
 Route::post('/notifications/mark-all-read', [TuitionFeesController::class, 'markAllNotificationsAsRead']);
+Route::post('/notifications/send-block-warnings', [TuitionFeesController::class, 'checkAndSendBlockWarnings']);
+Route::get('/student/check-block/{userId}', [TuitionFeesController::class, 'checkStudentBlockStatus']);

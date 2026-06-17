@@ -41,7 +41,6 @@ class NotificationSeeder extends Seeder
             foreach ($payments as $payment) {
                 // ✅ REMOVE notification_id - let it auto-increment
                 DB::table('notifications')->insert([
-                    // ❌ DO NOT include 'notification_id' here
                     'id' => $studentId,
                     'title' => 'Payment Success',
                     'message' => 'Your payment of RM ' . number_format($payment->total_payment, 2) . ' has been received.',
@@ -62,7 +61,6 @@ class NotificationSeeder extends Seeder
             if ($isBlockFuture && $fee && $fee->status == 'unpaid' && $fee->outstanding_amount > 0) {
                 // ✅ Payment Reminder - REMOVE notification_id
                 DB::table('notifications')->insert([
-                    // ❌ DO NOT include 'notification_id' here
                     'id' => $studentId,
                     'title' => 'Payment Reminder',
                     'message' => 'Your tuition fee payment is due on ' . $formattedBlockDate . '.',
@@ -75,7 +73,6 @@ class NotificationSeeder extends Seeder
                 
                 // ✅ Block Warning - REMOVE notification_id
                 DB::table('notifications')->insert([
-                    // ❌ DO NOT include 'notification_id' here
                     'id' => $studentId,
                     'title' => 'Block Warning',
                     'message' => 'Your academic access will be blocked after Week 5 (' . $formattedBlockDate . ') if your balance remains unpaid.',

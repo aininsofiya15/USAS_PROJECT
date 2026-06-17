@@ -21,6 +21,8 @@ class StudentDashboard extends StatefulWidget {
 }
 
 class _StudentDashboardState extends State<StudentDashboard> {
+  bool _hasShownBlockDialog = false;
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +31,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       final feesProvider = Provider.of<FeesManagementProvider>(context, listen: false);
       feesProvider.fetchBlockDate();
       feesProvider.fetchStudentPortalDashboardData(userId.toString());
+      feesProvider.checkBlockStatus(userId.toString()); 
       Provider.of<ModuleProvider>(context, listen: false)
           .fetchStudentBookings(userId.toString());
     });
@@ -42,27 +45,43 @@ class _StudentDashboardState extends State<StudentDashboard> {
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 10),
-                const Icon(Icons.do_not_disturb_on_rounded, color: Colors.red, size: 44),
-                const SizedBox(height: 15),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFEBEE),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.block,
+                    color: Colors.red,
+                    size: 48,
+                  ),
+                ),
+                const SizedBox(height: 16),
                 const Text(
                   "ACCESS BLOCKED",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                    letterSpacing: 0.5,
+                  ),
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 12),
                 const Text(
                   "Your academic access has been blocked due to unpaid tuition fees.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.black54, height: 1.4),
+                  style: TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
                 ),
+                const SizedBox(height: 4),
                 const Text(
                   "You will be redirected to Tuition Fees page.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.black54, height: 1.4),
+                  style: TextStyle(fontSize: 14, color: Colors.black87, height: 1.5),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -105,6 +124,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
         builder: (context, provider, child) {
           if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
+          }
+
+          // ✅ Show block dialog automatically if student is blocked
+          if (provider.studentIsBlocked && !_hasShownBlockDialog) {
+            _hasShownBlockDialog = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _showAccessBlockedDialog(context);
+            });
           }
 
           final moduleProvider = Provider.of<ModuleProvider>(context);
@@ -174,7 +201,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                       _buildCategoryCard(
                         "Tuition Fees",
                         "assets/icons/tuition.png",
-                        false,
+                        false, // ✅ Always clickable
                         () => Navigator.push(context,
                             MaterialPageRoute(builder: (_) => const FinancialInfoPage())),
                       ),
@@ -195,11 +222,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
                     children: [
-                      _buildProgressCard("Curriculum Progress", curriculumProgress),
+                      _buildProgressCard("Curriculum Progress", curriculumProgress, provider.studentIsBlocked),
                       _buildStatCard(
                           "Total Credit\nCurrent Sem",
                           provider.totalCreditsCurrentSem.toString()),
-                      _buildUpcomingDueDateCard(provider.upcomingDueDateStr), // ✅ Use new method
+                      _buildUpcomingDueDateCard(provider.upcomingDueDateStr), 
                     ],
                   ),
                 ),
@@ -319,11 +346,17 @@ class _StudentDashboardState extends State<StudentDashboard> {
   Widget _buildCategoryCard(
       String title, String iconPath, bool isBlocked, VoidCallback onTap) {
     return InkWell(
-      onTap: () => isBlocked ? _showAccessBlockedDialog(context) : onTap(),
+      onTap: () {
+        if (isBlocked) {
+          _showAccessBlockedDialog(context);
+        } else {
+          onTap();
+        }
+      },
       borderRadius: BorderRadius.circular(14),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isBlocked ? Colors.grey.shade200 : Colors.white,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -339,6 +372,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
               iconPath,
               width: 70,
               height: 70,
+              color: isBlocked ? Colors.grey.shade500 : null,
               errorBuilder: (_, error, ___) {
                 debugPrint('Failed to load icon: $iconPath — $error');
                 return Icon(
@@ -357,7 +391,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: isBlocked ? Colors.grey : const Color(0xFF1565C0),
+                  color: isBlocked ? Colors.grey.shade600 : const Color(0xFF1565C0),
                   height: 1.2,
                 ),
               ),
@@ -369,7 +403,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 
   // ── Progress Card ───────────────────────────────────────────────────────
-  Widget _buildProgressCard(String title, double progress) {
+  Widget _buildProgressCard(String title, double progress, bool isBlocked) {
     final int percent = (progress * 100).toInt();
     final bool isComplete = percent >= 100;
     final Color progressColor =
@@ -379,7 +413,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       width: 155,
       margin: const EdgeInsets.only(right: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isBlocked ? Colors.grey.shade100 : Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.black.withOpacity(0.07), width: 0.5),
       ),
@@ -390,8 +424,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
             padding: const EdgeInsets.fromLTRB(12, 14, 12, 0),
             child: Text(
               title,
-              style: const TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: 12, color: Colors.black87),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+                color: isBlocked ? Colors.grey.shade600 : Colors.black87,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -438,7 +475,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                if (!isComplete)
+                if (!isComplete && !isBlocked)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: SizedBox(
@@ -463,6 +500,31 @@ class _StudentDashboardState extends State<StudentDashboard> {
                               fontSize: 10,
                               color: Colors.white,
                               fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  )
+                else if (!isComplete && isBlocked)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 30,
+                      child: ElevatedButton(
+                        onPressed: null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade300,
+                          elevation: 0,
+                          padding: EdgeInsets.zero,
+                          shape: const StadiumBorder(),
+                        ),
+                        child: const Text(
+                          "Blocked",
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),

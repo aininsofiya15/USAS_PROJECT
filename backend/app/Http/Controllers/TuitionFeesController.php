@@ -48,39 +48,41 @@ class TuitionFeesController extends Controller
     public function getStudentDashboardStatus($student_id)
     {
         try {
-            // 1. Fetch the latest configuration from block_settings table
-            // We use standard column layout matching your saveBlockDate method
             $blockSetting = DB::table('block_settings')
                 ->orderBy('created_at', 'desc')
                 ->first();
 
-            // Fallback default date string matching your requested layout requirement
             $blockDate = '2026-05-18';
             if ($blockSetting) {
-                // Determine if column name uses block_start_date or block_date
                 $blockDate = $blockSetting->block_start_date ?? $blockSetting->block_date ?? '2026-05-18';
             }
 
-            // 2. Fetch student payment status profile from fees table
             $feeRecord = DB::table('fees')
                 ->where('student_id', $student_id)
-                ->orWhere('user_id', $student_id) // Fallback support for primary key lookups
+                ->orWhere('user_id', $student_id)
                 ->first();
 
-            // Default to 'unpaid' if no table rows exist for this student profile context
             $paymentStatus = $feeRecord ? strtolower($feeRecord->status) : 'unpaid';
+            $outstandingAmount = $feeRecord ? $feeRecord->outstanding_amount : 0;
 
-            // 3. Return the exact JSON structure required by the Flutter provider
+            // ✅ Check if student is blocked - changed isAfter to gte
+            $today = Carbon::now();
+            $blockDateParsed = Carbon::parse($blockDate);
+            $isUnpaid = $paymentStatus === 'unpaid' && $outstandingAmount > 0;
+            $isBlocked = $isUnpaid && $today->gte($blockDateParsed); // ✅ TODAY OR PAST
+
             return response()->json([
                 'success' => true,
                 'block_date' => Carbon::parse($blockDate)->format('Y-m-d'),
                 'payment_status' => $paymentStatus,
                 'total_credits' => 12,
-                'curriculum_progress' => 0.70
+                'curriculum_progress' => 0.70,
+                'is_blocked' => $isBlocked,
+                'outstanding_amount' => $outstandingAmount,
+                'block_message' => $isBlocked ? 'Your academic access has been blocked due to unpaid tuition fees.' : null
             ], 200);
 
         } catch (\Exception $e) {
-            // If something crashes, log it and return clear debugging context info
             return response()->json([
                 'success' => false,
                 'message' => 'Backend Error Context: ' . $e->getMessage()
@@ -214,11 +216,13 @@ class TuitionFeesController extends Controller
         return response()->json(['unpaid_count' => $count]);
     }
 
-    // Save the block date
+    /**
+ * UPDATE BLOCK SETTINGS - Creates Payment Reminder & Block Warning for unpaid students
+ */
     public function updateBlockSettings(Request $request) 
     {
         $request->validate([
-            'treasurer_id' => 'required', // This is the numeric User ID from Flutter
+            'treasurer_id' => 'required',
             'block_start_date' => 'required|date',
         ]);
 
@@ -231,7 +235,7 @@ class TuitionFeesController extends Controller
 
             // 2. If they don't exist yet, automatically provision them a profile
             if (!$treasurer) {
-                $stringIdentifier = 'TR' . str_pad($userId, 4, '0', STR_PAD_LEFT); // Generates TR0001, etc.
+                $stringIdentifier = 'TR' . str_pad($userId, 4, '0', STR_PAD_LEFT);
                 
                 \DB::table('treasurers')->insert([
                     'id' => $userId,
@@ -243,20 +247,26 @@ class TuitionFeesController extends Controller
                 
                 $targetStringId = $stringIdentifier;
             } else {
-                // Grab the string format (TRXXXX) from the database record
                 $targetStringId = $treasurer->treasurer_id;
             }
 
-            // 3. Perform an update-or-insert into block_settings using the matching string foreign key
+            // 3. Perform an update-or-insert into block_settings
             \DB::table('block_settings')->updateOrInsert(
-                ['treasurer_id' => $targetStringId], // Matches based on the correct string ID relation
+                ['treasurer_id' => $targetStringId],
                 [
                     'block_date' => $formattedDate,
                     'updated_at' => now()
                 ]
             );
 
-            return response()->json(['success' => true], 200);
+            // ✅ 4. SEND NOTIFICATIONS TO UNPAID STUDENTS
+            $notificationsSent = $this->sendNotificationsToUnpaidStudents($formattedDate);
+
+            return response()->json([
+                'success' => true,
+                'notifications_sent' => $notificationsSent,
+                'message' => 'Block settings updated and notifications sent to ' . $notificationsSent . ' students'
+            ], 200);
 
         } catch (\Exception $e) {
             \Log::error("CRITICAL ERROR IN BLOCK SETTINGS: " . $e->getMessage());
@@ -265,6 +275,119 @@ class TuitionFeesController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+ * Get the latest block settings
+ */
+    public function getLatestBlockSettings()
+    {
+        try {
+            $blockSetting = DB::table('block_settings')
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if ($blockSetting) {
+                $blockDate = $blockSetting->block_date ?? $blockSetting->block_start_date;
+                return response()->json([
+                    'success' => true,
+                    'block_date' => $blockDate,
+                    'block_id' => $blockSetting->block_id,
+                    'treasurer_id' => $blockSetting->treasurer_id,
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'No block settings found'
+            ], 404);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Send Payment Reminder & Block Warning to unpaid students
+     * Returns the number of notifications sent
+     */
+    private function sendNotificationsToUnpaidStudents($blockDate)
+    {
+        $notificationsSent = 0;
+        
+        try {
+            // Get all students with unpaid fees
+            $unpaidStudents = DB::table('fees')
+                ->join('students', 'fees.student_id', '=', 'students.student_id')
+                ->where('fees.status', 'unpaid')
+                ->where('fees.outstanding_amount', '>', 0)
+                ->select('students.id as user_id', 'fees.outstanding_amount')
+                ->get();
+
+            $formattedBlockDate = Carbon::parse($blockDate)->format('d M Y');
+            $now = now();
+
+            foreach ($unpaidStudents as $student) {
+                // Check if notifications already sent today
+                $existingReminder = DB::table('notifications')
+                    ->where('id', $student->user_id)
+                    ->where('type', 'payment_reminder')
+                    ->whereDate('created_at', Carbon::today())
+                    ->first();
+
+                $existingWarning = DB::table('notifications')
+                    ->where('id', $student->user_id)
+                    ->where('type', 'block_warning')
+                    ->whereDate('created_at', Carbon::today())
+                    ->first();
+
+                $sentForThisStudent = false;
+
+                // ✅ 1. PAYMENT REMINDER (if not sent today)
+                if (!$existingReminder) {
+                    DB::table('notifications')->insert([
+                        'id' => $student->user_id,
+                        'title' => 'Payment Reminder',
+                        'message' => 'Your tuition fee payment is due on ' . $formattedBlockDate . '. Please settle your balance of RM ' . number_format($student->outstanding_amount, 2) . '.',
+                        'is_read' => 0,
+                        'type' => 'payment_reminder',
+                        'reference_id' => null,
+                        'created_at' => $now,
+                        'updated_at' => $now
+                    ]);
+                    $sentForThisStudent = true;
+                }
+
+                // ✅ 2. BLOCK WARNING (if not sent today)
+                if (!$existingWarning) {
+                    DB::table('notifications')->insert([
+                        'id' => $student->user_id,
+                        'title' => 'Block Warning',
+                        'message' => 'Your academic access will be blocked after Week 5 (' . $formattedBlockDate . ') if your balance of RM ' . number_format($student->outstanding_amount, 2) . ' remains unpaid.',
+                        'is_read' => 0,
+                        'type' => 'block_warning',
+                        'reference_id' => null,
+                        'created_at' => $now,
+                        'updated_at' => $now
+                    ]);
+                    $sentForThisStudent = true;
+                }
+
+                if ($sentForThisStudent) {
+                    $notificationsSent++;
+                }
+            }
+
+            \Log::info('Notifications sent to ' . $notificationsSent . ' unpaid students');
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to send notifications: ' . $e->getMessage());
+        }
+
+        return $notificationsSent;
     }
 
     public function getFeesSummary(Request $request) {
@@ -312,7 +435,6 @@ class TuitionFeesController extends Controller
     public function getStudentFinancialProfile($userId)
     {
         try {
-            // 1. Fetch the profile by joining users, students, fees, and bank accounts
             $data = DB::table('students')
                 ->join('users', 'users.id', '=', 'students.id') 
                 ->leftJoin('fees', 'students.student_id', '=', 'fees.student_id')
@@ -326,27 +448,24 @@ class TuitionFeesController extends Controller
                     'bank_accounts.bank_name',
                     'bank_accounts.acc_no',
                     'fees.total_invoice',          
+                    'fees.paid_amount',      
                     'fees.outstanding_amount'      
                 )
                 ->where('users.id', $userId)
                 ->first();
 
-            // 2. Check if student records exist
             if (!$data) {
                 return response()->json(['message' => 'Student not found'], 404);
             }
 
-            // 3. Calculate Total Payment by summing 'total_payment' from successful payments
-            $totalPayment = DB::table('payments')
-                ->where('student_id', $data->student_id) 
-                ->where('status', 'Success') // Only sum completed transactions
-                ->sum('total_payment');       // Explicitly matches your payments table
+            $totalPayment = (float)($data->paid_amount ?? 0.00);
+            $totalInvoice = (float)($data->total_invoice ?? 0.00);
+            $outstanding = (float)($data->outstanding_amount ?? 0.00);
 
-            // 4. Cast to an array and force float types for stable Flutter parsing
             $result = (array)$data;
-            $result['total_invoice'] = (float)($data->total_invoice ?? 0.00);
-            $result['total_payment'] = (float)$totalPayment;
-            $result['outstanding_amount'] = (float)($data->outstanding_amount ?? 0.00);
+            $result['total_invoice'] = $totalInvoice;
+            $result['total_payment'] = $totalPayment;
+            $result['outstanding_amount'] = $outstanding;
 
             return response()->json($result);
 
@@ -416,6 +535,9 @@ class TuitionFeesController extends Controller
         }
     }
 
+    /**
+     * COMPLETE PAYMENT - Creates Payment Success Notification
+     */
     public function completePayment(Request $request)
     {
         $request->validate([
@@ -433,13 +555,19 @@ class TuitionFeesController extends Controller
 
         DB::beginTransaction();
         try {
-            $paymentId = 'TXN-' . strtoupper(Str::random(8));
+            // Generate payment ID
+            $currentYear = date('y');
+            $currentMonth = date('m');
+            $semester = ($currentMonth >= 1 && $currentMonth <= 6) ? '01' : '02';
+            $randomNumber = str_pad(rand(1, 99999), 5, '0', STR_PAD_LEFT);
+            $paymentId = 'RP' . $currentYear . $semester . '-' . $randomNumber;
             
+            // Insert payment
             DB::table('payments')->insert([
                 'payment_id' => $paymentId,
                 'student_id' => $student->student_id,
                 'fee_id' => $fee->fee_id ?? null,
-                'total_payment' => $request->amount, // Primary track for payments
+                'total_payment' => $request->amount,
                 'payment_desc' => 'Tuition Fee Balance Settlement',
                 'payment_method' => $request->method, 
                 'status' => 'Success', 
@@ -449,25 +577,101 @@ class TuitionFeesController extends Controller
             ]);
 
             if ($fee) {
-                $newPaidAmount = $fee->paid_amount + $request->amount;
-                $newOutstanding = max(0, $fee->total_invoice - $newPaidAmount); 
+                // Calculate new paid amount
+                $newPaidAmount = ($fee->paid_amount ?? 0) + $request->amount;
+                
+                // Calculate new outstanding = total_invoice - paid_amount
+                $newOutstanding = max(0, ($fee->total_invoice ?? 0) - $newPaidAmount);
+                
+                // Determine status
                 $newStatus = $newOutstanding <= 0 ? 'paid' : 'unpaid';
 
+                // Update fees table
                 DB::table('fees')->where('student_id', $student->student_id)->update([
                     'paid_amount' => $newPaidAmount,
                     'outstanding_amount' => $newOutstanding,
                     'status' => $newStatus,
                     'updated_at' => now()
                 ]);
+                
+                \Log::info('Fee updated - Total Invoice: ' . $fee->total_invoice . ', New Paid: ' . $newPaidAmount . ', New Outstanding: ' . $newOutstanding);
+
+                // Payment Success Notification
+                DB::table('notifications')->insert([
+                    'id' => $request->user_id,
+                    'title' => 'Payment Success',
+                    'message' => 'Your payment of RM ' . number_format($request->amount, 2) . ' has been received.',
+                    'is_read' => 0,
+                    'type' => 'payment_success',
+                    'reference_id' => $paymentId,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                // If still has outstanding balance, send reminder
+                if ($newOutstanding > 0) {
+                    $existingReminder = DB::table('notifications')
+                        ->where('id', $request->user_id)
+                        ->where('type', 'payment_reminder')
+                        ->whereDate('created_at', Carbon::today())
+                        ->first();
+
+                    if (!$existingReminder) {
+                        DB::table('notifications')->insert([
+                            'id' => $request->user_id,
+                            'title' => 'Payment Reminder',
+                            'message' => 'Your remaining balance is RM ' . number_format($newOutstanding, 2) . '. Please settle before Week 5.',
+                            'is_read' => 0,
+                            'type' => 'payment_reminder',
+                            'reference_id' => null,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    }
+                }
             }
 
             DB::commit();
+            \Log::info('Payment inserted successfully: ' . $paymentId);
             return response()->json(['success' => true, 'message' => 'Balances updated successfully']);
 
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Payment failed: ' . $e->getMessage());
             return response()->json(['error' => 'Transaction tracking breakdown: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Generate random room details
+     */
+    private function generateRoomDetails()
+    {
+        $colleges = ['RESIDEN PELAJAR 5 (PEKAN)', 'DHUAM UNIVERSITY VILLAGE'];
+        $college = $colleges[array_rand($colleges)];
+        
+        if ($college == 'RESIDEN PELAJAR 5 (PEKAN)') {
+            $blocks = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+            $block = $blocks[array_rand($blocks)];
+            $level = rand(1, 3);
+            $house = rand(1, 8);
+            $room = str_pad(rand(1, 4), 2, '0', STR_PAD_LEFT);
+            
+            $roomNumber = $block . $level . '-' . $house . str_pad($room, 2, '0', STR_PAD_LEFT);
+            
+        } else {
+            $blocks = ['A', 'B'];
+            $block = $blocks[array_rand($blocks)];
+            $level = rand(1, 11);
+            $room = rand(1, 30);
+            
+            $roomNumber = $block . '-' . $level . '-' . $room;
+        }
+        
+        return [
+            'college' => $college,
+            'room_number' => $roomNumber
+        ];
     }
 
     public function getFinancialReportTotals(Request $request)
@@ -786,105 +990,94 @@ class TuitionFeesController extends Controller
     }
 
     /**
- * Generate notifications dynamically and save to database
- */
-private function generateNotifications($userId, $matricId)
-{
-    // 1. Get Payment Success notifications from payments table
-    $payments = DB::table('payments')
-        ->where('student_id', $matricId)
-        ->where('status', 'Success')
-        ->orderBy('payment_date', 'desc')
-        ->get();
+     * Generate notifications dynamically and save to database
+     */
+    private function generateNotifications($userId, $matricId)
+    {
+        // 1. Get Payment Success notifications from payments table
+        $payments = DB::table('payments')
+            ->where('student_id', $matricId)
+            ->where('status', 'Success')
+            ->orderBy('payment_date', 'desc')
+            ->get();
 
-    foreach ($payments as $payment) {
-        $notificationId = 'payment_success_' . $payment->payment_id;
-        
-        // Check if already exists for this user
-        $existing = DB::table('notifications')
-            ->where('notification_id', $notificationId)
-            ->where('id', $userId)
-            ->first();
-        
-        if (!$existing) {
-            DB::table('notifications')->insert([
-                'notification_id' => $notificationId,
-                'id' => $userId,
-                'title' => 'Payment Success',
-                'message' => 'Your payment of RM ' . number_format($payment->total_payment, 2) . ' has been received.',
-                'is_read' => 1,
-                'type' => 'payment_success',
-                'reference_id' => $payment->payment_id,
-                'created_at' => $payment->payment_date ?? now(),
-                'updated_at' => $payment->payment_date ?? now()
-            ]);
+        foreach ($payments as $payment) {
+            // ✅ Check by type and reference_id instead
+            $existing = DB::table('notifications')
+                ->where('id', $userId)
+                ->where('type', 'payment_success')
+                ->where('reference_id', $payment->payment_id)
+                ->first();
+            
+            if (!$existing) {
+                // ✅ REMOVE notification_id - let it auto-increment
+                DB::table('notifications')->insert([
+                    'id' => $userId,
+                    'title' => 'Payment Success',
+                    'message' => 'Your payment of RM ' . number_format($payment->total_payment, 2) . ' has been received.',
+                    'is_read' => 1,
+                    'type' => 'payment_success',
+                    'reference_id' => $payment->payment_id,
+                    'created_at' => $payment->payment_date ?? now(),
+                    'updated_at' => $payment->payment_date ?? now()
+                ]);
+            }
         }
-    }
 
-    // 2. Get Payment Reminder and Block Warning ONLY IF:
-    //    - block date is set
-    //    - block date is in the FUTURE (not today or past)
-    //    - student has unpaid fees
-    $blockSetting = DB::table('block_settings')->orderBy('created_at', 'desc')->first();
-    
-    if ($blockSetting) {
-        $blockDate = $blockSetting->block_date ?? $blockSetting->block_start_date;
-        $blockDateParsed = Carbon::parse($blockDate);
-        $today = Carbon::today();
+        // 2. Get Payment Reminder and Block Warning ONLY IF block date is in the future
+        $blockSetting = DB::table('block_settings')->orderBy('created_at', 'desc')->first();
         
-        // ✅ Only create notifications if block date is in the future
-        if ($blockDateParsed->isFuture()) {
-            $formattedBlockDate = $blockDateParsed->format('d F Y');
+        if ($blockSetting) {
+            $blockDate = $blockSetting->block_date ?? $blockSetting->block_start_date;
+            $blockDateParsed = Carbon::parse($blockDate);
             
-            // Check if student has unpaid fees
-            $fee = DB::table('fees')->where('student_id', $matricId)->first();
-            
-            if ($fee && $fee->status == 'unpaid' && $fee->outstanding_amount > 0) {
-                // Payment Reminder
-                $reminderId = 'payment_reminder_' . $userId;
-                $existingReminder = DB::table('notifications')
-                    ->where('notification_id', $reminderId)
-                    ->where('id', $userId)
-                    ->first();
+            if ($blockDateParsed->isFuture()) {
+                $formattedBlockDate = $blockDateParsed->format('d F Y');
                 
-                if (!$existingReminder) {
-                    DB::table('notifications')->insert([
-                        'notification_id' => $reminderId,
-                        'id' => $userId,
-                        'title' => 'Payment Reminder',
-                        'message' => 'Your tuition fee payment is due on ' . $formattedBlockDate . '.',
-                        'is_read' => 0,
-                        'type' => 'payment_reminder',
-                        'reference_id' => null,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                }
+                $fee = DB::table('fees')->where('student_id', $matricId)->first();
                 
-                // Block Warning
-                $warningId = 'block_warning_' . $userId;
-                $existingWarning = DB::table('notifications')
-                    ->where('notification_id', $warningId)
-                    ->where('id', $userId)
-                    ->first();
-                
-                if (!$existingWarning) {
-                    DB::table('notifications')->insert([
-                        'notification_id' => $warningId,
-                        'id' => $userId,
-                        'title' => 'Block Warning',
-                        'message' => 'Your academic access will be blocked after Week 5 (' . $formattedBlockDate . ') if your balance remains unpaid.',
-                        'is_read' => 0,
-                        'type' => 'block_warning',
-                        'reference_id' => null,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
+                if ($fee && $fee->status == 'unpaid' && $fee->outstanding_amount > 0) {
+                    // ✅ Payment Reminder - REMOVE notification_id
+                    $existingReminder = DB::table('notifications')
+                        ->where('id', $userId)
+                        ->where('type', 'payment_reminder')
+                        ->first();
+                    
+                    if (!$existingReminder) {
+                        DB::table('notifications')->insert([
+                            'id' => $userId,
+                            'title' => 'Payment Reminder',
+                            'message' => 'Your tuition fee payment is due on ' . $formattedBlockDate . '.',
+                            'is_read' => 0,
+                            'type' => 'payment_reminder',
+                            'reference_id' => null,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    }
+                    
+                    // ✅ Block Warning - REMOVE notification_id
+                    $existingWarning = DB::table('notifications')
+                        ->where('id', $userId)
+                        ->where('type', 'block_warning')
+                        ->first();
+                    
+                    if (!$existingWarning) {
+                        DB::table('notifications')->insert([
+                            'id' => $userId,
+                            'title' => 'Block Warning',
+                            'message' => 'Your academic access will be blocked after Week 5 (' . $formattedBlockDate . ') if your balance remains unpaid.',
+                            'is_read' => 0,
+                            'type' => 'block_warning',
+                            'reference_id' => null,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                    }
                 }
             }
         }
     }
-}
 
     /**
      * Mark a notification as read (update is_read to 1)

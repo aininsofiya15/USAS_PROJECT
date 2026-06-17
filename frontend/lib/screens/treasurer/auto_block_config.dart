@@ -17,12 +17,15 @@ class _AutoBlockConfigPageState extends State<AutoBlockConfigPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => 
-      Provider.of<FeesManagementProvider>(context, listen: false).fetchUnpaidCount()
-    );
+    // ✅ Fetch existing block date when page loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<FeesManagementProvider>(context, listen: false);
+      provider.fetchBlockDate();
+      provider.fetchUnpaidCount();
+    });
   }
 
-  void _showSuccessDialog() {
+  void _showSuccessDialog({int notificationsSent = 0}) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -30,11 +33,13 @@ class _AutoBlockConfigPageState extends State<AutoBlockConfigPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle_outline, color: Colors.black, size: 80),
+            const Icon(Icons.check_circle_outline, color: Colors.green, size: 80),
             const SizedBox(height: 16),
             const Text("Block start date has been set!", 
                 textAlign: TextAlign.center,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const SizedBox(height: 8),
+            
             const SizedBox(height: 24),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -54,6 +59,16 @@ class _AutoBlockConfigPageState extends State<AutoBlockConfigPage> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<FeesManagementProvider>(context);
+
+    // Show loading while fetching block date
+    if (provider.isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFDCF8C6),
+        appBar: const UsasHeader(),
+        bottomNavigationBar: const UsasBottomNav(),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFDCF8C6),
@@ -89,7 +104,6 @@ class _AutoBlockConfigPageState extends State<AutoBlockConfigPage> {
                                     lastDate: DateTime(2030),
                                   );
                                   if (picked != null) {
-                                    // FIXED: Use the provider's built-in setter method instead of mixing UI setState
                                     provider.updateBlockDate(picked); 
                                   }
                                 },
@@ -134,14 +148,14 @@ class _AutoBlockConfigPageState extends State<AutoBlockConfigPage> {
                             bool success = await provider.saveBlockDate(currentTreasurerUserId);
                             
                             if (success) {
-                              _showSuccessDialog();
+                                _showSuccessDialog(notificationsSent: provider.lastNotificationsSent ?? 0);
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Failed to save settings. Database references updated automatically."),
-                                  backgroundColor: Colors.redAccent,
-                                ),
-                              );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text("Failed to save settings. Please try again."),
+                                        backgroundColor: Colors.redAccent,
+                                    ),
+                                );
                             }
                         },
                         child: const Text("Save", style: TextStyle(color: Colors.white)),

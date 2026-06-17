@@ -58,7 +58,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/bank_acc_info': (context) => const BankAccountInfoPage(),
         '/payment_history': (context) => const PaymentHistoryPage(),
-        '/notifications': (context) => const NotificationPage(),
+        '/notifications': (context) => const NotificationPage(),      
       },
     );
   }

@@ -212,6 +212,169 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
     );
   }
 
+  void _showSuccessPopup(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_circle,
+                    color: Colors.green.shade700,
+                    size: 64,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Payment succeeded!',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Your transaction was completed successfully.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      final user = Provider.of<UserProvider>(context, listen: false);
+                      Provider.of<FeesManagementProvider>(context, listen: false)
+                          .fetchStudentFinancialProfile(user.userId.toString());
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF004D73),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Return to Tuition Fees',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showFailurePopup(BuildContext context, {String errorMessage = 'Unfortunately, your payment was rejected. Please try again.'}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error_outline,
+                    color: Colors.red.shade700,
+                    size: 64,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Payment failed!',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  errorMessage,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Return to Tuition Fees',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildPayButton(Map<String, dynamic> financialData, String dynamicUserId) {
     return SizedBox(
       width: double.infinity,
@@ -273,16 +436,21 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                     throw Exception('No payment intent secret received');
                   }
 
+                  // ✅ Initialize Payment Sheet with custom style
                   await Stripe.instance.initPaymentSheet(
                     paymentSheetParameters: SetupPaymentSheetParameters(
                       paymentIntentClientSecret: clientSecret,
                       merchantDisplayName: 'USAS University',
                       style: ThemeMode.light,
+                      // ✅ These help with FPX behavior
+                      customFlow: false,
                     ),
                   );
 
+                  // ✅ Present Payment Sheet
                   await Stripe.instance.presentPaymentSheet();
 
+                  // Payment successful - update database
                   final completeResponse = await http.post(
                     Uri.parse('http://10.0.2.2:8000/api/student/complete-payment'),
                     headers: {
@@ -304,32 +472,25 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
 
                       if (!mounted) return;
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Payment Successful! 🎉"),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+                      _showSuccessPopup(context);
                     }
                   } else {
                     throw Exception('Failed to update payment record');
                   }
+
                 } catch (e) {
                   if (!mounted) return;
 
                   String errorMessage = e.toString();
+                  String displayMessage = 'Payment failed. Please try again.';
+                  
                   if (errorMessage.contains('canceled')) {
-                    errorMessage = 'Payment was cancelled';
-                  } else if (errorMessage.contains('SetupPaymentSheetParameters')) {
-                    errorMessage = 'Payment configuration error. Please try again.';
+                    displayMessage = 'Payment was cancelled.';
+                  } else {
+                    displayMessage = errorMessage.replaceAll('Exception: ', '');
                   }
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Payment failed: $errorMessage"),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
+                  _showFailurePopup(context, errorMessage: displayMessage);
                 } finally {
                   if (mounted) {
                     setState(() => _isLoading = false);
