@@ -44,7 +44,7 @@ class CreditProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
 
-        // Save data if the student has an active claim record row in the DB
+        // Save data if the student has an active claim record 
         if (responseData['data'] != null) {
           _activeClaim = CreditClaim.fromJson(responseData['data']);
           _hasClaim = true;

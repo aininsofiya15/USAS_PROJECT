@@ -8,6 +8,7 @@ import '../../provider/user_provider.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/header.dart';
 
+// Registered subjects page
 class ListRegisteredSubjectsPage extends StatefulWidget {
   const ListRegisteredSubjectsPage({super.key});
 
@@ -18,17 +19,22 @@ class ListRegisteredSubjectsPage extends StatefulWidget {
 
 class _ListRegisteredSubjectsPageState
     extends State<ListRegisteredSubjectsPage> {
+
+  // Provider for registered subject operations
   final StudentSubjectProvider provider = StudentSubjectProvider();
 
+// Store registered subjects from API
   late Future<List<Registration>> registeredSubjectsFuture;
 
   @override
   void initState() {
+    // Load registered subjects
     super.initState();
     final userId = Provider.of<UserProvider>(context, listen: false).userId;
     registeredSubjectsFuture = provider.fetchRegisteredSubjects(userId);
   }
 
+// Display successful subject drop dialog
   void _showSuccessDialog() {
     showDialog(
       context: context,

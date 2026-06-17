@@ -17,10 +17,12 @@ class GenerateModuleAttendanceCode extends StatefulWidget {
   });
 
   @override
-  State<GenerateModuleAttendanceCode> createState() => _GenerateModuleAttendanceCodeState();
+  State<GenerateModuleAttendanceCode> createState() =>
+      _GenerateModuleAttendanceCodeState();
 }
 
-class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceCode> {
+class _GenerateModuleAttendanceCodeState
+    extends State<GenerateModuleAttendanceCode> {
   double? _currentLat;
   double? _currentLong;
   bool _isFetchingLocation = false;
@@ -34,20 +36,17 @@ class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceC
     });
   }
 
-  // --- LOGIC: Fetch Current GPS (Accurate & Forced Update) ---
+  // ── Get device GPS location ─────────────────────────────────────────────
   Future<void> _getCurrentLocation() async {
     setState(() => _isFetchingLocation = true);
-    
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Please enable device Location services/GPS toggle!"), 
-              backgroundColor: Colors.orange
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Please enable device Location services/GPS toggle!"),
+            backgroundColor: Colors.orange,
+          ));
         }
         return;
       }
@@ -59,82 +58,72 @@ class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceC
           throw 'Location permissions are denied.';
         }
       }
-      
       if (permission == LocationPermission.deniedForever) {
-        throw 'Location permissions are permanently denied, cannot request permissions.';
+        throw 'Location permissions are permanently denied.';
       }
 
-      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-        Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.best, 
-          forceAndroidLocationManager: true,      
-          timeLimit: const Duration(seconds: 12),  
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.best,
+          forceAndroidLocationManager: true,
+          timeLimit: const Duration(seconds: 12),
         );
-
         if (mounted) {
           setState(() {
             _currentLat = position.latitude;
             _currentLong = position.longitude;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Highly accurate location captured!"), 
-              backgroundColor: Colors.green
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text("Highly accurate location captured!"),
+            backgroundColor: Colors.green,
+          ));
         }
       }
     } catch (e) {
       debugPrint("Location error: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Failed getting location accuracy: $e"), 
-            backgroundColor: Colors.red
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("Failed getting location: $e"),
+          backgroundColor: Colors.red,
+        ));
       }
     } finally {
-      if (mounted) {
-        setState(() => _isFetchingLocation = false);
-      }
+      if (mounted) setState(() => _isFetchingLocation = false);
     }
   }
 
-  // --- FORM SUBMISSION HANDLING WITH DUPLICATE CHECK MANAGEMENT ---
+  // ── Submit: generate code then navigate to release page ────────────────
   void _submitForm() async {
     if (_currentLat == null || _currentLong == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fetch your location first!"), 
-          backgroundColor: Colors.red
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Please fetch your location first!"),
+        backgroundColor: Colors.red,
+      ));
       return;
     }
 
-    // 1. Show loading overlay while checking backend validation rules
+    // Show loading spinner
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
 
     final provider = Provider.of<AttendanceProvider>(context, listen: false);
 
-    // Split date and time from fields cleanly
-    String rawDateTime = widget.module.dateTime ?? ""; 
+    // Split dateTime into date + time parts for the API
+    String rawDateTime = widget.module.dateTime ?? "";
     String datePart = rawDateTime;
     String timePart = rawDateTime;
-
     if (rawDateTime.contains(' ')) {
-      List<String> parts = rawDateTime.split(' ');
-      datePart = parts[0]; 
-      timePart = parts[1]; 
+      final parts = rawDateTime.split(' ');
+      datePart = parts[0];
+      timePart = parts[1];
     }
 
-    // 2. SAFE SUBMISSION PATHWAY: Fire code generator
     if (!mounted) return;
+
     final String? responseCode = await provider.generateModuleAttendance(
       moduleId: widget.module.id ?? 0,
       lat: _currentLat!,
@@ -144,50 +133,63 @@ class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceC
     );
 
     if (!mounted) return;
-    Navigator.pop(context); // Dismiss loading overlay spinner
+    Navigator.pop(context); // dismiss spinner
 
-    // 4. SERVER-SIDE FALLBACK INTERCEPT
     if (responseCode == "DUPLICATE") {
       _showDuplicateWarningDialog(context);
-    } 
-    else if (responseCode != null) {
+      return;
+    }
+
+    if (responseCode != null) {
+      // Resolve display values from DB response, fall back to module object
+      final moduleDetails = provider.moduleDetails ?? {};
+      final int capacity =
+          moduleDetails['capacity'] ?? widget.module.capacity ?? 0;
+      final String lecturerName =
+          moduleDetails['lecturer_name'] ?? 'Sir / Madam';
+      final String venue =
+          moduleDetails['venue'] ?? widget.module.venue ?? 'N/A';
+      final String dateTime =
+          moduleDetails['date_time'] ?? widget.module.dateTime ?? 'N/A';
+
+      // Navigate to release page — pass all resolved values
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ReleaseModuleAttendanceCodePage(
+          builder: (_) => ReleaseModuleAttendanceCodePage(
             module: widget.module,
             code: responseCode,
+            capacity: capacity,
+            lecturerName: lecturerName,
+            venue: venue,
+            dateTime: dateTime,
           ),
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Failed to process transaction. Please try again."), 
-          backgroundColor: Colors.red
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Failed to process transaction. Please try again."),
+        backgroundColor: Colors.red,
+      ));
     }
   }
 
-  // --- DUPLICATE WARNING MODAL WINDOW ---
+  // ── Duplicate code warning dialog ───────────────────────────────────────
   void _showDuplicateWarningDialog(BuildContext context) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
+      builder: (BuildContext ctx) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           child: Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.all(20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.warning_rounded,
-                  color: Colors.red,
-                  size: 60,
-                ),
+                const Icon(Icons.warning_rounded,
+                    color: Colors.red, size: 60),
                 const SizedBox(height: 15),
                 const Text(
                   "An attendance code for this class session has already been released.",
@@ -202,23 +204,20 @@ class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceC
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).popUntil((route) => route.isFirst);
-                    },
+                    onPressed: () =>
+                        Navigator.of(ctx).popUntil((r) => r.isFirst),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF22C55E),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     child: const Text(
                       "Back to Dashboard",
                       style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                      ),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15),
                     ),
                   ),
                 ),
@@ -230,141 +229,233 @@ class _GenerateModuleAttendanceCodeState extends State<GenerateModuleAttendanceC
     );
   }
 
+  // ── UI ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<AttendanceProvider>(context);
-    final moduleDetails = provider.moduleDetails ?? {}; 
+    return Consumer<AttendanceProvider>(
+      builder: (context, provider, _) {
+        final moduleDetails = provider.moduleDetails ?? {};
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFD1FFF3), 
-      appBar: const UsasHeader(),
-      drawer: const AppSidebar(),
-      bottomNavigationBar: const UsasBottomNav(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            const Text(
-              "Module Attendance", 
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)
-            ),
-            const SizedBox(height: 20),
+        // Resolve values — DB first, module object as fallback
+        final int capacity =
+            moduleDetails['capacity'] ?? widget.module.capacity ?? 0;
+        final String venue =
+            moduleDetails['venue'] ?? widget.module.venue ?? 'N/A';
+        final String lecturerName =
+            moduleDetails['lecturer_name'] ?? 'Sir / Madam';
+        final String dateTime =
+            moduleDetails['date_time'] ?? widget.module.dateTime ?? 'N/A';
 
-            Container(
-              padding: const EdgeInsets.all(25),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05), 
-                    blurRadius: 10, 
-                    offset: const Offset(0, 4)
-                  )
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildInfoRow("Activity:", widget.module.activityName ?? ""),
-                  _buildInfoRow(
-                    "Adaptive Students:", 
-                    "${moduleDetails['currentStudents'] ?? '0'} / ${moduleDetails['totalStudents'] ?? '0'}"
-                  ),
-                  _buildInfoRow("Date:", widget.module.dateTime ?? ""),
-                  _buildInfoRow("Venue:", widget.module.venue ?? ""),
-                  _buildInfoRow("Lecturer:", moduleDetails['lecturerName'] ?? 'Sir / Madam'),
-
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 15),
-                    child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
-                  ),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Scaffold(
+          backgroundColor: const Color(0xFFD1FFF3),
+          appBar: const UsasHeader(),
+          drawer: const AppSidebar(),
+          bottomNavigationBar: const UsasBottomNav(),
+          body: provider.isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 24),
+                  child: Column(
                     children: [
+                      // ── Page Title ──────────────────────────────────
                       const Text(
-                        "Helvetica Geolocation:", 
-                        style: TextStyle(fontWeight: FontWeight.bold)
+                        "Module Attendance",
+                        style: TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.bold),
                       ),
-                      TextButton.icon(
-                        onPressed: _isFetchingLocation ? null : _getCurrentLocation,
-                        icon: _isFetchingLocation 
-                          ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.my_location, size: 18),
-                        label: Text(_isFetchingLocation ? "Fetching..." : "Get Location"),
-                        style: TextButton.styleFrom(foregroundColor: const Color(0xFF3F51B5)),
+                      const SizedBox(height: 20),
+
+                      // ── Card 1: Module Info ─────────────────────────
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 20, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              (widget.module.activityName ?? "").toUpperCase(),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            // Student count is always 0 here — nobody marked yet
+                            _infoRow("Number of Student: 0 / $capacity Students"),
+                            _infoRow("Class Date: $dateTime"),
+                            _infoRow("Venue: $venue"),
+                            _infoRow("Lecturer Name: $lecturerName"),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // ── Card 2: Geolocation + Generate ─────────────
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.06),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // ── Geolocation row ───────────────────────
+                            Row(
+                              mainAxisAlignment:
+                                  MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      "Geolocation:",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    Text(
+                                      "(Select on Map)",
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.black54),
+                                    ),
+                                  ],
+                                ),
+                                TextButton.icon(
+                                  onPressed: _isFetchingLocation
+                                      ? null
+                                      : _getCurrentLocation,
+                                  icon: _isFetchingLocation
+                                      ? const SizedBox(
+                                          width: 15,
+                                          height: 15,
+                                          child: CircularProgressIndicator(
+                                              strokeWidth: 2),
+                                        )
+                                      : const Icon(Icons.my_location,
+                                          size: 18),
+                                  label: Text(_isFetchingLocation
+                                      ? "Fetching..."
+                                      : "Get Location"),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor:
+                                        const Color(0xFF007BFF),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            // ── Captured coordinates display ──────────
+                            if (_currentLat != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(
+                                  "Captured: ${_currentLat!.toStringAsFixed(5)}, "
+                                  "${_currentLong!.toStringAsFixed(5)}",
+                                  style: const TextStyle(
+                                    color: Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+
+                            const SizedBox(height: 8),
+
+                            // ── Static map preview ────────────────────
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                height: 180,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                      color: Colors.grey.shade200),
+                                  borderRadius: BorderRadius.circular(12),
+                                  image: const DecorationImage(
+                                    image: NetworkImage(
+                                      'https://static-maps.yandex.ru/1.x/?lang=en_US&ll=101.14,4.48&z=13&l=map&size=450,200',
+                                    ),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // ── Generate Code button ──────────────────
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _submitForm,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      const Color(0xFF007BFF),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 15),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius:
+                                        BorderRadius.circular(10),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: const Text(
+                                  "GENERATE CODE",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                  
-                  if (_currentLat != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Text(
-                        "Captured: ${_currentLat!.toStringAsFixed(5)}, ${_currentLong!.toStringAsFixed(5)}",
-                        style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
-                    ),
-
-                  Container(
-                    height: 140,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey.shade200),
-                      image: const DecorationImage(
-                        image: NetworkImage('https://static-maps.yandex.ru/1.x/?lang=en_US&ll=101.14,4.48&z=13&l=map&size=450,200'),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _submitForm, 
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF007BFF),
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        "GENERATE CODE", 
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+                ),
+        );
+      },
     );
   }
 
-  Widget _buildInfoRow(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 2, 
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black54))
-        ),
-        Expanded(
-          flex: 3, 
-          child: Text(
-            value, 
-            textAlign: TextAlign.right, 
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF3F51B5))
-          )
-        ),
-      ],
-    ),
-  );
+  Widget _infoRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 13, color: Colors.black87),
+      ),
+    );
+  }
 }

@@ -139,6 +139,7 @@ class AttendanceController extends Controller
         ->where('sections.lecturer_id', $lecturerId)
         ->select(
             'subjects.subject_code',
+            'subjects.subject_name',
             'class_attendances.class_type as lecture_lab',
             'class_attendances.date',
             'class_attendances.time',
@@ -241,7 +242,7 @@ public function getClassPresentStudents($attendanceId)
             ->join('users', 'attendance_records.student_id', '=', 'users.id')
             ->join('students', 'users.id', '=', 'students.id')
             ->where('attendance_records.attendance_id', $attendanceId)
-            ->whereIn('attendance_records.status', ['present', 'late', 'medical'])
+            ->whereIn('attendance_records.status', ['present', 'late'])
             
             // 🔑 REPLACE YOUR OLD SELECT WITH THIS:
             ->select(
@@ -265,7 +266,7 @@ public function getClassPresentStudents($attendanceId)
 
 /**
  * 2. Fetch students who are NOT PRESENT 
- * (Registered in the section, but missing an attendance log or marked absent)
+ * (Registered in the section, but missing an attendance log or marked absent/late/medical)
  */
 public function getClassNotPresentStudents($attendanceId)
 {
@@ -273,7 +274,6 @@ public function getClassNotPresentStudents($attendanceId)
         $session = DB::table('attendances')->where('id', $attendanceId)->first();
         $sectionId = ($session && isset($session->section_id)) ? $session->section_id : 3;
 
-        // 🔑 FIXED: Changed 'registrations' to 'registration' (singular!)
         $notPresentStudents = DB::table('registration')
             ->join('users', 'registration.student_id', '=', 'users.id')
             ->join('students', 'users.id', '=', 'students.id')
@@ -284,15 +284,20 @@ public function getClassNotPresentStudents($attendanceId)
             ->where('registration.section_id', $sectionId)
             ->where('registration.status', 'active')
             
-            // Excludes students who already checked in (student_ids: 1, 8, 10, 11, 12)
-            ->whereNull('attendance_records.id') 
+            // 🔑 UPDATED WHERE CLAUSE:
+            ->where(function($query) {
+                $query->whereNull('attendance_records.id')
+                      ->orWhereIn('attendance_records.status', ['absent', 'late', 'medical']);
+            }) 
             
             ->select(
-                DB::raw('0 as id'),
-                DB::raw('0 as record_id'), 
+                // Dynamic mapping: Return real ID if row exists so Flutter can edit it; otherwise return 0
+                DB::raw('COALESCE(attendance_records.id, 0) as id'),
+                DB::raw('COALESCE(attendance_records.id, 0) as record_id'), 
                 'students.student_id as matric_no',
                 'users.name as student_name',
-                DB::raw("'absent' as status")
+                // Keeps real DB status if it exists, otherwise defaults to 'absent'
+                DB::raw("COALESCE(attendance_records.status, 'absent') as status")
             )
             ->get();
 
@@ -381,92 +386,125 @@ public function getAdabModules(Request $request)
      * Create a new module attendance session
      */
     public function storeModuleAttendance(Request $request)
-    {
-        $request->validate([
-            'module_id'  => 'required|integer',
-            'geo_lat'    => 'required',
-            'geo_long'   => 'required',
-            // Made date and time optional in validation to prevent 500 errors 
-            // if your Flutter app doesn't send them for modules.
-            'date'       => 'nullable|date',
-            'time'       => 'nullable',
-        ]);
-
-        return DB::transaction(function () use ($request) {
-            // 1. Create the General Attendance (Code & GPS)
-            $code = strtoupper(Str::random(6));
-            
-            $attendance = Attendance::create([
-                'attendance_code' => $code,
-                'geo_lat'         => $request->geo_lat,
-                'geo_long'        => $request->geo_long,
-                'geo_radius'      => 500,
-            ]);
-
-            // 2. Create the Specific Module Attendance
-            // This links the module to the generated attendance
-            DB::table('module_attendances')->insert([
-                'attendance_id' => $attendance->id,
-                'module_id'     => $request->module_id,
-                // If Flutter sends the date/time, use it. Otherwise, default to exactly now.
-                'date'          => $request->date ?? now()->toDateString(),
-                'time'          => $request->time ? date('H:i:s', strtotime($request->time)) : now()->toTimeString(),
-                'created_at'    => now(),
-                'updated_at'    => now(),
-            ]);
-    
-            return response()->json([
-                'success'       => true,
-                'code'          => $code,
-                'attendance_id' => $attendance->id
-            ], 201);
-        });
-    }
-
-    public function updateModuleAttendanceDetails(Request $request)
 {
-    // 1. Validate the incoming payload
     $request->validate([
-        'module_id' => 'required|integer', // This is treating the incoming ID as the attendance ID
-        'geo_lat'   => 'required|numeric',
-        'geo_long'  => 'required|numeric',
+        'module_id' => 'required|integer',
+        'geo_lat'   => 'required',
+        'geo_long'  => 'required',
+        'date'      => 'nullable|date',
+        'time'      => 'nullable',
     ]);
 
+    $requestedDate = $request->date ?? now()->toDateString();
+    $requestedTime = $request->time 
+        ? date('H:i:s', strtotime($request->time)) 
+        : now()->toTimeString();
+
+    // ── Duplicate check: same module, same date, within 2-hour window ──
+    $existingDuplicate = DB::table('module_attendances')
+        ->where('module_id', $request->module_id)
+        ->where('date', $requestedDate)
+        ->where(function ($query) use ($requestedTime) {
+            $query->where('time', '<=', $requestedTime)
+                  ->whereRaw('ADDTIME(time, "05:00:00") > ?', [$requestedTime]);
+        })
+        ->first();
+
+    if ($existingDuplicate) {
+        $expirationTime = date('h:i A', strtotime('+2 hours', strtotime($existingDuplicate->time)));
+
+        return response()->json([
+            'success'    => false,
+            'message'    => "An attendance code for this module has already been released and is still active until {$expirationTime}.",
+            'expires_at' => $expirationTime,
+        ], 409);
+    }
+
+    return DB::transaction(function () use ($request, $requestedDate, $requestedTime) {
+        $code = strtoupper(Str::random(6));
+
+        $attendance = Attendance::create([
+            'attendance_code' => $code,
+            'geo_lat'         => $request->geo_lat,
+            'geo_long'        => $request->geo_long,
+            'geo_radius'      => 500,
+        ]);
+
+        DB::table('module_attendances')->insert([
+            'attendance_id' => $attendance->id,
+            'module_id'     => $request->module_id,
+            'date'          => $requestedDate,
+            'time'          => $requestedTime,
+            'created_at'    => now(),
+            'updated_at'    => now(),
+        ]);
+
+        return response()->json([
+            'success'       => true,
+            'code'          => $code,
+            'attendance_id' => $attendance->id,
+        ], 201);
+    });
+}
+
+    public function updateStudentModuleAttendance(Request $request)
+{
+    Log::info('updateStudentModuleStatus payload:', $request->all());
+
     try {
-        $attendanceId = $request->input('module_id'); // Using the passed ID directly as the primary key
-        $geoLat       = $request->input('geo_lat');
-        $geoLong      = $request->input('geo_long');
+        $attendanceId = $request->input('attendance_id');
+        $recordId     = $request->input('record_id');
+        $studentId    = $request->input('student_id');
+        $newStatus    = $request->input('status');
 
-        // 2. Direct update on the attendances table by 'id'
-        $updated = DB::table('attendances')
-            ->where('id', $attendanceId)
-            ->update([
-                'geo_lat'    => $geoLat,
-                'geo_long'   => $geoLong,
-                'updated_at' => now(),
-            ]);
-
-        if ($updated === 0) {
+        if (!$attendanceId || !$studentId || !$newStatus) {
             return response()->json([
                 'success' => false,
-                'message' => "No attendance session found with ID: " . $attendanceId
-            ], 404);
+                'message' => 'Missing required fields: attendance_id, student_id, status'
+            ], 422);
+        }
+
+        // record_id > 0 → row exists, just update it
+        if ($recordId && $recordId > 0) {
+            $updated = DB::table('attendance_records')
+                ->where('id', $recordId)
+                ->update([
+                    'status'         => $newStatus,
+                    'submitted_time' => now(),
+                    'updated_at'     => now(),
+                ]);
+
+            if ($updated === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No record found for record_id: ' . $recordId
+                ], 404);
+            }
+        } else {
+            // record_id = 0 → no row yet, insert a new one
+            DB::table('attendance_records')->insert([
+                'attendance_id'  => $attendanceId,
+                'student_id'     => $studentId,
+                'status'         => $newStatus,
+                'submitted_time' => now(),
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ]);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Module attendance geolocation details updated successfully.'
+            'message' => 'Module attendance updated successfully!'
         ], 200);
 
     } catch (\Exception $e) {
-        Log::error("Error updating attendance: " . $e->getMessage());
+        Log::error('updateStudentModuleStatus error: ' . $e->getMessage());
         return response()->json([
             'success' => false,
-            'message' => 'Internal server error encountered.'
+            'message' => 'Server error: ' . $e->getMessage()
         ], 500);
     }
 }
-
 
 
 //STUDENT
@@ -646,6 +684,27 @@ public function submitAttendance(Request $request)
     } catch (\Exception $e) {
         return response()->json(['success' => false, 'message' => 'Internal server crash error: ' . $e->getMessage()], 500);
     }
+}
+
+// Check if already submitted
+public function checkSubmitted($attendanceId, $studentId) {
+    $exists = DB::table('attendance_records')
+        ->where('attendance_id', $attendanceId)
+        ->where('student_id', $studentId)
+        ->exists();
+    return response()->json(['submitted' => $exists]);
+}
+
+// Check if session expired (created > 2 hours ago)
+public function checkExpired($attendanceId) {
+    $session = DB::table('class_attendances')
+        ->where('attendance_id', $attendanceId)
+        ->first();
+    if (!$session) return response()->json(['expired' => true]);
+    
+    $createdAt = strtotime($session->date . ' ' . $session->time);
+    $expired = (time() - $createdAt) > (2 * 60 * 60);
+    return response()->json(['expired' => $expired]);
 }
 
 public function getSubmittedAttendanceRecords(Request $request, $studentId)

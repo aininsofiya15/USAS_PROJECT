@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/attendance_provider.dart';
@@ -7,6 +6,7 @@ import '../../widgets/header.dart';
 import '../../widgets/app_sidebar.dart';
 import '../../widgets/navigation_bar.dart';
 import 'module_grading.dart';
+import 'edit_student_module_attendance.dart';
 
 class AttendanceRecordListPage extends StatefulWidget {
   final Module module;
@@ -53,41 +53,44 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+              // ── 🎨 HIGH-CONTRAST DEEP TEAL OUTLINE BORDER ──
               decoration: BoxDecoration(
                 color: const Color(0xFFB9F6F0),
                 borderRadius: BorderRadius.circular(34),
+                border: Border.all(
+                  color: const Color(0xFF5CB0A0), // Darkened border color for high visibility
+                  width: 2.5,                     // Slightly thicker stroke
+                ),
               ),
               child: Column(
                 children: [
-              // ── Page Title ──────────────────────────────────────────────
-              const Padding(
-                padding: EdgeInsets.only(top: 16, bottom: 8),
-                child: Text(
-                  'Attendance Records',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+                  // ── Page Title ──
+                  const Padding(
+                    padding: EdgeInsets.only(top: 16, bottom: 8),
+                    child: Text(
+                      'Attendance Records',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
                   ),
-                ),
-              ),
 
-              // ── Module Info Card ─────────────────────────────────────────
-              _buildModuleCard(widget.module, provider),
+                  // ── Module Info Card ──
+                  _buildModuleCard(widget.module, provider),
+                  const SizedBox(height: 12),
 
-              const SizedBox(height: 12),
+                  // ── Present / Not Present Toggle ──
+                  _buildStatusToggle(),
+                  const SizedBox(height: 12),
 
-              // ── Present / Not Present Toggle ─────────────────────────────
-              _buildStatusToggle(),
-
-              const SizedBox(height: 12),
-
-              // ── Student List ─────────────────────────────────────────────
-              Expanded(
-                child: provider.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : _buildStudentList(students),
-              ),
+                  // ── Student List ──
+                  Expanded(
+                    child: provider.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _buildStudentList(students, provider), 
+                  ),
                 ],
               ),
             ),
@@ -217,7 +220,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
   }
 
   // ── Student List ──────────────────────────────────────────────────────────
-  Widget _buildStudentList(List<dynamic> students) {
+  Widget _buildStudentList(List<dynamic> students, AttendanceProvider provider) {
     final filtered = students.where((s) {
       final statusStr =
           s['attendance_status']?.toString().toLowerCase() ?? 'present';
@@ -240,16 +243,21 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF9ADAD4),
+          width: 2.0,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         children: [
-          // ── Search Bar ────────────────────────────────────────────────
+          // Search Bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
             child: Container(
@@ -275,7 +283,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
             ),
           ),
 
-          // ── Table Header ──────────────────────────────────────────────
+          // Table Header
           Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -321,7 +329,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
 
           const Divider(height: 1, thickness: 1, indent: 16, endIndent: 16),
 
-          // ── Student Rows ──────────────────────────────────────────────
+          // Student Rows
           Expanded(
             child: filtered.isEmpty
                 ? Center(
@@ -334,7 +342,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
                         Text(
                           'No student records matched your selection.',
                           style: TextStyle(
-                              color: Colors.grey[500], fontSize: 13),
+                            color: Colors.grey[500], fontSize: 13),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -351,7 +359,7 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
                     ),
                     itemBuilder: (context, index) {
                       final student = filtered[index];
-                      return _buildStudentRow(index + 1, student);
+                      return _buildStudentRow(index + 1, student, provider); 
                     },
                   ),
           ),
@@ -360,14 +368,13 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
     );
   }
 
-  Widget _buildStudentRow(int no, dynamic student) {
+  Widget _buildStudentRow(int no, dynamic student, AttendanceProvider provider) {
     final String matrixNo = student['matrix_no'] ?? 'N/A';
     final String studentName = student['student_name'] ?? 'Unknown';
     final String status =
         student['attendance_status']?.toString().toLowerCase().trim() ?? '';
     final bool isNotPresent = status != 'present';
 
-    // ── 🎨 NEW: Check if this student has already been graded ──
     final bool isGraded = student['marks'] != null;
     final Color rowTextColor = isNotPresent
         ? Colors.red
@@ -382,7 +389,6 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // No column
           SizedBox(
             width: 32,
             child: Text(
@@ -395,8 +401,6 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
             ),
           ),
           const SizedBox(width: 8),
-
-          // Student ID
           SizedBox(
             width: 85,
             child: Text(
@@ -409,8 +413,6 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
             ),
           ),
           const SizedBox(width: 8),
-
-          // ── 🎨 NEW: Name + optional marks badge ──
           Expanded(
             child: Row(
               children: [
@@ -429,8 +431,6 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
               ],
             ),
           ),
-
-          // Grade & Edit buttons — same style always
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -458,7 +458,30 @@ class _AttendanceRecordListPageState extends State<AttendanceRecordListPage> {
               _actionBtn(
                 'Edit',
                 const Color(0xFF4D8EFF),
-                () {},
+                () async {
+                  final String fullDateTime = provider.currentModuleDetails?['date_time']?.toString() ?? widget.module.dateTime ?? '';
+
+                  final bool? refreshed = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => EditStudentModuleAttendance(
+                        attendanceId: int.tryParse(widget.bookingId.toString()) ?? 1, 
+                        recordId: student['id'] ?? 0,    
+                        studentId: student['student_id'] ?? 1,   
+                        matricNo: student['matrix_no'] ?? 'N/A', 
+                        studentName: student['student_name'] ?? 'Unknown', 
+                        moduleName: widget.module.activityName, 
+                        date: fullDateTime.split(' ').first, 
+                        time: fullDateTime.contains(' ') ? fullDateTime.substring(fullDateTime.indexOf(' ') + 1) : fullDateTime, 
+                        currentStatus: student['attendance_status'] ?? 'Present', 
+                      ),
+                    ),
+                  );
+
+                  if (refreshed == true && mounted) {
+                    context.read<AttendanceProvider>().fetchAttendanceDetails(int.tryParse(widget.bookingId.toString()) ?? 1); 
+                  }
+                },
               ),
             ],
           ),

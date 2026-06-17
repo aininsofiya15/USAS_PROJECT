@@ -8,21 +8,28 @@ import '../../domain/module.dart';
 class ReleaseModuleAttendanceCodePage extends StatelessWidget {
   final Module module;
   final String code;
+  final int capacity;
+  final String lecturerName;
+  final String venue;
+  final String dateTime;
 
   const ReleaseModuleAttendanceCodePage({
     super.key,
     required this.module,
     required this.code,
+    required this.capacity,
+    required this.lecturerName,
+    required this.venue,
+    required this.dateTime,
   });
 
   String _generateLiveTwoHourWindow() {
     DateTime currentTimeCreated = DateTime.now();
-    DateTime expirationTime = currentTimeCreated.add(const Duration(hours: 2));
-    
+    DateTime expirationTime =
+        currentTimeCreated.add(const Duration(hours: 2));
     DateFormat displayFormat = DateFormat("h:mm a");
     String startTimeStr = displayFormat.format(currentTimeCreated);
     String endTimeStr = displayFormat.format(expirationTime);
-    
     return "$startTimeStr – $endTimeStr";
   }
 
@@ -34,9 +41,11 @@ class ReleaseModuleAttendanceCodePage extends StatelessWidget {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20)),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+            padding: const EdgeInsets.symmetric(
+                horizontal: 20, vertical: 25),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -46,13 +55,18 @@ class ReleaseModuleAttendanceCodePage extends StatelessWidget {
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.black, width: 2),
                   ),
-                  child: const Icon(Icons.check, color: Colors.black, size: 32),
+                  child: const Icon(Icons.check,
+                      color: Colors.black, size: 32),
                 ),
                 const SizedBox(height: 20),
                 const Text(
                   "Code released successfully!",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -70,17 +84,25 @@ class ReleaseModuleAttendanceCodePage extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context); 
-                      Navigator.popUntil(context, (route) => route.isFirst); 
+                      Navigator.pop(context);
+                      Navigator.popUntil(
+                          context, (route) => route.isFirst);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF24D163), 
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      backgroundColor: const Color(0xFF24D163),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     child: const Text(
                       "OK",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                 ),
@@ -95,92 +117,129 @@ class ReleaseModuleAttendanceCodePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFD1FFF3), 
+      backgroundColor: const Color(0xFFD1FFF3),
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           children: [
+            // ── Page Title ────────────────────────────────────────────
             const Text(
-              "Release Attendance",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              "Module Attendance",
+              style:
+                  TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-            
+
+            // ── Card 1: Module Info ───────────────────────────────────
             Container(
-              padding: const EdgeInsets.all(25),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                  vertical: 20, horizontal: 20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
               ),
               child: Column(
                 children: [
-                  _buildDisplayRow("Activity:", module.activityName ?? ""),
-                  _buildDisplayRow("Date:", module.dateTime ?? ""),
-                  _buildDisplayRow("Venue:", module.venue ?? ""),
-                  
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
-                  ),
-                  
-                  const Text(
-                    "STUDENT ATTENDANCE CODE",
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54, fontSize: 12),
-                  ),
-                  const SizedBox(height: 15),
-                  
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 25),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8F9FA),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: const Color(0xFF007BFF).withOpacity(0.1)),
-                    ),
-                    child: Text(
-                      code,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF007BFF), 
-                        letterSpacing: 10,
-                      ),
+                  Text(
+                    (module.activityName ?? "").toUpperCase(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
                   ),
-                  
-                  const SizedBox(height: 35),
-                  
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _showSuccessPopup(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF28A745), 
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      ),
-                      child: const Text(
-                        "RELEASE CODE",
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                    ),
-                  ),
-                  
                   const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      "Back to Edit",
-                      style: TextStyle(color: Colors.black38, fontSize: 13),
+                  // ── All values come from DB via constructor ──────────
+                  _buildCenteredInfoRow(
+                      "Number of Student: 0 / $capacity Students"),
+                  _buildCenteredInfoRow("Class Date: $dateTime"),
+                  _buildCenteredInfoRow("Venue: $venue"),
+                  _buildCenteredInfoRow(
+                      "Lecturer Name: $lecturerName"),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── Card 2: Attendance Code + Release Button ──────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(
+                  vertical: 28, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // ── "Attendance Code:" label ──────────────────────
+                  const Text(
+                    "Attendance Code:",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
                     ),
-                  )
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── Large bold code ───────────────────────────────
+                  Text(
+                    code,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      letterSpacing: 6,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ── Release Code button ───────────────────────────
+                  ElevatedButton(
+                    onPressed: () => _showSuccessPopup(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF28A745),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 13,
+                        horizontal: 40,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      "Release Code",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -190,21 +249,13 @@ class ReleaseModuleAttendanceCodePage extends StatelessWidget {
     );
   }
 
-  Widget _buildDisplayRow(String label, String value) {
+  Widget _buildCenteredInfoRow(String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF3F51B5)),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 13, color: Colors.black87),
       ),
     );
   }

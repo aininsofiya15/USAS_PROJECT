@@ -8,7 +8,6 @@ import '../../provider/attendance_provider.dart';
 import 'edit_attendance_details.dart';
 import 'view_student_attendance.dart';
 
-
 class ViewAttendanceRecords extends StatefulWidget {
   const ViewAttendanceRecords({super.key});
 
@@ -17,6 +16,9 @@ class ViewAttendanceRecords extends StatefulWidget {
 }
 
 class _ViewAttendanceRecordsState extends State<ViewAttendanceRecords> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
+
   @override
   void initState() {
     super.initState();
@@ -24,132 +26,221 @@ class _ViewAttendanceRecordsState extends State<ViewAttendanceRecords> {
       final userId = Provider.of<UserProvider>(context, listen: false).userId;
       Provider.of<AttendanceProvider>(context, listen: false).fetchAttendanceHistory(userId);
     });
+    
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
   }
 
   @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    // Updated to a richer, deeper pastel pink to match your design perfectly
-    backgroundColor: const Color(0xFFF9DFE1), 
-    appBar: const UsasHeader(),
-    drawer: const AppSidebar(),
-    bottomNavigationBar: const UsasBottomNav(),
-    body: Consumer<AttendanceProvider>(
-      builder: (context, provider, child) {
-        return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.all(15.0),
-            child: Column(
-              children: [
-                const Text(
-                  "Attendance Records", 
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-                ),
-                const SizedBox(height: 15),
-                Container(
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.white, 
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.02),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Recent History", style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 10),
-                      _buildSearchField(),
-                      const SizedBox(height: 10),
-                      
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          columnSpacing: 20,
-                          columns: const [
-                            DataColumn(label: Text('Subject', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Lecture/Lab', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Time', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold))),
-                          ],
-                          rows: provider.attendanceHistory.map((item) {
-                            return DataRow(cells: [
-                              DataCell(Text(item['subject_code']?.toString() ?? 'N/A')),
-                              DataCell(Text((item['class_type'] ?? item['lecture_lab'])?.toString() ?? 'N/A')),
-                              DataCell(Text(item['date']?.toString() ?? 'N/A')),
-                              DataCell(Text(item['time']?.toString() ?? 'N/A')),
-                              DataCell(Row(
-                                children: [
-                                  _actionButton("Edit", Colors.green, () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => EditAttendanceDetails(
-                                          attendanceId: int.tryParse(item['attendance_id']?.toString() ?? '0') ?? 0,
-                                          subjectName: item['subject_name']?.toString() ?? "Unknown",
-                                          sectionNo: item['section_no']?.toString() ?? "N/A",
-                                          sectionId: int.tryParse(item['section_id']?.toString() ?? '0') ?? 0,
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                  const SizedBox(width: 5),
-                                  _actionButton("View", Colors.blue, () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ViewStudentAttendance(
-                                          attendanceId: int.tryParse(item['attendance_id']?.toString() ?? '0') ?? 0,
-                                          subjectName: item['subject_code']?.toString() ?? 'N/A',
-                                          date: item['date']?.toString() ?? 'N/A',
-                                          time: item['time']?.toString() ?? 'N/A',
-                                          code: item['attendance_code']?.toString() ?? '---',
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                ],
-                              )),
-                            ]);
-                          }).toList(),
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFFDF2F2), // Lightest soft outer background canvas
+      appBar: const UsasHeader(),
+      drawer: const AppSidebar(),
+      bottomNavigationBar: const UsasBottomNav(),
+      body: Consumer<AttendanceProvider>(
+        builder: (context, provider, child) {
+          final filteredHistory = provider.attendanceHistory.where((item) {
+            final subjectCode = (item['subject_code']?.toString() ?? '').toLowerCase();
+            final classType = ((item['class_type'] ?? item['lecture_lab'])?.toString() ?? '').toLowerCase();
+            final dateStr = (item['date']?.toString() ?? '').toLowerCase();
+            
+            return subjectCode.contains(_searchQuery) || 
+                   classType.contains(_searchQuery) ||
+                   dateStr.contains(_searchQuery);
+          }).toList();
+
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+              child: Column(
+                children: [
+                  // Outer Darker Pink Container Box Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDEC3C3), // Darker pink wrapper background matching Screenshot 2026-06-17 214614.png
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title centered within the top pink block space
+                        const Center(
+                          child: Text(
+                            "Attendance Records", 
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black),
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 20),
+                        
+                        // "Recent History" placed outside, sitting directly above the white card
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4.0, bottom: 12.0),
+                          child: Text(
+                            "Recent History", 
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black),
+                          ),
+                        ),
+
+                        // Inner White Container Sheet Card (Starts right at the Search box)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white, 
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSearchField(),
+                              const SizedBox(height: 16),
+                              
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: DataTable(
+                                  columnSpacing: 25,
+                                  headingRowHeight: 40,
+                                  dataRowMaxHeight: 45,
+                                  dataRowMinHeight: 35,
+                                  columns: const [
+                                    DataColumn(label: Text('Subject', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                                    DataColumn(label: Text('Lecture/Lab', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                                    DataColumn(label: Text('Date', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                                    DataColumn(label: Text('Time', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                                    DataColumn(label: Text('Action', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                                  ],
+                                  rows: filteredHistory.map((item) {
+                                    return DataRow(cells: [
+                                      DataCell(Text(
+                                        item['subject_code']?.toString() ?? 'N/A',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                      )),
+                                      DataCell(Text(
+                                        (item['class_type'] ?? item['lecture_lab'])?.toString() ?? 'N/A',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                      )),
+                                      DataCell(Text(
+                                        item['date']?.toString() ?? 'N/A',
+                                        style: const TextStyle(fontSize: 12),
+                                      )),
+                                      DataCell(Text(
+                                        item['time']?.toString() ?? 'N/A',
+                                        style: const TextStyle(fontSize: 12),
+                                      )),
+                                      DataCell(Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          _actionButton("Edit", const Color(0xFF5CDB5C), () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => EditAttendanceDetails(
+                                                  attendanceId: int.tryParse(item['attendance_id']?.toString() ?? '0') ?? 0,
+                                                  subjectName: item['subject_name']?.toString() ?? "Unknown",
+                                                  sectionNo: item['section_no']?.toString() ?? "N/A",
+                                                  sectionId: int.tryParse(item['section_id']?.toString() ?? '0') ?? 0,
+                                                ),
+                                              ),
+                                            );
+                                          }),
+                                          const SizedBox(width: 6),
+                                          _actionButton("View", const Color(0xFF1A73E8), () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => ViewStudentAttendance(
+                                                  attendanceId: int.tryParse(item['attendance_id']?.toString() ?? '0') ?? 0,
+                                                  subjectName: item['subject_code']?.toString() ?? 'N/A',
+                                                  date: item['date']?.toString() ?? 'N/A',
+                                                  time: item['time']?.toString() ?? 'N/A',
+                                                  code: item['attendance_code']?.toString() ?? '---',
+                                                ),
+                                              ),
+                                            );
+                                          }),
+                                        ],
+                                      )),
+                                    ]);
+                                  }).toList(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
-    ),
-  );
-}
+          );
+        },
+      ),
+    );
+  }
 
   Widget _buildSearchField() {
     return Container(
-      height: 40,
-      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey)),
-      child: const TextField(
-        decoration: InputDecoration(hintText: "Search", prefixIcon: Icon(Icons.search), border: InputBorder.none, contentPadding: EdgeInsets.only(bottom: 5)),
+      height: 42,
+      decoration: BoxDecoration(
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(25), 
+        border: Border.all(color: Colors.grey.shade400, width: 1),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          Icon(Icons.search, color: Colors.grey.shade600, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                hintText: "Search", 
+                hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                border: InputBorder.none, 
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _actionButton(String label, Color color, VoidCallback onTap) {
     return SizedBox(
-      height: 25,
+      height: 24,
       child: ElevatedButton(
-        style: ElevatedButton.styleFrom(backgroundColor: color, padding: const EdgeInsets.symmetric(horizontal: 8), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5))),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color, 
+          padding: const EdgeInsets.symmetric(horizontal: 10), 
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
         onPressed: onTap,
-        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 10)),
+        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600)),
       ),
     );
   }

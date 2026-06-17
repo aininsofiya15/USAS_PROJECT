@@ -1,11 +1,10 @@
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
-
 import '../config/api.dart';
 
 class RegistrarSubjectProvider {
 
+  // Register a new subject with sections and labs
   Future registerSubject({
 
     required String subjectName,
@@ -14,10 +13,7 @@ class RegistrarSubjectProvider {
     required String totalSection,
     required List sections,
 
-  }) 
-  
-  
-  async {
+  }) async {
 
     print("========== API CALLED ==========");
 
@@ -52,28 +48,34 @@ class RegistrarSubjectProvider {
         body: jsonEncode(body),
       );
 
+      // Display API response status
       print("========== STATUS CODE ==========");
-print(response.statusCode);
+      print(response.statusCode);
 
-print("========== RESPONSE BODY ==========");
-print(response.body);
+      // Display API response body
+      print("========== RESPONSE BODY ==========");
+      print(response.body);
 
-try {
-  var decoded = jsonDecode(response.body);
+      try {
 
-  print("========== FULL RESPONSE ==========");
-  print(decoded);
+        var decoded = jsonDecode(response.body);
 
-  print("========== ERROR ==========");
-  print(decoded["error"]);
+        // Display decoded response
+        print("========== FULL RESPONSE ==========");
+        print(decoded);
 
-  print("========== MESSAGE ==========");
-  print(decoded["message"]);
-} catch (e) {
-  print("JSON DECODE ERROR: $e");
-}
+        print("========== ERROR ==========");
+        print(decoded["error"]);
 
-      // Prevent crash if backend returns HTML
+        print("========== MESSAGE ==========");
+        print(decoded["message"]);
+
+      } catch (e) {
+
+        print("JSON DECODE ERROR: $e");
+      }
+
+      // Prevent app crash if Laravel returns HTML error page
       if (response.body.startsWith("<!DOCTYPE html>")) {
 
         return {
@@ -98,44 +100,59 @@ try {
     }
   }
 
+  // Update existing subject information
+  Future updateSubject({
 
-Future updateSubject({
-  required int subjectId,
-  required String subjectName,
-  required String subjectCode,
-  required String creditHours,
-}) async {
+    required int subjectId,
+    required String subjectName,
+    required String subjectCode,
+    required String creditHours,
 
-  var response = await http.put(
-    Uri.parse("${Api.baseUrl}/subject/$subjectId"),
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json",
-    },
-    body: jsonEncode({
-      "subject_name": subjectName,
-      "subject_code": subjectCode,
-      "credit_hours": creditHours,
-    }),
-  );
+  }) async {
 
-  return jsonDecode(response.body);
-}
+    var response = await http.put(
 
-Future deleteSubject(dynamic subjectId) async {
+      Uri.parse("${Api.baseUrl}/subject/$subjectId"),
 
-  var response = await http.delete(
-    Uri.parse("${Api.baseUrl}/subject/$subjectId"),
-  );
+      headers: {
 
-  print(response.statusCode);
-  
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
 
-  print(response.body);
+      body: jsonEncode({
 
-return {};
-}
+        "subject_name": subjectName,
+        "subject_code": subjectCode,
+        "credit_hours": creditHours,
+      }),
+    );
 
+    return jsonDecode(response.body);
+  }
+
+  // Deactivate or delete a subject
+  Future deleteSubject(
+    dynamic subjectId,
+  ) async {
+
+    var response = await http.delete(
+
+      Uri.parse(
+        "${Api.baseUrl}/subject/$subjectId",
+      ),
+    );
+
+    // Display API status code
+    print(response.statusCode);
+
+    // Display API response body
+    print(response.body);
+
+    return {};
+  }
+
+  // Retrieve lecturer list
   Future getLecturers() async {
 
     try {

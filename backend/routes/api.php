@@ -135,6 +135,7 @@ Route::post('/attendance/update/{id}', [AttendanceController::class, 'updateStud
 Route::get('/get-adab-modules', [AttendanceController::class, 'getAdabModules']);
 Route::post('/module-attendance/store', [AttendanceController::class, 'storeModuleAttendance']);
 Route::post('/attendance/update-location', [AttendanceController::class, 'updateModuleAttendanceDetails']);
+Route::post('/module-attendance/update', [AttendanceController::class, 'updateStudentModuleAttendance']);
 
 //STUDENT ROUTES
 Route::get('/student/dashboard/{studentId}', [AttendanceController::class, 'fetchStudentClassModule']);
@@ -142,6 +143,7 @@ Route::get('/attendance/submissions/{sectionId}/{studentId}', [AttendanceControl
 Route::post('/attendance/submit', [AttendanceController::class, 'submitAttendance']);
 Route::get('/attendance/records/{studentId}', [AttendanceController::class, 'getSubmittedAttendanceRecords']);
 Route::get('/student/modules/{studentId}', [AttendanceController::class, 'fetchStudentClassModule']);
+
 
 //JIHA 
 //TREASURER ROUTES

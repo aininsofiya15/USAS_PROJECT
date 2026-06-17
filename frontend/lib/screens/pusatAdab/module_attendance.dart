@@ -120,56 +120,67 @@ class _ModuleAttendanceSelectionPageState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(25),
+        border: Border.all(
+          color: Colors.grey.shade300,
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 8,
+            spreadRadius: 1,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            module.activityName.toUpperCase(),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 5),
-          Text(
-            "Class Date: ${module.dateTime} | Venue: ${module.venue}",
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-          const SizedBox(height: 15),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              // ── Edit button ──────────────────────────────────────────
-              _actionButton("Edit", const Color(0xFF00CC66), () async {
-                final refresh = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditModuleAttendancePage(
-                      module: module,
+            Text(
+              module.activityName.toUpperCase(),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              "Class Date: ${module.dateTime} | Venue: ${module.venue}",
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 15),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                // ── Edit button ──────────────────────────────────────────
+                _actionButton("Edit", const Color(0xFF00CC66), () async {
+                  final refresh = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditModuleAttendancePage(
+                        module: module,
+                      ),
                     ),
-                  ),
-                );
+                  );
 
-                // Automatically updates and refreshes lists if data saved successfully
-                if (refresh == true) {
-                  _loadData();
-                }
-              }),
-              const SizedBox(width: 8),
-              // ── View Attendance button ───────────────────────────────
-              _actionButton("View Attendance", const Color(0xFF007AFF), () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AttendanceRecordListPage(
-                      bookingId: module.id ?? 0,
-                      module: module,
+                  if (refresh == true) {
+                    _loadData();
+                  }
+                }),
+                const SizedBox(width: 8),
+                // ── View Attendance button ───────────────────────────────
+                _actionButton("View Attendance", const Color(0xFF007AFF), () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AttendanceRecordListPage(
+                        bookingId: module.id ?? 0,
+                        module: module,
+                      ),
                     ),
-                  ),
-                );
-              }),
-            ],
-          ),
-        ],
-      ),
+                  );
+                }),
+              ],
+            ),
+          ],
+        ),
     );
   }
 

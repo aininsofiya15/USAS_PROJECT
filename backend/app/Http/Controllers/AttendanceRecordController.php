@@ -9,17 +9,14 @@ use Illuminate\Validation\ValidationException;
 
 class AttendanceRecordController extends Controller
 {
-
     // 1. Fetch published modules 
     public function fetchPusatAdabModules()
     {
-        // Retrieve modules with published status
+        // Fetch all published modules from the database
         $modules = Module::where('status', 'published')
-            // Select module attributes to display
             ->select('id', 'activity_name', 'date_time', 'venue', 'lecturer_name', 'status')
             ->get();
         
-        // Return JSON payload response
         return response()->json(['data' => $modules], 200);
     }
 
@@ -27,33 +24,23 @@ class AttendanceRecordController extends Controller
     public function getPresentStudents($moduleId)
     {
         try {
-            // Retrieve module details by module ID
-            $moduleInfo = DB::table('modules')
-            // Filter by module ID and select moduleattributes 
-                ->where('id', $moduleId)
-                ->select('id', 'activity_name', 'date_time', 'venue', 'lecturer_name', 'capacity', 'current_registration')
-                ->first();
-
-            // Message when module ID does not exist in database
+            // Validate module existence
+            $moduleInfo = DB::table('modules')->where('id', $moduleId)->first();
             if (!$moduleInfo) {
                 return response()->json(['message' => 'Module session not found'], 404);
             }
 
-            // Query database relations to compile attendance records
-            $students = DB::table('module_attendances')
-                ->join('bookings', 'module_attendances.booking_id', '=', 'bookings.id')
-                ->join('modules', 'bookings.module_id', '=', 'modules.id')
-                ->join('attendances', 'bookings.id', '=', 'attendances.booking_id') 
-                ->join('attendance_records', 'attendances.id', '=', 'attendance_records.attendance_id')
-                ->join('students', 'attendance_records.student_id', '=', 'students.id')
-                ->join('users', 'students.id', '=', 'users.id')
-                // Filter records by choosen module ID
-                ->where('modules.id', $moduleId)
-                // Select attributes for the attendance record
+            // Fetch students who have attendance records for the the module
+            $students = DB::table('attendance_records')
+                ->join('attendances', 'attendance_records.attendance_id', '=', 'attendances.id')
+                ->join('module_attendances', 'attendances.id', '=', 'module_attendances.attendance_id')
+                ->join('users', 'attendance_records.student_id', '=', 'users.id')
+                ->leftJoin('students', 'users.id', '=', 'students.id') // Left join prevents crash if profile row is missing
+                ->where('module_attendances.module_id', $moduleId)
                 ->select(
                     'attendance_records.id as id', 
                     'users.name as student_name',
-                    'students.student_id as matrix_no', 
+                    DB::raw('COALESCE(students.student_id, "No Matric") as matrix_no'), 
                     'attendance_records.status as attendance_status',
                     'attendance_records.created_at as check_in_time',
                     'attendance_records.marks as marks',           
@@ -61,17 +48,16 @@ class AttendanceRecordController extends Controller
                 )
                 ->get();
 
-            // Return JSON payload response with module info and student attendance records
+            // Display module info and student attendance list 
             return response()->json([
                 'data' => [
                     'module' => $moduleInfo,
                     'students' => $students
                 ]
             ], 200);
-        // Catch exceptions that occur during database query execution 
+
         } catch (\Exception $e) {
-            // Return an error response
-            return response()->json(['error' => 'Database query failed: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Database bypass query failed: ' . $e->getMessage()], 500);
         }
     }
     
@@ -79,15 +65,16 @@ class AttendanceRecordController extends Controller
     public function updateStudentGrade(Request $request, $recordId)
     {
         try {
-            // Validate the entered marks format
+            // Validate the marks format
             $request->validate([
                 'marks' => 'required|numeric|min:0|max:100',
             ]);
-            // Retrieve the marks input and determine the grade category
+
+            // Determine grade category based on marks
             $marks = $request->input('marks');
             $gradeCategory = 'Fail';
 
-            // Determine grade category based on marks entered
+            // Assign grade category based on marks
             if ($marks >= 80) {
                 $gradeCategory = 'Excellent';
             } elseif ($marks >= 60) {
@@ -96,10 +83,10 @@ class AttendanceRecordController extends Controller
                 $gradeCategory = 'Pass';
             }
 
-            // Check if the attendance record exists in database
+            // Fetch the attendance record to ensure it exists
             $record = DB::table('attendance_records')->where('id', $recordId)->first();
             
-            // Message when attendance record ID does not exist in database
+            // If the record does not exist, return an error message
             if (!$record) {
                 return response()->json([
                     'status' => 'error',
@@ -107,36 +94,34 @@ class AttendanceRecordController extends Controller
                 ], 404);
             }
 
-            // Run the update statement to save the new marks and grade category 
+            // Update the  marks and grade category
             DB::table('attendance_records')
                 ->where('id', $recordId)
                 ->update([
-                    'marks' => $marks,                  
+                    'marks' => $marks,                                  
                     'grade_category' => $gradeCategory, 
                     'updated_at' => now(),
                 ]);
 
-            // Return clean success data back to update the Flutter UI state
+            // Return a success response 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Student records graded successfully!',
                 'data' => [
                     'record_id' => (int)$recordId,
-                    'student_id' => $record->student_id,
+                    'student_id' => $record->student_id, 
                     'marks' => $marks,
                     'grade_category' => $gradeCategory
                 ]
             ], 200);
 
+        // Handle validation errors
         } catch (ValidationException $ve) {
-            // Handle input validation errors 
             return response()->json([
                 'status' => 'validation_error',
                 'error' => $ve->validator->errors()->first()
             ], 422);
-        //  
         } catch (\Exception $e) {
-            // Handle unexpected database system crashes
             return response()->json([
                 'status' => 'error',
                 'error' => 'Database grading transaction failed: ' . $e->getMessage()
