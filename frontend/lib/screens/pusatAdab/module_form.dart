@@ -25,6 +25,9 @@ class ModuleFormPageState extends State<ModuleFormPage> {
   final linkController = TextEditingController();
   final picController = TextEditingController();
 
+  // Stores end time separately for UI display only
+  String _endTime = '';
+
   bool get isEditMode => widget.existingModuleData != null;
 
   @override
@@ -33,12 +36,30 @@ class ModuleFormPageState extends State<ModuleFormPage> {
     if (isEditMode) {
       final data = widget.existingModuleData!;
       nameController.text = data.activityName;
-      dateController.text = data.dateTime;
       capacityController.text = data.capacity.toString();
       venueController.text = data.venue;
       lecturerController.text = data.lecturerName;
-      descController.text = data.description ?? '';
       linkController.text = data.whatsappLink ?? '';
+
+      // Parse stored description: separate real desc from [end_time:XX:XX]
+      final raw = data.description ?? '';
+      final endTimeMatch = RegExp(r'\[end_time:(\d{2}:\d{2})\]').firstMatch(raw);
+      if (endTimeMatch != null) {
+        _endTime = endTimeMatch.group(1)!;
+        descController.text = raw.replaceAll(endTimeMatch.group(0)!, '').trim();
+      } else {
+        descController.text = raw;
+      }
+
+      // Rebuild dateController to show "YYYY-MM-DD HH:MM-HH:MM" in edit mode
+      final startRaw = data.dateTime; // "2026-06-17 08:00:00"
+      if (_endTime.isNotEmpty && startRaw.length >= 16) {
+        final datePart = startRaw.substring(0, 10);
+        final startTimePart = startRaw.substring(11, 16);
+        dateController.text = "$datePart $startTimePart-$_endTime";
+      } else {
+        dateController.text = startRaw;
+      }
     }
   }
 
@@ -65,19 +86,33 @@ class ModuleFormPageState extends State<ModuleFormPage> {
 
     if (pickedDate != null) {
       if (!mounted) return;
-      final TimeOfDay? pickedTime = await showTimePicker(
+      final TimeOfDay? startTime = await showTimePicker(
         context: context,
         initialTime: TimeOfDay.now(),
+        helpText: 'Select Start Time',
       );
 
-      if (pickedTime != null) {
-        setState(() {
-          String datePart =
-              "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
-          String timePart =
-              "${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}";
-          dateController.text = "$datePart $timePart";
-        });
+      if (startTime != null) {
+        if (!mounted) return;
+        final TimeOfDay? endTime = await showTimePicker(
+          context: context,
+          initialTime: startTime,
+          helpText: 'Select End Time',
+        );
+
+        if (endTime != null) {
+          setState(() {
+            String datePart =
+                "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+            String startPart =
+                "${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}";
+            String endPart =
+                "${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}";
+            _endTime = endPart;
+            // Display both times in the field
+            dateController.text = "$datePart $startPart-$endPart";
+          });
+        }
       }
     }
   }
@@ -94,29 +129,48 @@ class ModuleFormPageState extends State<ModuleFormPage> {
       return;
     }
 
+    // Parse "2026-06-17 08:00-17:00" → send only start datetime to DB
+    final rawDate = dateController.text;
+    String startDateTime = rawDate;
+
+    if (_endTime.isNotEmpty && rawDate.contains('-', 11)) {
+      final parts = rawDate.split(' ');
+      if (parts.length == 2) {
+        final timePart = parts[1].split('-').first; // "08:00"
+        startDateTime = "${parts[0]} $timePart:00"; // "2026-06-17 08:00:00"
+      }
+    }
+
+    // Pack end time into description invisibly
+    final finalDesc = _endTime.isNotEmpty
+        ? '${descController.text.trim()}[end_time:$_endTime]'
+        : descController.text.trim();
+
     bool success = false;
 
     if (isEditMode) {
       success = await moduleProvider.updateModule(
         id: widget.existingModuleData!.id.toString(),
         activityName: nameController.text,
-        dateTime: dateController.text,
+        dateTime: startDateTime,
         capacity: int.tryParse(capacityController.text) ?? 0,
         venue: venueController.text,
         lecturerName: lecturerController.text,
-        description: descController.text,
+        description: finalDesc,
         whatsappLink: linkController.text,
+        picContact: picController.text,
         status: status,
       );
     } else {
       success = await moduleProvider.createModule(
         activityName: nameController.text,
-        dateTime: dateController.text,
+        dateTime: startDateTime,
         capacity: int.tryParse(capacityController.text) ?? 0,
         venue: venueController.text,
         lecturerName: lecturerController.text,
-        description: descController.text,
+        description: finalDesc,
         whatsappLink: linkController.text,
+        picContact: picController.text,
         status: status,
       );
     }
@@ -125,12 +179,14 @@ class ModuleFormPageState extends State<ModuleFormPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Successfully saved as $status!")),
       );
-
       if (mounted) Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Error: Check Laravel CORS or Server status."),
+        SnackBar(
+          content: Text(
+            moduleProvider.errorMessage ??
+                "Error: Check Laravel CORS or Server status.",
+          ),
         ),
       );
     }
@@ -188,7 +244,7 @@ class ModuleFormPageState extends State<ModuleFormPage> {
                     child: AbsorbPointer(
                       child: _buildInput(
                         Icons.calendar_month,
-                        "Date & Time*",
+                        "Date & Time (Start - End)*",
                         dateController,
                         trailingIcon: Icons.calendar_month,
                       ),

@@ -50,15 +50,20 @@ class ModuleProvider with ChangeNotifier {
     required String lecturerName,
     String? description,
     String? whatsappLink,
+    String? picContact,
     String status = 'published',
   }) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners(); // Turn on loading spinner
 
     try {
       final response = await http.post(
         Uri.parse(Api.modules),
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
         body: jsonEncode({
           'activity_name': activityName,
           'date_time': dateTime,
@@ -67,6 +72,7 @@ class ModuleProvider with ChangeNotifier {
           'lecturer_name': lecturerName,
           'description': description,
           'whatsapp_link': whatsappLink,
+          'pic_contact': picContact,
           'status': status,
         }),
       );
@@ -77,9 +83,18 @@ class ModuleProvider with ChangeNotifier {
         await fetchModules(); // Re-fetch the list so the new module shows up right away
         return true;
       }
+      try {
+        final data = jsonDecode(response.body);
+        _errorMessage = data['message'] ?? data['error'] ?? 'Failed to save module.';
+      } catch (_) {
+        _errorMessage = 'Failed to save module.';
+      }
+      debugPrint("Create module failed [${response.statusCode}]: ${response.body}");
       notifyListeners();
       return false;
     } catch (e) {
+      debugPrint("Error creating module: $e");
+      _errorMessage = "Network error. Check Laravel server status.";
       _isLoading = false;
       notifyListeners();
       return false;
@@ -96,9 +111,11 @@ class ModuleProvider with ChangeNotifier {
     required String lecturerName,
     String? description,
     String? whatsappLink,
+    String? picContact,
     required String status,
   }) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners(); // Turn on loading spinner
 
     try {
@@ -106,7 +123,10 @@ class ModuleProvider with ChangeNotifier {
 
       final response = await http.post(
         url,
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
         body: jsonEncode({
           'id': id,            
           'activity_name': activityName,   
@@ -116,6 +136,7 @@ class ModuleProvider with ChangeNotifier {
           'lecturer_name': lecturerName,
           'description': description,
           'whatsapp_link': whatsappLink,
+          'pic_contact': picContact,
           'status': status,
         }),
       );
@@ -127,11 +148,18 @@ class ModuleProvider with ChangeNotifier {
         return true;
       } else {
         debugPrint("Backend Error Code: ${response.statusCode}");
+        try {
+          final data = jsonDecode(response.body);
+          _errorMessage = data['message'] ?? data['error'] ?? 'Failed to update module.';
+        } catch (_) {
+          _errorMessage = 'Failed to update module.';
+        }
         notifyListeners();
         return false;
       }
     } catch (e) {
       debugPrint("Error updating module: $e");
+      _errorMessage = "Network error. Check Laravel server status.";
       _isLoading = false;
       notifyListeners();
       return false;
