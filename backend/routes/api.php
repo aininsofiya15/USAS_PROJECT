@@ -86,6 +86,19 @@ Route::get('/total-subjects', function () {
     ]);
 });
 
+// Update subject
+Route::put(
+    '/subject/{id}',
+    [RegistrarSubjectController::class, 'updateSubject']
+);
+
+// Delete subject
+Route::delete(
+    '/subject/{id}',
+    [RegistrarSubjectController::class, 'deleteSubject']
+);
+
+
 
 // STUDENT ROUTES
 

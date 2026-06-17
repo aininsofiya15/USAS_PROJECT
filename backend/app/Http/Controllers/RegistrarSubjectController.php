@@ -101,7 +101,10 @@ class RegistrarSubjectController extends Controller
     // Purpose: Retrieve all subjects
     public function getSubjects()
     {
-        $subjects = Subject::all();
+        $subjects = Subject::where(
+    'subject_status',
+    'active'
+)->get();
 
         foreach ($subjects as $subject) {
 
@@ -227,4 +230,31 @@ class RegistrarSubjectController extends Controller
             'sections' => $sections,
         ]);
     }
+
+    public function updateSubject(Request $request, $id)
+{
+    Subject::where('subject_id', $id)->update([
+        'subject_code' => $request->subject_code,
+        'subject_name' => $request->subject_name,
+        'credit_hours' => $request->credit_hours,
+    ]);
+
+    return response()->json([
+        'success' => true
+    ]);
+}
+
+public function deleteSubject($id)
+{
+    Subject::where('subject_id', $id)
+        ->update([
+            'subject_status' => 'inactive'
+        ]);
+
+    return response()->json([
+        'success' => true
+    ]);
+}
+
+
 }

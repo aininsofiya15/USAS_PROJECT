@@ -214,7 +214,7 @@ class StudentSubjectController extends Controller
 
         /**
          
-         * CHECK CREDIT LIMIT
+         * CHECK CREDIT LIMIT */
         
 
         $currentCredit = DB::table('registration')
