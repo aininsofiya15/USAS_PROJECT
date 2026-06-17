@@ -62,7 +62,7 @@ class StudentSubjectController extends Controller
     public function getRegisteredSubjects($student_id)
     {
         // Sync approved curriculum claims before displaying
-        $this->syncApprovedCreditClaims($student_id);
+        //$this->syncApprovedCreditClaims($student_id);
 
         $registrations = DB::table('registration')
 
@@ -214,7 +214,7 @@ class StudentSubjectController extends Controller
 
         /**
          
-         * CHECK CREDIT LIMIT
+         * CHECK CREDIT LIMIT */
         
 
         $currentCredit = DB::table('registration')

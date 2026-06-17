@@ -19,9 +19,31 @@ class UsasBottomNav extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            IconButton(icon: const Icon(Icons.home, size: 40), onPressed: () => Navigator.popUntil(context, (route) => route.isFirst)),
-            const Icon(Icons.notifications, size: 40),
-            const Icon(Icons.person, size: 40),
+            // Home Icon - Clickable
+            IconButton(
+              icon: const Icon(Icons.home, size: 40),
+              onPressed: () => Navigator.popUntil(context, (route) => route.isFirst),
+            ),
+            // Notifications Icon - Clickable
+            IconButton(
+              icon: const Icon(Icons.notifications, size: 40),
+              onPressed: () {
+                Navigator.pushNamed(context, '/notifications');
+              },
+            ),
+            // Profile Icon - Clickable
+            IconButton(
+              icon: const Icon(Icons.person, size: 40),
+              onPressed: () {
+                // Navigate to profile page or show coming soon
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Profile page coming soon!'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
