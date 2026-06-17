@@ -3,14 +3,14 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\TuitionFeesController;
-use App\Http\Controllers\ModuleController;
-use App\Http\Controllers\BookingController;
-use App\Http\Controllers\AttendanceController;
-use App\Http\Controllers\AttendanceRecordController;
+use App\Http\Controllers\Api\ModuleController;
+use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\AttendanceRecordController;
 use App\Models\Subject; 
-use App\Http\Controllers\RegistrarSubjectController;
-use App\Http\Controllers\StudentSubjectController;
-use App\Http\Controllers\CreditController;
+use App\Http\Controllers\Api\RegistrarSubjectController;
+use App\Http\Controllers\Api\StudentSubjectController;
+use App\Http\Controllers\Api\CreditController;
 
 // Login route for all users 
 Route::post('/login', [AuthController::class, 'login']);
@@ -40,7 +40,12 @@ Route::post('/pusat-adab/credit-claims/{id}/approve', [CreditController::class, 
 // 10. Route to reject a credit claim (Pusat Adab)
 Route::post('/pusat-adab/credit-claims/{id}/reject', [CreditController::class, 'rejectClaim']);
 
+<<<<<<< Updated upstream
 //--------------------------------------------------------------------------------------------------------------------//
+=======
+
+// STUDENT ROUTES
+>>>>>>> Stashed changes
 //AININ 
 // -------------------Student Routes----------------------------------------------------
 
@@ -76,7 +81,7 @@ Route::get('/total-subjects', function () { return response()->json(['totalSubje
 //WIDA
 //LECTURER ROUTES
 Route::get('/lecturer/subjects', [AttendanceController::class, 'getLecturerSubjects']);
-Route::get('/sections/{sectionId}/labs', [AttendanceController::class, 'getSectionLabs']);
+Route::get('/sections/{sectionId}/labs', [App\Http\Controllers\Api\AttendanceController::class, 'getSectionLabs']);
 Route::post('/attendance/store', [AttendanceController::class, 'store']);
 Route::get('/lecturer/{lecturerId}/attendance-history', [AttendanceController::class, 'getAttendanceHistory']);
 Route::get('/attendance/{id}', [AttendanceController::class, 'getDetails']);
@@ -116,3 +121,4 @@ Route::get('/student/financial-details/{id}', [TuitionFeesController::class, 'ge
 Route::post('/student/complete-payment', [App\Http\Controllers\TuitionFeesController::class, 'completePayment']);
 Route::get('/student/payment-history/{userId}', [TuitionFeesController::class, 'getPaymentHistory']); 
 Route::post('/student/update-bank', [TuitionFeesController::class, 'updateStudentBank']);
+Route::post('/tuition/payment-intent', [TuitionFeesController::class, 'generateStripeIntent']);

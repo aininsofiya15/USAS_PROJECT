@@ -1,5 +1,7 @@
 <?php
+
 namespace App\Http\Controllers;
+
 use Illuminate\Support\Facades\DB; 
 use Illuminate\Support\Str;
 use App\Models\User;
@@ -10,6 +12,7 @@ use App\Models\Payment;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Stripe\Stripe;
     
 class TuitionFeesController extends Controller
 {
@@ -214,7 +217,7 @@ class TuitionFeesController extends Controller
 
     // Save the block date
     public function updateBlockSettings(Request $request) 
-{
+    {
         $request->validate([
             'treasurer_id' => 'required', // This is the numeric User ID from Flutter
             'block_start_date' => 'required|date',
@@ -421,7 +424,6 @@ class TuitionFeesController extends Controller
             'method' => 'required|string'
         ]);
 
-        // Find student table matching row
         $student = DB::table('students')->where('id', $request->user_id)->first();
         if (!$student) {
             return response()->json(['error' => 'Student record not found'], 404);
@@ -431,23 +433,23 @@ class TuitionFeesController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Create a successful invoice item entry track line
             $paymentId = 'TXN-' . strtoupper(Str::random(8));
+            
             DB::table('payments')->insert([
                 'payment_id' => $paymentId,
                 'student_id' => $student->student_id,
                 'fee_id' => $fee->fee_id ?? null,
-                'total_payment' => $request->amount,
+                'total_payment' => $request->amount, // Primary track for payments
                 'payment_desc' => 'Tuition Fee Balance Settlement',
-                'payment_method' => $request->method,
-                'status' => 'Success', // Instantly marked successful
+                'payment_method' => $request->method, 
+                'status' => 'Success', 
                 'payment_date' => now(),
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
 
-            // 2. Adjust outstanding fields on fees table structure
             if ($fee) {
                 $newPaidAmount = $fee->paid_amount + $request->amount;
-                // Ensure outstanding never drops into negative anomalies
                 $newOutstanding = max(0, $fee->total_invoice - $newPaidAmount); 
                 $newStatus = $newOutstanding <= 0 ? 'paid' : 'unpaid';
 
@@ -592,6 +594,78 @@ class TuitionFeesController extends Controller
 
         $pdf = \Pdf::loadHTML($html);
         return $pdf->download('USAS-Financial-Report-'.now()->format('Ymd').'.pdf');
+    }
+
+    public function generateStripeIntent(Request $request)
+    {
+        try {
+            // Set Accept header for JSON response
+            $request->headers->set('Accept', 'application/json');
+            
+            // Validate input
+            $validated = $request->validate([
+                'amount' => 'required|numeric|min:0.5',
+                'user_id' => 'required|string',
+                'method' => 'sometimes|string'
+            ]);
+
+            // Get Stripe secret key
+            $stripeSecret = config('services.stripe.secret');
+            if (empty($stripeSecret)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Stripe secret key is not configured'
+                ], 500);
+            }
+
+            // Set Stripe API key
+            \Stripe\Stripe::setApiKey($stripeSecret);
+
+            // Convert amount to cents
+            $amountInCents = intval(round(floatval($validated['amount']) * 100));
+
+            // Determine payment methods based on selection
+            $paymentMethods = ['card'];
+            if (isset($validated['method']) && $validated['method'] === 'fpx') {
+                $paymentMethods = ['fpx'];
+            }
+
+            // Create PaymentIntent
+            $paymentIntent = \Stripe\PaymentIntent::create([
+                'amount' => $amountInCents,
+                'currency' => 'myr',
+                'payment_method_types' => $paymentMethods,
+                'metadata' => [
+                    'user_id' => $validated['user_id'],
+                    'payment_method' => $validated['method'] ?? 'card'
+                ],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'paymentIntentClientSecret' => $paymentIntent->client_secret,
+                'paymentIntentId' => $paymentIntent->id
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Validation failed',
+                'messages' => $e->errors()
+            ], 422);
+        } catch (\Stripe\Exception\ApiErrorException $e) {
+            \Log::error('Stripe API Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Stripe error: ' . $e->getMessage()
+            ], 500);
+        } catch (\Exception $e) {
+            \Log::error('Payment Intent Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Server error: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     // 2. Streams flat structured CSV tracking directly via native PHP output handles

@@ -4,7 +4,9 @@ import '../../provider/manage_fees_provider.dart';
 import '../../provider/user_provider.dart';
 import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
-import 'payment_gateway.dart'; // Ensure MockGatewayPage is written here or update import accordingly
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 class FinancialInfoPage extends StatefulWidget {
   const FinancialInfoPage({super.key});
@@ -15,6 +17,7 @@ class FinancialInfoPage extends StatefulWidget {
 
 class _FinancialInfoPageState extends State<FinancialInfoPage> {
   String? _selectedMethod;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -28,7 +31,6 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Read user provider once to obtain the core ID string safely
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final currentUserId = userProvider.userId.toString();
 
@@ -52,30 +54,28 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
                 const Text("Tuition Fees", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 15),
 
-                // Reminder Banner
                 _buildReminderBanner(),
                 const SizedBox(height: 15),
 
-                // Fee Summary Card
                 _buildCard("Fee Summary", [
                   _buildRow("Course", data['course_name'] ?? "N/A"),
                   _buildRow("Program", data['program'] ?? "N/A"),
                   _buildRow("Bank", data['bank_name'] ?? "Not Linked"),
                   _buildRow("Bank Account No.", data['acc_no'] ?? "Not Linked"),
-                  _buildRow("Total Invoice", "RM ${data['total_invoice'] ?? '0.00'}", isBlue: false), 
+                  _buildRow("Total Invoice", "RM ${data['total_invoice'] ?? '0.00'}", isBlue: false),
 
                   GestureDetector(
                     onTap: () => Navigator.pushNamed(context, '/payment_history'),
                     child: _buildRow(
-                      "Total Payment", 
-                      "RM ${data['total_payment'] ?? '0.00'}", 
-                      isBlue: true, 
+                      "Total Payment",
+                      "RM ${data['total_payment'] ?? '0.00'}",
+                      isBlue: true,
                     ),
                   ),
                   _buildRow("Balance", "RM ${data['outstanding_amount'] ?? '0.00'}"),
                   _buildRow(
-                    "Other Bank Account No.", 
-                    data['acc_no'] ?? "-", 
+                    "Other Bank Account No.",
+                    data['acc_no'] ?? "-",
                     trailing: SizedBox(
                       height: 25,
                       child: ElevatedButton(
@@ -93,15 +93,13 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
 
                 const SizedBox(height: 20),
 
-                // Pay Balance Card
                 _buildCard("Pay Balance Fees", [
                   _buildRow("Amount to Pay", "RM ${data['outstanding_amount'] ?? '0.00'}", valueColor: Colors.red),
                   const SizedBox(height: 10),
                   _buildSelectionRow("Choose Payment", "Internet Banking"),
                   _buildSelectionRow("Method", "Credit Card/Debit Card"),
                   const SizedBox(height: 20),
-                  
-                  // FIXED: Now accurately passing the mapped data state and userId string variables
+
                   _buildPayButton(data, currentUserId),
                 ]),
               ],
@@ -112,7 +110,6 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
     );
   }
 
-  // Helper to ensure wide spacing between label and value
   Widget _buildRow(String label, String value, {bool isBlue = false, Color? valueColor, Widget? trailing}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -120,10 +117,10 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 140, 
+            width: 140,
             child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
           ),
-          const SizedBox(width: 10), 
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               value,
@@ -145,7 +142,7 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
     return Row(
       children: [
         SizedBox(
-          width: 140, 
+          width: 140,
           child: Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
         ),
         const SizedBox(width: 10),
@@ -222,42 +219,143 @@ class _FinancialInfoPageState extends State<FinancialInfoPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           padding: const EdgeInsets.symmetric(vertical: 12),
         ),
-        onPressed: () async {
-          final outstanding = double.tryParse(financialData['outstanding_amount']?.toString() ?? '0') ?? 0.0;
-          
-          if (outstanding <= 0) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Your account balance is already settled.")),
-            );
-            return;
-          }
+        onPressed: _isLoading
+            ? null
+            : () async {
+                final outstanding = double.tryParse(financialData['outstanding_amount']?.toString() ?? '0') ?? 0.0;
 
-          if (_selectedMethod == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Please select a payment method before proceeding.")),
-            );
-            return;
-          }
+                if (outstanding <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("You have no outstanding balance to pay!")),
+                  );
+                  return;
+                }
 
-          final bool? paymentSuccess = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MockGatewayPage(
-                userId: dynamicUserId,
-                amountToPay: outstanding,
+                if (_selectedMethod == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Please select a payment method first!")),
+                  );
+                  return;
+                }
+
+                setState(() => _isLoading = true);
+
+                // Map payment method for backend
+                String backendMethod = 'card';
+                if (_selectedMethod == "Internet Banking") {
+                  backendMethod = 'fpx';
+                }
+
+                try {
+                  // 1. Create Payment Intent
+                  final response = await http.post(
+                    Uri.parse('http://10.0.2.2:8000/api/tuition/payment-intent'),
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Accept': 'application/json',
+                    },
+                    body: jsonEncode({
+                      'amount': outstanding,
+                      'user_id': dynamicUserId,
+                      'method': backendMethod,
+                    }),
+                  );
+
+                  print('Response status: ${response.statusCode}');
+                  print('Response body: ${response.body}');
+
+                  if (response.statusCode != 200) {
+                    final errorData = jsonDecode(response.body);
+                    throw Exception(errorData['error'] ?? 'Failed to initialize payment');
+                  }
+
+                  final paymentData = jsonDecode(response.body);
+                  final clientSecret = paymentData['paymentIntentClientSecret'];
+
+                  if (clientSecret == null || clientSecret.isEmpty) {
+                    throw Exception('No payment intent secret received');
+                  }
+
+                  // 2. Initialize Payment Sheet - CORRECT for flutter_stripe ^13.0.0
+                  await Stripe.instance.initPaymentSheet(
+                    paymentSheetParameters: SetupPaymentSheetParameters(
+                      paymentIntentClientSecret: clientSecret,
+                      merchantDisplayName: 'USAS University',
+                      style: ThemeMode.light,
+                    ),
+                  );
+
+                  // 3. Present Payment Sheet
+                  await Stripe.instance.presentPaymentSheet();
+
+                  // 4. Complete Payment in Database
+                  final completeResponse = await http.post(
+                    Uri.parse('http://10.0.2.2:8000/api/student/complete-payment'),
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Accept': 'application/json',
+                    },
+                    body: jsonEncode({
+                      'user_id': dynamicUserId,
+                      'amount': outstanding,
+                      'method': _selectedMethod,
+                    }),
+                  );
+
+                  if (completeResponse.statusCode == 200) {
+                    final result = jsonDecode(completeResponse.body);
+                    if (result['success'] == true) {
+                      // Refresh data
+                      await Provider.of<FeesManagementProvider>(context, listen: false)
+                          .fetchStudentFinancialProfile(dynamicUserId);
+
+                      if (!mounted) return;
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Payment Successful! 🎉"),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } else {
+                    throw Exception('Failed to update payment record');
+                  }
+                } catch (e) {
+                  if (!mounted) return;
+
+                  String errorMessage = e.toString();
+                  if (errorMessage.contains('canceled')) {
+                    errorMessage = 'Payment was cancelled';
+                  } else if (errorMessage.contains('SetupPaymentSheetParameters')) {
+                    errorMessage = 'Payment configuration error. Please try again.';
+                  }
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Payment failed: $errorMessage"),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                } finally {
+                  if (mounted) {
+                    setState(() => _isLoading = false);
+                  }
+                }
+              },
+        child: _isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Text(
+                "Pay",
+                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
               ),
-            ),
-          );
-
-          if (paymentSuccess == true) {
-            Provider.of<FeesManagementProvider>(context, listen: false)
-                .fetchStudentFinancialProfile(dynamicUserId);
-          }
-        },
-        child: const Text(
-          "Pay", 
-          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
-        ),
       ),
     );
   }
