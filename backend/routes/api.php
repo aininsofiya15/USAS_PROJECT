@@ -116,30 +116,53 @@ Route::put('/student/drop-subject/{registration_id}', [StudentSubjectController:
 
 
 //WIDA
-//LECTURER ROUTES
+// -------- Lecturer Routes --------------------------------------------------------
+ 
+// 1. Route to fetch attendance trend data for the lecturer's dashboard insights chart
 Route::get('/lecturer/{lecturerId}/attendance-insights', [AttendanceController::class, 'getAttendanceInsights']);
+// 2. Route to fetch all subjects and sections assigned to a specific lecturer
 Route::get('/lecturer/subjects/{lecturerId}', [AttendanceController::class, 'getLecturerSubjects']);
+// 3. Route to fetch all labs belonging to a specific section
 Route::get('/sections/{sectionId}/labs', [AttendanceController::class, 'getSectionLabs']);
+// 4. Route to create a new class attendance session with a generated code and GPS data
 Route::post('/attendance/store', [AttendanceController::class, 'store']);
+// 5. Route to fetch the full attendance session history for a specific lecturer
 Route::get('/lecturer/{lecturerId}/attendance-history', [AttendanceController::class, 'getAttendanceHistory']);
+// 6. Route to fetch details of a single attendance session by attendance ID
 Route::get('/attendance/{id}', [AttendanceController::class, 'getDetails']);
+// 7. Route to update the class type, date, time, and GPS of an existing attendance session
 Route::post('/update-attendance', [AttendanceController::class, 'updateAttendanceDetails']);
+// 8. Route to fetch students marked as Present or Late for a given attendance session
 Route::get('/attendance/present/{id}', [AttendanceController::class, 'getClassPresentStudents']);
+// 9. Route to fetch students who are absent or have no record for a given attendance session
 Route::get('/attendance/not-present/{id}', [AttendanceController::class, 'getClassNotPresentStudents']);
+// 10. Route to manually update or insert a student's attendance status in a class session
 Route::post('/attendance/update-status', [AttendanceController::class, 'updateStudentStatus']);
+// 11. Route to update a student's attendance status by record ID (alternate update method)
 Route::post('/attendance/update/{id}', [AttendanceController::class, 'updateStudentAttendanceStatus']);
-
-//PUSAT ADAB ROUTES
+ 
+// -------- Pusat Adab Routes -------------------------------------------------------
+ 
+// 1. Route to fetch all Pusat Adab modules, with optional date filter
 Route::get('/get-adab-modules', [AttendanceController::class, 'getAdabModules']);
+// 2. Route to create a new module attendance session with a generated code and GPS data
 Route::post('/module-attendance/store', [AttendanceController::class, 'storeModuleAttendance']);
+// 3. Route to update the GPS location of an existing module attendance session
 Route::post('/attendance/update-location', [AttendanceController::class, 'updateModuleAttendanceDetails']);
+// 4. Route to update or insert a student's attendance status in a module session
 Route::post('/module-attendance/update', [AttendanceController::class, 'updateStudentModuleAttendance']);
-
-//STUDENT ROUTES
+ 
+// -------- Student Routes ----------------------------------------------------------
+ 
+// 1. Route to fetch a student's academic curriculum and co-curriculum registrations for the dashboard
 Route::get('/student/dashboard/{studentId}', [AttendanceController::class, 'fetchStudentClassModule']);
+// 2. Route to fetch all attendance sessions for a section with submission status for a specific student
 Route::get('/attendance/submissions/{sectionId}/{studentId}', [AttendanceController::class, 'getAttendanceSubmission']);
+// 3. Route for a student to submit attendance using a 6-character code and GPS verification
 Route::post('/attendance/submit', [AttendanceController::class, 'submitAttendance']);
+// 4. Route to fetch all submitted attendance records for a student across curriculum and co-curriculum
 Route::get('/attendance/records/{studentId}', [AttendanceController::class, 'getSubmittedAttendanceRecords']);
+// 5. Route to fetch a student's module registrations and linked attendance session IDs
 Route::get('/student/modules/{studentId}', [AttendanceController::class, 'fetchStudentClassModule']);
 
 

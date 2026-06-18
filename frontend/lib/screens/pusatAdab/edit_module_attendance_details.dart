@@ -31,10 +31,13 @@ class _EditModuleAttendancePageState extends State<EditModuleAttendancePage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = Provider.of<AttendanceProvider>(context, listen: false);
-      await provider.fetchModuleDetails(widget.module.id ?? 0);
+      // FIX: use the same fetch method as the Generate Code page, so this
+      // screen reads real DB data (capacity, lecturer_name, geo_lat, geo_long)
+      // instead of the separate /modules/{id}/details endpoint.
+      await provider.fetchAttendanceDetails(widget.module.id ?? 0);
       
       // Pull current active coordinates safely from the provider dictionary store
-      final moduleDetails = provider.moduleDetails ?? {};
+      final moduleDetails = provider.currentModuleDetails ?? {};
       if (mounted && moduleDetails.isNotEmpty) {
         setState(() {
           _updatedLat = double.tryParse(moduleDetails['geo_lat']?.toString() ?? '');
@@ -127,7 +130,7 @@ class _EditModuleAttendancePageState extends State<EditModuleAttendancePage> {
   setState(() => _isUpdating = true);
 
   final provider = Provider.of<AttendanceProvider>(context, listen: false);
-  final moduleDetails = provider.moduleDetails ?? {};
+  final moduleDetails = provider.currentModuleDetails ?? {};
 
   // Get the actual attendance ID (fallback to module ID if not found)
   final int targetAttendanceId = moduleDetails['id'] ?? (widget.module.id ?? 0);
@@ -159,10 +162,17 @@ class _EditModuleAttendancePageState extends State<EditModuleAttendancePage> {
   }
 }
 
+  // ── UI ──────────────────────────────────────────────────────────────────
+  // NOTE: Restyled to visually match GenerateModuleAttendanceCode (two cards,
+  // centered info rows, same shadow/radius/color values). No fetch logic,
+  // state variables, or button actions were changed — only the widget tree
+  // below this point.
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<AttendanceProvider>(context);
-    final moduleDetails = provider.moduleDetails ?? {}; 
+    // FIX: read from currentModuleDetails (populated by fetchAttendanceDetails),
+    // the same source the Generate Code page uses.
+    final moduleDetails = provider.currentModuleDetails ?? {};
 
     // Sync fallback once when network details come alive, if not touched yet
     if (!_hasInitializedCoords && moduleDetails.isNotEmpty) {
@@ -171,106 +181,188 @@ class _EditModuleAttendancePageState extends State<EditModuleAttendancePage> {
       _hasInitializedCoords = true;
     }
 
+    // Resolve values — DB first, module object as fallback (same pattern
+    // as GenerateModuleAttendanceCode)
+    final int presentCount = provider.presentModuleStudent.length;
+    final int capacity = moduleDetails['capacity'] ?? widget.module.capacity ?? 0;
+    final String venue = moduleDetails['venue'] ?? widget.module.venue ?? 'N/A';
+    final String lecturerName = moduleDetails['lecturer_name'] ?? 'Sir / Madam';
+    final String dateTime = moduleDetails['date_time'] ?? widget.module.dateTime ?? 'N/A';
+
     return Scaffold(
-      backgroundColor: const Color(0xFFD1FFF3), 
+      backgroundColor: const Color(0xFFD1FFF3),
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           children: [
+            // ── Page Title ──────────────────────────────────
             const Text(
-              "Edit Module Attendance", 
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)
+              "Edit Module Attendance",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
 
+            // ── Card 1: Module Info ─────────────────────────
             Container(
-              padding: const EdgeInsets.all(25),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05), 
-                    blurRadius: 10, 
-                    offset: const Offset(0, 4)
-                  )
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    (widget.module.activityName ?? "").toUpperCase(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _infoRow(
+                    "Adaptive Students: $presentCount / $capacity",
+                  ),
+                  _infoRow("Class Date: $dateTime"),
+                  _infoRow("Venue: $venue"),
+                  _infoRow("Lecturer Name: $lecturerName"),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── Card 2: Geolocation + Update ─────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoRow("Activity:", widget.module.activityName ?? ""),
-                  _buildInfoRow(
-                    "Adaptive Students:", 
-                    "${moduleDetails['currentStudents'] ?? '0'} / ${moduleDetails['totalStudents'] ?? '0'}"
-                  ),
-                  _buildInfoRow("Date:", widget.module.dateTime ?? ""),
-                  _buildInfoRow("Venue:", widget.module.venue ?? ""),
-                  _buildInfoRow("Lecturer:", moduleDetails['lecturerName'] ?? 'Sir / Madam'),
-
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 15),
-                    child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
-                  ),
-
+                  // ── Geolocation row ───────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        "Update Geolocation:", 
-                        style: TextStyle(fontWeight: FontWeight.bold)
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Update Geolocation:",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          Text(
+                            "(Tap to refresh)",
+                            style: TextStyle(fontSize: 12, color: Colors.black54),
+                          ),
+                        ],
                       ),
                       TextButton.icon(
                         onPressed: _isFetchingLocation ? null : _getCurrentLocation,
-                        icon: _isFetchingLocation 
-                          ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.my_location, size: 18),
+                        icon: _isFetchingLocation
+                            ? const SizedBox(
+                                width: 15,
+                                height: 15,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.my_location, size: 18),
                         label: Text(_isFetchingLocation ? "Fetching..." : "Refresh GPS"),
-                        style: TextButton.styleFrom(foregroundColor: const Color(0xFF3F51B5)),
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF007BFF),
+                        ),
                       ),
                     ],
                   ),
-                  
+
+                  // ── Captured coordinates display ──────────
                   if (_updatedLat != null)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.only(bottom: 8),
                       child: Text(
-                        "Current Coordinates: ${_updatedLat!.toStringAsFixed(5)}, ${_updatedLong!.toStringAsFixed(5)}",
-                        style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                        "Current Coordinates: ${_updatedLat!.toStringAsFixed(5)}, "
+                        "${_updatedLong!.toStringAsFixed(5)}",
+                        style: const TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
 
-                  Container(
-                    height: 140,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey.shade200),
-                      image: const DecorationImage(
-                        image: NetworkImage('https://static-maps.yandex.ru/1.x/?lang=en_US&ll=101.14,4.48&z=13&l=map&size=450,200'),
-                        fit: BoxFit.cover,
+                  const SizedBox(height: 8),
+
+                  // ── Static map preview ────────────────────
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      height: 180,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade200),
+                        borderRadius: BorderRadius.circular(12),
+                        image: const DecorationImage(
+                          image: NetworkImage(
+                            'https://static-maps.yandex.ru/1.x/?lang=en_US&ll=101.14,4.48&z=13&l=map&size=450,200',
+                          ),
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 20),
 
+                  // ── Update button ──────────────────
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isUpdating ? null : _saveUpdatedLocation, 
+                      onPressed: _isUpdating ? null : _saveUpdatedLocation,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF22C55E), 
+                        backgroundColor: const Color(0xFF007BFF),
                         padding: const EdgeInsets.symmetric(vertical: 15),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         elevation: 0,
                       ),
                       child: _isUpdating
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Text("UPDATE ATTENDANCE DETAILS", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Text(
+                              "SAVE CHANGES",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
                     ),
                   ),
                 ],
@@ -282,24 +374,14 @@ class _EditModuleAttendancePageState extends State<EditModuleAttendancePage> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 2, 
-          child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black54))
-        ),
-        Expanded(
-          flex: 3, 
-          child: Text(
-            value, 
-            textAlign: TextAlign.right, 
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF3F51B5))
-          )
-        ),
-      ],
-    ),
-  );
+  Widget _infoRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 13, color: Colors.black87),
+      ),
+    );
+  }
 }

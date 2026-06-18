@@ -16,6 +16,8 @@ import '../screens/pusatAdab/credit_application.dart';
 import 'package:USAS/screens/faculty/subject_form_page.dart';
 import '../screens/student/list_registered_subjects.dart';
 import '../screens/payment_history.dart';
+import '../screens/lecturer/class_attendance.dart';
+import '../screens/lecturer/view_attendance_records.dart';
 
 class AppSidebar extends StatelessWidget {
   const AppSidebar({super.key});
@@ -152,9 +154,11 @@ class AppSidebar extends StatelessWidget {
                   else if (role == 'lecturer') ...[
                     _buildMenuItem(context, Icons.home_outlined, "Home", role),
                     _buildDivider(role),
-                    _buildMenuItem(context, Icons.checklist_outlined, "Attendance", role),
-                    _buildSubMenuItem(context, "Take Attendance", role),
-                    _buildSubMenuItem(context, "View Attendance", role),
+                    _buildMenuItem(context, Icons.checklist_outlined, "Attendance", role,),
+                    _buildSubMenuItem(context, "Student Attendance", role,
+                      destination: AddAttendancePage()),
+                    _buildSubMenuItem(context, "Attendance Records", role,
+                      destination: ViewAttendanceRecords()),
                   ]
 
                   // ── PUSAT ADAB ──────────────────────────────────────
