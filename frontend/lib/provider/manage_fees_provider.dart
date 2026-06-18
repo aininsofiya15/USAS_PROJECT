@@ -48,8 +48,8 @@ class FeesManagementProvider extends ChangeNotifier {
   int unpaidCount = 0;
   DateTime? _currentBlockDate;
   List<dynamic> paymentHistory = [];
-  double totalCollectedToday = 1250.50; 
-  double totalCollectedThisWeek = 8400.00; 
+  double totalCollectedToday = 0.0;     
+  double totalCollectedThisWeek = 0.0; 
   int totalStudents = 0;
   double totalPaidReport = 0.0;
   double totalOutstandingReport = 0.0;
@@ -207,37 +207,39 @@ class FeesManagementProvider extends ChangeNotifier {
   }
 
   Future<void> fetchDashboardSummary() async {
-    isLoading = true;
-    errorMessage = '';
-    totalCollectedToday = 1250.50;
-    totalCollectedThisWeek = 8400.00;
-    notifyListeners();
+  isLoading = true;
+  errorMessage = '';
+  notifyListeners();
 
-    try {
-      final response = await http.get(
-        Uri.parse('${Api.baseUrl}/treasurer/fees-summary?page=1&per_page=1'),
-        headers: _headers,
-      );
+  try {
+    // ✅ CHANGE THIS URL to use the new dashboard endpoint
+    final response = await http.get(
+      Uri.parse('${Api.baseUrl}/treasurer/dashboard-summary'),  // ✅ Changed endpoint
+      headers: _headers,
+    );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        if (data['students'] != null && data['students']['total'] != null) {
-          totalStudents = data['students']['total'];
-        } else if (data['total_students'] != null) {
-          totalStudents = data['total_students'];
-        }
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      
+      if (data['success'] == true) {
+        // ✅ Update with real values from database
+        totalCollectedToday = (data['totalCollectedToday'] ?? 0.0).toDouble();
+        totalCollectedThisWeek = (data['totalCollectedThisWeek'] ?? 0.0).toDouble();
+        totalStudents = data['totalStudents'] ?? 0;
       } else {
-        errorMessage = 'Server Error: ${response.statusCode}';
+        errorMessage = data['message'] ?? 'Failed to load dashboard data';
       }
-    } catch (e) {
-      errorMessage = 'Could not sync total students.';
-      debugPrint("Dashboard Fetch Error: $e");
-    } finally {
-      isLoading = false;
-      notifyListeners();
+    } else {
+      errorMessage = 'Server Error: ${response.statusCode}';
     }
+  } catch (e) {
+    errorMessage = 'Could not sync dashboard data.';
+    debugPrint("Dashboard Fetch Error: $e");
+  } finally {
+    isLoading = false;
+    notifyListeners();
   }
+}
 
   Future<String?> generateStripePaymentIntent({
     required String studentId, 
