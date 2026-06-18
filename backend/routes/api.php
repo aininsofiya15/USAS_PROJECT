@@ -117,10 +117,8 @@ Route::put('/student/drop-subject/{registration_id}', [StudentSubjectController:
 
 //WIDA
 //LECTURER ROUTES
-// Fetch all subjects and sections assigned to a lecturer
+Route::get('/lecturer/{lecturerId}/attendance-insights', [AttendanceController::class, 'getAttendanceInsights']);
 Route::get('/lecturer/subjects/{lecturerId}', [AttendanceController::class, 'getLecturerSubjects']);
-
-// Other attendance-related endpoints
 Route::get('/sections/{sectionId}/labs', [AttendanceController::class, 'getSectionLabs']);
 Route::post('/attendance/store', [AttendanceController::class, 'store']);
 Route::get('/lecturer/{lecturerId}/attendance-history', [AttendanceController::class, 'getAttendanceHistory']);

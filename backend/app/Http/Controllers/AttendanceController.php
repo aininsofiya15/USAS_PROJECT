@@ -242,12 +242,11 @@ public function getClassPresentStudents($attendanceId)
             ->join('users', 'attendance_records.student_id', '=', 'users.id')
             ->join('students', 'users.id', '=', 'students.id')
             ->where('attendance_records.attendance_id', $attendanceId)
-            ->whereIn('attendance_records.status', ['present', 'late'])
-            
-            // 🔑 REPLACE YOUR OLD SELECT WITH THIS:
+            // ✅ present + late only (medical goes to not-present tab)
+            ->whereIn('attendance_records.status', ['present', 'late', 'Present', 'Late'])
             ->select(
                 'attendance_records.id as id',
-                'attendance_records.id as record_id', 
+                'attendance_records.id as record_id',
                 'students.student_id as matric_no',
                 'users.name as student_name',
                 'attendance_records.status'
@@ -271,8 +270,19 @@ public function getClassPresentStudents($attendanceId)
 public function getClassNotPresentStudents($attendanceId)
 {
     try {
-        $session = DB::table('attendances')->where('id', $attendanceId)->first();
-        $sectionId = ($session && isset($session->section_id)) ? $session->section_id : 3;
+        // ✅ Get section_id from class_attendances, not attendances
+        $session = DB::table('class_attendances')
+            ->where('attendance_id', $attendanceId)
+            ->first();
+
+        if (!$session) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Session not found for attendance_id: ' . $attendanceId
+            ], 404);
+        }
+
+        $sectionId = $session->section_id;
 
         $notPresentStudents = DB::table('registration')
             ->join('users', 'registration.student_id', '=', 'users.id')
@@ -283,20 +293,17 @@ public function getClassNotPresentStudents($attendanceId)
             })
             ->where('registration.section_id', $sectionId)
             ->where('registration.status', 'active')
-            
-            // 🔑 UPDATED WHERE CLAUSE:
+            // ✅ Not present = no record at all, OR status is absent/medical
+            // ✅ Removed 'late' from here — late students show in PRESENT tab
             ->where(function($query) {
                 $query->whereNull('attendance_records.id')
-                      ->orWhereIn('attendance_records.status', ['absent', 'late', 'medical']);
-            }) 
-            
+                      ->orWhereIn('attendance_records.status', ['absent', 'medical']);
+            })
             ->select(
-                // Dynamic mapping: Return real ID if row exists so Flutter can edit it; otherwise return 0
                 DB::raw('COALESCE(attendance_records.id, 0) as id'),
-                DB::raw('COALESCE(attendance_records.id, 0) as record_id'), 
+                DB::raw('COALESCE(attendance_records.id, 0) as record_id'),
                 'students.student_id as matric_no',
                 'users.name as student_name',
-                // Keeps real DB status if it exists, otherwise defaults to 'absent'
                 DB::raw("COALESCE(attendance_records.status, 'absent') as status")
             )
             ->get();
@@ -350,6 +357,58 @@ public function updateStudentStatus(Request $request)
         return response()->json([
             'success' => false,
             'message' => 'Internal database sync error: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+public function getAttendanceInsights($lecturerId)
+{
+    try {
+        // ✅ Log to confirm endpoint is being hit
+        Log::info('fetchAttendanceInsights called for lecturer: ' . $lecturerId);
+
+        $records = DB::table('class_attendances')
+            ->join('sections', 'class_attendances.section_id', '=', 'sections.section_id')
+            ->join('attendance_records', 'class_attendances.attendance_id', '=', 'attendance_records.attendance_id')
+            ->where('sections.lecturer_id', $lecturerId)
+            ->select(
+                'class_attendances.date',
+                DB::raw("SUM(CASE WHEN LOWER(attendance_records.status) IN ('present','late') THEN 1 ELSE 0 END) as present_count"),
+                DB::raw("COUNT(attendance_records.id) as total_count")
+            )
+            ->groupBy('class_attendances.date')
+            ->orderBy('class_attendances.date', 'asc')
+            ->get();
+
+        Log::info('Insights result count: ' . $records->count());
+
+        // ✅ If still empty, return ALL attendance_records for debugging
+        if ($records->isEmpty()) {
+            $debug = DB::table('attendance_records')
+                ->join('class_attendances', 'attendance_records.attendance_id', '=', 'class_attendances.attendance_id')
+                ->join('sections', 'class_attendances.section_id', '=', 'sections.section_id')
+                ->select('sections.lecturer_id', 'class_attendances.date', 'attendance_records.status')
+                ->get();
+
+            Log::info('Debug records: ' . json_encode($debug));
+
+            return response()->json([
+                'success' => true,
+                'data' => $records,
+                'debug' => $debug // ✅ Temporarily return this so you can see what's there
+            ], 200);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $records
+        ], 200);
+
+    } catch (\Exception $e) {
+        Log::error('getAttendanceInsights error: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
         ], 500);
     }
 }

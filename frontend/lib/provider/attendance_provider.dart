@@ -766,6 +766,33 @@ Future<void> fetchAttendanceRecord(String studentId, {String? dateFilter}) async
   }
 }
 
+List<dynamic> _attendanceInsights = [];
+List<dynamic> get attendanceInsights => _attendanceInsights;
+
+bool _isLoadingInsights = false;
+bool get isLoadingInsights => _isLoadingInsights;
+
+Future<void> fetchAttendanceInsights(int lecturerId) async {
+  _isLoadingInsights = true;
+  notifyListeners();
+  try {
+    final response = await http.get(
+      Uri.parse('${Api.baseUrl}/lecturer/$lecturerId/attendance-insights'),
+      headers: {'Accept': 'application/json'},
+    );
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) {
+        _attendanceInsights = List<dynamic>.from(json['data'] ?? []);
+      }
+    }
+  } catch (e) {
+    debugPrint('Insights error: $e');
+  } finally {
+    _isLoadingInsights = false;
+    notifyListeners();
+  }
+}
 
 // ------------------------------------------------------------------------------
   // AININ

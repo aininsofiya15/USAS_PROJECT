@@ -134,25 +134,26 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
 
       if (responseCode == "DUPLICATE") {
         _showDuplicateWarningDialog(context);
-      } 
-      else if (responseCode != null) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ReleaseAttendanceCodePage(
-              subjectName: widget.subjectName,
-              sectionNo: widget.sectionNo,
-              date: _dateController.text,
-              time: _timeController.text,
-              code: responseCode,
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to process transaction. Please try again."), backgroundColor: Colors.red),
-        );
       }
+// REPLACE WITH:
+else if (responseCode != null) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => ReleaseAttendanceCodePage(
+        subjectName: widget.subjectName,
+        sectionNo: widget.sectionNo,
+        date: _dateController.text,
+        time: _timeController.text,
+        code: responseCode,
+        labName: _selectedLab ?? 'Lecture',           // ✅
+        geolocation: _currentLat != null              // ✅
+            ? "${_currentLat!.toStringAsFixed(5)}, ${_currentLong!.toStringAsFixed(5)}"
+            : 'N/A',
+      ),
+    ),
+  );
+}
     }
   }
 
@@ -264,7 +265,6 @@ class _GenerateAttendanceCodeState extends State<GenerateAttendanceCode> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildInfoRow("Subject:", widget.subjectName),
-                          _buildInfoRow("Section:", widget.sectionNo),
                           
                           const SizedBox(height: 10),
                           

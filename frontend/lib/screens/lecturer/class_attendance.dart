@@ -245,7 +245,7 @@ class _AddAttendancePageState extends State<AddAttendancePage> {
                         ),
                       ),
                       child: Text(
-                        "SECTION ${sec.sectionNo}",
+                        "${sec.sectionNo}",
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 0.5),
                       ),
                     ),

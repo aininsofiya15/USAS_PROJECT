@@ -8,8 +8,10 @@ class ReleaseAttendanceCodePage extends StatelessWidget {
   final String subjectName;
   final String sectionNo;
   final String date;
-  final String time; 
+  final String time;
   final String code;
+  final String labName;        // ✅ add
+  final String geolocation;    // ✅ add
 
   const ReleaseAttendanceCodePage({
     super.key,
@@ -18,54 +20,54 @@ class ReleaseAttendanceCodePage extends StatelessWidget {
     required this.date,
     required this.time,
     required this.code,
+    required this.labName,       // ✅ add
+    required this.geolocation,   
   });
 
-  // --- TIME CALCULATION HELPER ---
-  /// Captures the current live clock time, adds 2 hours, and returns a string range.
-  String _generateLiveTwoHourWindow() {
-    // 1. Get the current active device time (Time of creation)
-    DateTime currentTimeCreated = DateTime.now();
-    
-    // 2. Add exactly 2 hours to get the expiration deadline
-    DateTime expirationTime = currentTimeCreated.add(const Duration(hours: 2));
-    
-    // 3. Format into a clean presentation style (e.g., "6:56 AM")
-    DateFormat displayFormat = DateFormat("h:mm a");
-    String startTimeStr = displayFormat.format(currentTimeCreated);
-    String endTimeStr = displayFormat.format(expirationTime);
-    
-    return "$startTimeStr – $endTimeStr";
+  String _generateValidityWindow() {
+    try {
+      // Parse time — supports both "HH:mm" and "h:mm AM/PM" formats
+      DateTime startTime;
+      if (time.toLowerCase().contains('am') || time.toLowerCase().contains('pm')) {
+        startTime = DateFormat('h:mm a').parse(time.trim());
+      } else {
+        final parts = time.split(':');
+        final now = DateTime.now();
+        startTime = DateTime(now.year, now.month, now.day,
+            int.parse(parts[0]), int.parse(parts[1]));
+      }
+      final endTime = startTime.add(const Duration(hours: 2));
+      final fmt = DateFormat('h:mm a');
+      return "${fmt.format(startTime)} - ${fmt.format(endTime)}";
+    } catch (e) {
+      return time;
+    }
   }
 
-  // --- POPUP SYSTEM BUILDERS ---
-
   void _showSuccessPopup(BuildContext context) {
-    // Generate the window dynamically from the current click execution timestamp
-    final String explicitValidityRange = _generateLiveTwoHourWindow();
+    final String validityRange = _generateValidityWindow();
 
     showDialog(
       context: context,
-      barrierDismissible: false, // User must explicitly tap OK
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
             child: Column(
-              mainAxisSize: MainAxisSize.min, // Wrap content tightly
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Custom Checkmark Logo Icon
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(color: Colors.black, width: 2),
                   ),
-                  child: const Icon(
-                    Icons.check,
-                    color: Colors.black,
-                    size: 32,
-                  ),
+                  child:
+                      const Icon(Icons.check, color: Colors.black, size: 32),
                 ),
                 const SizedBox(height: 20),
                 const Text(
@@ -78,9 +80,8 @@ class ReleaseAttendanceCodePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Displays validation window calculated from live action creation + 2 hours
                 Text(
-                  "Attendance code validity:\n$explicitValidityRange",
+                  "Attendance code validity:\n$validityRange",
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 14,
@@ -90,21 +91,19 @@ class ReleaseAttendanceCodePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 25),
-                // "OK" Action Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.pop(context); // Dismiss the popup dialog
-                      Navigator.popUntil(context, (route) => route.isFirst); // Go back to Dashboard
+                      Navigator.pop(context);
+                      Navigator.popUntil(context, (route) => route.isFirst);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF24D163), // Vibrant Success Green
+                      backgroundColor: const Color(0xFF24D163),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      elevation: 0,
                     ),
                     child: const Text(
                       "OK",
@@ -124,57 +123,121 @@ class ReleaseAttendanceCodePage extends StatelessWidget {
     );
   }
 
-  void _showErrorPopup(BuildContext context) {
-    // Falls back to showing the expiration boundary marking based on the calculated live window
-    final String activeWindowEnd = _generateLiveTwoHourWindow().split(' – ').last;
+  @override
+  Widget build(BuildContext context) {
+    final String validityRange = _generateValidityWindow();
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Warning Alert Triangle Icon
-                const Icon(
-                  Icons.warning_rounded,
-                  color: Color(0xFFE53935), // Warning Red
-                  size: 55,
-                ),
-                const SizedBox(height: 15),
-                Text(
-                  "An attendance code for this class session has already been released and is still active until $activeWindowEnd.",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                    height: 1.3,
+    return Scaffold(
+      backgroundColor: const Color(0xFFFDF2F2),
+      appBar: const UsasHeader(),
+      drawer: const AppSidebar(),
+      bottomNavigationBar: const UsasBottomNav(),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
+          children: [
+            // ── Page Title ─────────────────────────────────────────────
+            const Text(
+              "Attendance",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+
+            // ── Card 1: Subject Info ───────────────────────────────────
+            Container(
+              width: double.infinity,
+              padding:
+                  const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                ),
-                const SizedBox(height: 25),
-                // Action Routing Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Dismiss dialog
-                      Navigator.popUntil(context, (route) => route.isFirst); // Go back to Dashboard
-                    },
+                ],
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    subjectName.toUpperCase(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildCenteredInfoRow("Section: $sectionNo"),
+                  _buildCenteredInfoRow("Lecture/Lab: $labName"),           // ✅
+                  _buildCenteredInfoRow("Class Date: $date $validityRange"),
+                  _buildCenteredInfoRow("Geolocation: $geolocation"),       // ✅
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // ── Card 2: Attendance Code + Release Button ───────────────
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // ── "Attendance Code:" label ─────────────────────────
+                  const Text(
+                    "Attendance Code:",
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // ── Large bold code ──────────────────────────────────
+                  Text(
+                    code,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      letterSpacing: 6,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ── Release Code button ──────────────────────────────
+                  ElevatedButton(
+                    onPressed: () => _showSuccessPopup(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF24D163), // Green Action Match
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: const Color(0xFF28A745),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 13,
+                        horizontal: 40,
+                      ),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(25),
                       ),
                       elevation: 0,
                     ),
                     child: const Text(
-                      "Back to Dashboard",
+                      "Release Code",
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -182,125 +245,6 @@ class ReleaseAttendanceCodePage extends StatelessWidget {
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // --- CORE UI PAGE LAYOUT ---
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3D8DA), 
-      appBar: const UsasHeader(),
-      drawer: const AppSidebar(),
-      bottomNavigationBar: const UsasBottomNav(),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            const Text(
-              "Release Attendance",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            
-            Container(
-              padding: const EdgeInsets.all(25),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ],
-              ),
-              child: Column(
-                children: [
-                  _buildDisplayRow("Subject:", subjectName),
-                  _buildDisplayRow("Section:", sectionNo.split('-').last),
-                  _buildDisplayRow("Date:", date),
-                  _buildDisplayRow("Time:", time),
-                  
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
-                  ),
-                  
-                  const Text(
-                    "STUDENT ATTENDANCE CODE",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold, 
-                      color: Colors.black54,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  
-                  // Generated Code display box
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 25),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8F9FA),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: const Color(0xFF007BFF).withOpacity(0.1)),
-                    ),
-                    child: Text(
-                      code,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 42,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF007BFF), 
-                        letterSpacing: 10,
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 35),
-                  
-                  // Release Interactive Action Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Triggers success popup tracking exact click-instantiation timeline limits
-                        _showSuccessPopup(context);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF28A745), 
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        "RELEASE CODE",
-                        style: TextStyle(
-                          color: Colors.white, 
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      "Back to Edit",
-                      style: TextStyle(color: Colors.black38, fontSize: 13),
-                    ),
-                  )
                 ],
               ),
             ),
@@ -310,24 +254,13 @@ class ReleaseAttendanceCodePage extends StatelessWidget {
     );
   }
 
-  Widget _buildDisplayRow(String label, String value) {
+  Widget _buildCenteredInfoRow(String text) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold, 
-                color: Color(0xFF3F51B5), 
-              ),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 13, color: Colors.black87),
       ),
     );
   }
