@@ -18,6 +18,8 @@ import '../screens/student/list_registered_subjects.dart';
 import '../screens/payment_history.dart';
 import '../screens/lecturer/class_attendance.dart';
 import '../screens/lecturer/view_attendance_records.dart';
+import '../screens/student/attendance_dashboard.dart';
+import '../screens/student/attendance_records.dart';
 
 class AppSidebar extends StatelessWidget {
   const AppSidebar({super.key});
@@ -256,7 +258,6 @@ class AppSidebar extends StatelessWidget {
                     ),
                     _buildDivider(role),
 
-                    // ✅ Attendance - Unclickable when blocked (not grayed out)
                     _buildMenuItem(
                       context, 
                       Icons.assignment_turned_in, 
@@ -267,17 +268,17 @@ class AppSidebar extends StatelessWidget {
                     ),
                     _buildSubMenuItem(
                       context, 
-                      "Module Attendance", 
+                      "Attendance", 
                       role,
-                      destination: const AddModuleAttendancePage(),
+                      destination: const AttendanceDashboard(),
                       isBlocked: isBlocked,
                       disableGray: true,
                     ),
                     _buildSubMenuItem(
                       context, 
-                      "Attendance Records", 
+                      "Attendance History", 
                       role,
-                      destination: const ModuleAttendanceSelectionPage(),
+                      destination: const AttendanceRecordsPage(),
                       isBlocked: isBlocked,
                       disableGray: true,
                     ),
