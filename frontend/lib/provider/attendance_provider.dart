@@ -520,7 +520,7 @@ Future<bool> updateStudentAttendance({
 }) async {
   try {
     // Using 10.0.2.2 to route to your local machine's localhost from the Android emulator
-    final url = Uri.parse("http://10.0.2.2:8000/api/attendance/update-location");
+    final url = Uri.parse("${Api.baseUrl}/attendance/update-location");
 
     final response = await http.post(
       url,

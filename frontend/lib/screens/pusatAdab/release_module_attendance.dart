@@ -12,6 +12,10 @@ class ReleaseModuleAttendanceCodePage extends StatelessWidget {
   final String lecturerName;
   final String venue;
   final String dateTime;
+  // FIX: new field so this page can show the real present-student count
+  // instead of a hardcoded "0". Defaults to 0 so existing call sites that
+  // don't pass it yet still compile.
+  final int presentCount;
 
   const ReleaseModuleAttendanceCodePage({
     super.key,
@@ -21,6 +25,7 @@ class ReleaseModuleAttendanceCodePage extends StatelessWidget {
     required this.lecturerName,
     required this.venue,
     required this.dateTime,
+    this.presentCount = 0,
   });
 
   String _generateLiveTwoHourWindow() {
@@ -164,7 +169,7 @@ class ReleaseModuleAttendanceCodePage extends StatelessWidget {
                   const SizedBox(height: 10),
                   // ── All values come from DB via constructor ──────────
                   _buildCenteredInfoRow(
-                      "Number of Student: 0 / $capacity Students"),
+                      "Number of Student: $presentCount / $capacity Students"),
                   _buildCenteredInfoRow("Class Date: $dateTime"),
                   _buildCenteredInfoRow("Venue: $venue"),
                   _buildCenteredInfoRow(

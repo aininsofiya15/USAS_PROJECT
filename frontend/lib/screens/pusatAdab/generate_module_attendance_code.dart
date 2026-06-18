@@ -31,8 +31,12 @@ class _GenerateModuleAttendanceCodeState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // FIX: use the same fetch method as the Attendance Records page,
+      // so this screen reads from the same DB-backed module data
+      // (capacity, venue, lecturer_name, date_time) instead of the
+      // separate /modules/{id}/details endpoint which returns different keys.
       Provider.of<AttendanceProvider>(context, listen: false)
-          .fetchModuleDetails(widget.module.id ?? 0);
+          .fetchAttendanceDetails(widget.module.id ?? 0);
     });
   }
 
@@ -141,8 +145,9 @@ class _GenerateModuleAttendanceCodeState
     }
 
     if (responseCode != null) {
-      // Resolve display values from DB response, fall back to module object
-      final moduleDetails = provider.moduleDetails ?? {};
+      // FIX: resolve display values from the same source the build() method
+      // uses (currentModuleDetails), so values stay consistent across the flow.
+      final moduleDetails = provider.currentModuleDetails ?? {};
       final int capacity =
           moduleDetails['capacity'] ?? widget.module.capacity ?? 0;
       final String lecturerName =
@@ -151,6 +156,9 @@ class _GenerateModuleAttendanceCodeState
           moduleDetails['venue'] ?? widget.module.venue ?? 'N/A';
       final String dateTime =
           moduleDetails['date_time'] ?? widget.module.dateTime ?? 'N/A';
+      // FIX: pass the real present-student count instead of letting the
+      // release page hardcode 0.
+      final int presentCount = provider.presentModuleStudent.length;
 
       // Navigate to release page — pass all resolved values
       Navigator.push(
@@ -163,6 +171,7 @@ class _GenerateModuleAttendanceCodeState
             lecturerName: lecturerName,
             venue: venue,
             dateTime: dateTime,
+            presentCount: presentCount,
           ),
         ),
       );
@@ -234,7 +243,9 @@ class _GenerateModuleAttendanceCodeState
   Widget build(BuildContext context) {
     return Consumer<AttendanceProvider>(
       builder: (context, provider, _) {
-        final moduleDetails = provider.moduleDetails ?? {};
+        // FIX: read from currentModuleDetails (populated by fetchAttendanceDetails),
+        // which is the same source the Attendance Records page uses.
+        final moduleDetails = provider.currentModuleDetails ?? {};
 
         // Resolve values — DB first, module object as fallback
         final int capacity =
@@ -245,6 +256,10 @@ class _GenerateModuleAttendanceCodeState
             moduleDetails['lecturer_name'] ?? 'Sir / Madam';
         final String dateTime =
             moduleDetails['date_time'] ?? widget.module.dateTime ?? 'N/A';
+
+        // FIX: pull the real present-student count instead of hardcoding 0,
+        // using the same list the Attendance Records page reads from.
+        final int presentCount = provider.presentModuleStudent.length;
 
         return Scaffold(
           backgroundColor: const Color(0xFFD1FFF3),
@@ -294,8 +309,7 @@ class _GenerateModuleAttendanceCodeState
                               ),
                             ),
                             const SizedBox(height: 10),
-                            // Student count is always 0 here — nobody marked yet
-                            _infoRow("Number of Student: 0 / $capacity Students"),
+                            _infoRow("Number of Student: $presentCount / $capacity Students"),
                             _infoRow("Class Date: $dateTime"),
                             _infoRow("Venue: $venue"),
                             _infoRow("Lecturer Name: $lecturerName"),
@@ -390,6 +404,12 @@ class _GenerateModuleAttendanceCodeState
                             const SizedBox(height: 8),
 
                             // ── Static map preview ────────────────────
+                            // FIX: was DecorationImage + NetworkImage, which
+                            // fails silently (blank box, no error shown) if
+                            // the tile request is blocked or rejected.
+                            // Image.network gives us loadingBuilder /
+                            // errorBuilder so failures are visible instead
+                            // of an empty rectangle.
                             ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
@@ -399,13 +419,8 @@ class _GenerateModuleAttendanceCodeState
                                   border: Border.all(
                                       color: Colors.grey.shade200),
                                   borderRadius: BorderRadius.circular(12),
-                                  image: const DecorationImage(
-                                    image: NetworkImage(
-                                      'https://static-maps.yandex.ru/1.x/?lang=en_US&ll=101.14,4.48&z=13&l=map&size=450,200',
-                                    ),
-                                    fit: BoxFit.cover,
-                                  ),
                                 ),
+                                child: _buildMapPreview(),
                               ),
                             ),
 
@@ -443,6 +458,51 @@ class _GenerateModuleAttendanceCodeState
                     ],
                   ),
                 ),
+        );
+      },
+    );
+  }
+
+  // ── Static map preview with visible loading/error states ───────────────
+  Widget _buildMapPreview() {
+    // Center on the captured GPS point once available; otherwise fall
+    // back to a default location so something still renders.
+    final double lat = _currentLat ?? 4.48;
+    final double lng = _currentLong ?? 101.14;
+    final String mapUrl =
+        'https://static-maps.yandex.ru/1.x/?lang=en_US&ll=$lng,$lat&z=13&l=map&size=450,200&pt=$lng,$lat,pm2rdm';
+
+    return Image.network(
+      mapUrl,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return const Center(
+          child: SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        debugPrint("Map preview failed to load: $error");
+        return Container(
+          color: Colors.grey.shade100,
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.map_outlined, color: Colors.grey.shade400, size: 32),
+              const SizedBox(height: 6),
+              Text(
+                "Map preview unavailable",
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+              ),
+            ],
+          ),
         );
       },
     );
