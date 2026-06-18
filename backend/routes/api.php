@@ -166,10 +166,10 @@ Route::get('/attendance/records/{studentId}', [AttendanceController::class, 'get
 Route::get('/student/modules/{studentId}', [AttendanceController::class, 'fetchStudentClassModule']);
 
 
-//JIHA 
+//JIHA
 //TREASURER ROUTES
 Route::get('/treasurer/student-count', [TuitionFeesController::class, 'getStudentCount']);
-Route::get('/treasurer/dashboard-summary', [TuitionFeesController::class, 'dashboardSummary']);
+Route::get('/treasurer/dashboard-summary', [TuitionFeesController::class, 'getDashboardSummary']);
 Route::get('/treasurer/fees-summary', [TuitionFeesController::class, 'getTuitionFeesSummary']);
 Route::get('/treasurer/fees-status', [TuitionFeesController::class, 'getStudentsFeeStatus']);
 Route::get('/treasurer/student-details/{userId}', [TuitionFeesController::class, 'getStudentDetail']);

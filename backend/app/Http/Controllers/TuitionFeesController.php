@@ -45,6 +45,47 @@ class TuitionFeesController extends Controller
         ]);
     }
 
+    public function getDashboardSummary()
+    {
+        try {
+            $today = Carbon::today();
+            $startOfWeek = Carbon::now()->startOfWeek();
+            $endOfWeek = Carbon::now()->endOfWeek();
+
+            // Total collected today
+            $totalCollectedToday = DB::table('payments')
+                ->where('status', 'Success')
+                ->whereDate('payment_date', $today)  
+                ->sum('total_payment');           
+
+            // Total collected this week
+            $totalCollectedThisWeek = DB::table('payments')
+                ->where('status', 'Success')
+                ->whereDate('payment_date', '>=', $startOfWeek)
+                ->whereDate('payment_date', '<=', $endOfWeek)
+                ->sum('total_payment');            
+
+            // Get total students count
+            $totalStudents = DB::table('students')->count();
+
+            return response()->json([
+                'success' => true,
+                'totalCollectedToday' => (double) $totalCollectedToday,
+                'totalCollectedThisWeek' => (double) $totalCollectedThisWeek,
+                'totalStudents' => (int) $totalStudents
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('Dashboard Summary Error: ' . $e->getMessage());
+            \Log::error('Error trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching dashboard metrics: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function getStudentDashboardStatus($student_id)
     {
         try {
