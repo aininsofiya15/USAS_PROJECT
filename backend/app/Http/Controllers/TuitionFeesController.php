@@ -105,6 +105,11 @@ class TuitionFeesController extends Controller
 
             $paymentStatus = $feeRecord ? strtolower($feeRecord->status) : 'unpaid';
             $outstandingAmount = $feeRecord ? $feeRecord->outstanding_amount : 0;
+            $totalCredits = DB::table('registration')
+                ->join('subjects', 'registration.subject_id', '=', 'subjects.subject_id')
+                ->where('registration.student_id', $student_id)
+                ->where('registration.status', 'active')
+                ->sum('subjects.credit_hours');
 
             // ✅ Check if student is blocked - changed isAfter to gte
             $today = Carbon::now();
@@ -116,7 +121,7 @@ class TuitionFeesController extends Controller
                 'success' => true,
                 'block_date' => Carbon::parse($blockDate)->format('Y-m-d'),
                 'payment_status' => $paymentStatus,
-                'total_credits' => 12,
+                'total_credits' => (int) $totalCredits,
                 'curriculum_progress' => 0.70,
                 'is_blocked' => $isBlocked,
                 'outstanding_amount' => $outstandingAmount,

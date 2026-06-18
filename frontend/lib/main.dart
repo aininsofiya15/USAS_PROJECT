@@ -18,8 +18,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize the Stripe Sandbox Test Publishable Key globally
-  Stripe.publishableKey = "pk_test_51ThxWlCFCHNeyCRCz2socpSOuAsAHZ7QrLfRbldPQmJ4dzgAqlmMViyRYahaGwi6PrSuLmjLsO1oa6Q2DDXg1pEo00ow9C5NFK";
-  
+  Stripe.publishableKey = "pk_test_51ThxWKFhsreU4MoNy0WwniK83LPN5YUMDLTpeFvKP4YLxsQNoDgK9v4oq24cc9d1FIpvXEgv1jCmYJngGYrhm2MQ004AUX3SYZ";
   runApp(
     MultiProvider(
       providers: [

@@ -1,88 +1,40 @@
 <?php
 
-namespace Database\Seeders;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-
-class NotificationSeeder extends Seeder
+return new class extends Migration
 {
-    public function run()
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
     {
-        // Get all student user IDs
-        $students = DB::table('users')->where('role', 'student')->pluck('id');
-        
-        // Get block date from block_settings
-        $blockSetting = DB::table('block_settings')->orderBy('created_at', 'desc')->first();
-        $blockDate = $blockSetting->block_date ?? $blockSetting->block_start_date ?? '2026-05-18';
-        $blockDateParsed = Carbon::parse($blockDate);
-        $formattedBlockDate = $blockDateParsed->format('d F Y');
-        $isBlockFuture = $blockDateParsed->isFuture();
-        
-        // Clear existing notifications
-        DB::table('notifications')->truncate();
-        
-        foreach ($students as $studentId) {
-            // Get student's matric ID
-            $student = DB::table('students')->where('id', $studentId)->first();
-            if (!$student) continue;
+        Schema::create('notifications', function (Blueprint $table) {
+            // 1. Explicitly name your primary key 'notification_id'
+            $table->bigIncrements('notification_id'); 
             
-            $matricId = $student->student_id;
+            // 2. Your user foreign key column named 'id'
+            $table->unsignedBigInteger('id'); 
             
-            // Get all payments for this student
-            $payments = DB::table('payments')
-                ->where('student_id', $matricId)
-                ->where('status', 'Success')
-                ->orderBy('payment_date', 'asc')
-                ->get();
-            
-            // Payment Success notification for each payment
-            foreach ($payments as $payment) {
-                // ✅ REMOVE notification_id - let it auto-increment
-                DB::table('notifications')->insert([
-                    'id' => $studentId,
-                    'title' => 'Payment Success',
-                    'message' => 'Your payment of RM ' . number_format($payment->total_payment, 2) . ' has been received.',
-                    'is_read' => 1,
-                    'type' => 'payment_success',
-                    'reference_id' => $payment->payment_id,
-                    'created_at' => $payment->payment_date ?? now(),
-                    'updated_at' => $payment->payment_date ?? now()
-                ]);
-            }
-            
-            // Get fee record to check if student has outstanding balance
-            $fee = DB::table('fees')->where('student_id', $matricId)->first();
-            
-            // Create Payment Reminder and Block Warning ONLY IF:
-            // - block date is in the future
-            // - student has unpaid fees
-            if ($isBlockFuture && $fee && $fee->status == 'unpaid' && $fee->outstanding_amount > 0) {
-                // ✅ Payment Reminder - REMOVE notification_id
-                DB::table('notifications')->insert([
-                    'id' => $studentId,
-                    'title' => 'Payment Reminder',
-                    'message' => 'Your tuition fee payment is due on ' . $formattedBlockDate . '.',
-                    'is_read' => 0,
-                    'type' => 'payment_reminder',
-                    'reference_id' => null,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-                
-                // ✅ Block Warning - REMOVE notification_id
-                DB::table('notifications')->insert([
-                    'id' => $studentId,
-                    'title' => 'Block Warning',
-                    'message' => 'Your academic access will be blocked after Week 5 (' . $formattedBlockDate . ') if your balance remains unpaid.',
-                    'is_read' => 0,
-                    'type' => 'block_warning',
-                    'reference_id' => null,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            }
-        }
+            $table->string('title');
+            $table->text('message');
+            $table->boolean('is_read')->default(false);
+            $table->string('type');
+            $table->string('reference_id')->nullable();
+            $table->timestamps();
+
+            // Setup the foreign key constraint pointing to users table
+            $table->foreign('id')->references('id')->on('users')->onDelete('cascade');
+        });
     }
-}
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('notifications');
+    }
+};

@@ -63,7 +63,7 @@ class FeesManagementProvider extends ChangeNotifier {
   bool studentIsBlocked = false;
   String upcomingDueDateStr = "Loading...";
   double curriculumProgress = 0.7;
-  int totalCreditsCurrentSem = 12;
+  int totalCreditsCurrentSem = 0;
 
   // Getter for selectedBlockDate
   DateTime get selectedBlockDate => _currentBlockDate ?? DateTime.now();
@@ -157,7 +157,7 @@ class FeesManagementProvider extends ChangeNotifier {
         
         String paymentStatus = data['payment_status']?.toString().toLowerCase() ?? 'unpaid';
         
-        totalCreditsCurrentSem = int.tryParse(data['total_credits']?.toString() ?? '12') ?? 12;
+        totalCreditsCurrentSem = int.tryParse(data['total_credits']?.toString() ?? '0') ?? 0;
         curriculumProgress = double.tryParse(data['curriculum_progress']?.toString() ?? '0.7') ?? 0.7;
 
         // ✅ Use the is_blocked from backend instead of calculating here
