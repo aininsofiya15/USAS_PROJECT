@@ -693,8 +693,7 @@ class _AttendanceSubmissionPageState extends State<AttendanceSubmissionPage> {
     String displayDate = widget.sessionData['date'] ?? "N/A";
     String displayTime = widget.sessionData['time'] ?? "";
     String displayVenue = widget.sessionData['venue'] ?? "N/A";
-    String displayLecturer =
-        widget.sessionData['lecturer_name'] ?? "N/A";
+    String displayLecturer = widget.sessionData['lecturer_name'] ?? "N/A";
     String enrolled =
         widget.sessionData['enrolled']?.toString() ?? "0";
     String capacity =
