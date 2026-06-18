@@ -717,56 +717,61 @@ class TuitionFeesController extends Controller
     }
 
     public function getFinancialReportTotals(Request $request)
-    {
-        try {
-            // ✅ Get date range from request
-            $startDate = $request->query('start_date');
-            $endDate = $request->query('end_date');
-            
-            // Build payment query with date filter
-            $paymentQuery = DB::table('payments')->where('status', 'Success');
-            
-            if ($startDate && $endDate) {
-                $paymentQuery->whereBetween('payment_date', [$startDate, $endDate]);
-            }
-            
-            // Calculate total paid from payments within date range
-            $totalPaid = $paymentQuery->sum('total_payment');
-            
-            // Calculate outstanding balance (from fees table - not date dependent)
-            $totalOutstanding = DB::table('fees')->sum('outstanding_amount');
-            
-            // Count blocked students
-            $blockedCount = DB::table('students')->where('is_blocked', true)->count();
-            
-            // Count online banking and card payments within date range
-            $onlineBankingCount = DB::table('payments')
-                ->where('status', 'Success')
-                ->where('payment_method', 'Internet Banking');
-                
-            $cardCount = DB::table('payments')
-                ->where('status', 'Success')
-                ->where('payment_method', 'Credit Card/Debit Card');
-                
-            if ($startDate && $endDate) {
-                $onlineBankingCount->whereBetween('payment_date', [$startDate, $endDate]);
-                $cardCount->whereBetween('payment_date', [$startDate, $endDate]);
-            }
-            
-            $onlineBankingCount = $onlineBankingCount->count();
-            $cardCount = $cardCount->count();
-
-            return response()->json([
-                'total_paid' => (float)$totalPaid,
-                'total_outstanding' => (float)$totalOutstanding,
-                'blocked_count' => $blockedCount,
-                'online_banking_count' => $onlineBankingCount,
-                'card_payment_count' => $cardCount,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
+{
+    try {
+        //Get date range from request
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        
+        \Log::info('Report requested for: ' . $startDate . ' to ' . $endDate);
+        
+        // Build payment query with date filter
+        $paymentQuery = DB::table('payments')->where('status', 'Success');
+        
+        if ($startDate && $endDate) {
+            $paymentQuery->whereBetween('payment_date', [$startDate, $endDate]);
         }
+        
+        // Calculate total paid from payments within date range
+        $totalPaid = $paymentQuery->sum('total_payment');
+        
+        // Calculate outstanding balance (from fees table - not date dependent)
+        $totalOutstanding = DB::table('fees')->sum('outstanding_amount');
+        
+        // Count blocked students
+        $blockedCount = DB::table('students')->where('is_blocked', true)->count();
+        
+        // Count online banking and card payments within date range
+        $onlineBankingQuery = DB::table('payments')
+            ->where('status', 'Success')
+            ->where('payment_method', 'Internet Banking');
+            
+        $cardQuery = DB::table('payments')
+            ->where('status', 'Success')
+            ->where('payment_method', 'Credit Card/Debit Card');
+            
+        if ($startDate && $endDate) {
+            $onlineBankingQuery->whereBetween('payment_date', [$startDate, $endDate]);
+            $cardQuery->whereBetween('payment_date', [$startDate, $endDate]);
+        }
+        
+        $onlineBankingCount = $onlineBankingQuery->count();
+        $cardCount = $cardQuery->count();
+
+        \Log::info('Report results - Total Paid: ' . $totalPaid . ', Online Banking: ' . $onlineBankingCount . ', Card: ' . $cardCount);
+
+        return response()->json([
+            'total_paid' => (float)$totalPaid,
+            'total_outstanding' => (float)$totalOutstanding,
+            'blocked_count' => $blockedCount,
+            'online_banking_count' => $onlineBankingCount,
+            'card_payment_count' => $cardCount,
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('Financial Report Error: ' . $e->getMessage());
+        return response()->json(['error' => $e->getMessage()], 500);
     }
+}
 
     // 1. Calculate dynamic metrics and generate an aesthetic PDF Report layout
     public function downloadFinancialReportPDF()

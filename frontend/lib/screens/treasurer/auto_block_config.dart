@@ -98,11 +98,14 @@ class _AutoBlockConfigPageState extends State<AutoBlockConfigPage> {
                                 icon: const Icon(Icons.calendar_today_outlined, size: 20),
                                 onPressed: () async {
                                   DateTime? picked = await showDatePicker(
-                                    context: context,
-                                    initialDate: provider.selectedBlockDate,
-                                    firstDate: DateTime.now(),
-                                    lastDate: DateTime(2030),
-                                  );
+                                      context: context,
+                                      initialDate: provider.selectedBlockDate,
+                                      // If the selected date is in the past, use it as firstDate; otherwise use now.
+                                      firstDate: provider.selectedBlockDate.isBefore(DateTime.now()) 
+                                          ? provider.selectedBlockDate 
+                                          : DateTime.now(),
+                                      lastDate: DateTime(2030),
+                                    );
                                   if (picked != null) {
                                     provider.updateBlockDate(picked); 
                                   }
