@@ -176,18 +176,21 @@ class FeesManagementProvider extends ChangeNotifier {
         notifyListeners();
       } else {
         errorMessage = data['message'] ?? 'Backend operation failed validation.';
+        // ✅ Don't set to "Sync Error", keep existing date
         if (_currentBlockDate != null) {
           _updateUpcomingDueDate(_currentBlockDate!);
         }
       }
     } else {
       errorMessage = 'Server Error Status Code context: ${response.statusCode}';
+      // ✅ Don't set to "Sync Error", use current block date
       if (_currentBlockDate != null) {
         _updateUpcomingDueDate(_currentBlockDate!);
       }
     }
   } catch (e) {
     errorMessage = 'Network connection thread failure: ${e.toString()}';
+    // ✅ Don't set to "Offline" or "Sync Error"
     if (_currentBlockDate != null) {
       _updateUpcomingDueDate(_currentBlockDate!);
     }

@@ -6,6 +6,9 @@ import '../../widgets/header.dart';
 import '../../widgets/navigation_bar.dart';
 import '../../widgets/app_sidebar.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class FinancialReportPage extends StatefulWidget {
   const FinancialReportPage({super.key});
@@ -17,14 +20,37 @@ class FinancialReportPage extends StatefulWidget {
 class _FinancialReportPageState extends State<FinancialReportPage> {
   DateTime _startDate = DateTime(DateTime.now().year, DateTime.now().month, 1);
   DateTime _endDate = DateTime(DateTime.now().year, DateTime.now().month + 1, 0);
+  bool _isLoading = false;
+  
+  // ✅ Separate loading states for PDF and CSV
+  bool _isDownloadingPDF = false;
+  bool _isDownloadingCSV = false;
 
   // ✅ Method to fetch data with current date range
   Future<void> _fetchReportData() async {
-    final provider = Provider.of<FeesManagementProvider>(context, listen: false);
-    await provider.fetchReportTotals(
-      startDate: _startDate,
-      endDate: _endDate,
-    );
+    setState(() => _isLoading = true);
+    
+    try {
+      final provider = Provider.of<FeesManagementProvider>(context, listen: false);
+      await provider.fetchReportTotals(
+        startDate: _startDate,
+        endDate: _endDate,
+      );
+    } catch (e) {
+      print('Error fetching report data: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error fetching report data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _selectDateRange(BuildContext context) async {
@@ -53,8 +79,189 @@ class _FinancialReportPageState extends State<FinancialReportPage> {
         _startDate = picked.start;
         _endDate = picked.end;
       });
-      // ✅ Fetch data with new date range
       await _fetchReportData();
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchReportData();
+    });
+  }
+
+  // ✅ Improved Download PDF with better error handling
+  Future<void> _downloadPDF() async {
+    // Don't allow concurrent downloads
+    if (_isDownloadingPDF || _isDownloadingCSV) return;
+    
+    setState(() => _isDownloadingPDF = true);
+    
+    try {
+      // Build URL with date parameters
+      String url = 'http://10.0.2.2:8000/api/treasurer/report/download-pdf';
+      url += '?start_date=${DateFormat('yyyy-MM-dd').format(_startDate)}';
+      url += '&end_date=${DateFormat('yyyy-MM-dd').format(_endDate)}';
+      
+      print('📄 Downloading PDF from: $url');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Generating PDF...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // Add timeout to prevent hanging
+      final response = await http.get(Uri.parse(url)).timeout(
+        const Duration(seconds: 60),
+        onTimeout: () {
+          throw Exception('Request timeout - server took too long to respond');
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        // Get downloads directory
+        final directory = await getDownloadsDirectory();
+        if (directory == null) {
+          throw Exception('Could not find downloads directory');
+        }
+        
+        // Create file name with current date
+        final fileName = 'USAS-Financial-Report-${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf';
+        final file = File('${directory.path}/$fileName');
+        
+        // Write the file
+        await file.writeAsBytes(response.bodyBytes);
+        
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ PDF downloaded to: ${directory.path}/$fileName'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } else {
+        // ✅ Better error handling for server errors
+        String errorMessage = 'Failed to download PDF (${response.statusCode})';
+        try {
+          // Try to parse error message from response body
+          final errorBody = String.fromCharCodes(response.bodyBytes);
+          if (errorBody.isNotEmpty) {
+            errorMessage += ': $errorBody';
+          }
+        } catch (_) {}
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      // ✅ Specific error message for 500 errors
+      String errorMessage = e.toString();
+      if (errorMessage.contains('500')) {
+        errorMessage = 'Server error (500): The server encountered an error. Please check the backend logs and try again.';
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Error: $errorMessage'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isDownloadingPDF = false);
+      }
+    }
+  }
+
+  // ✅ Improved Download CSV with better error handling
+  Future<void> _downloadCSV() async {
+    // Don't allow concurrent downloads
+    if (_isDownloadingCSV || _isDownloadingPDF) return;
+    
+    setState(() => _isDownloadingCSV = true);
+    
+    try {
+      // Build URL with date parameters
+      String url = 'http://10.0.2.2:8000/api/treasurer/report/download-csv';
+      url += '?start_date=${DateFormat('yyyy-MM-dd').format(_startDate)}';
+      url += '&end_date=${DateFormat('yyyy-MM-dd').format(_endDate)}';
+      
+      print('📊 Downloading CSV from: $url');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Generating CSV...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      // Add timeout to prevent hanging
+      final response = await http.get(Uri.parse(url)).timeout(
+        const Duration(seconds: 60),
+        onTimeout: () {
+          throw Exception('Request timeout - server took too long to respond');
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        // Get downloads directory
+        final directory = await getDownloadsDirectory();
+        if (directory == null) {
+          throw Exception('Could not find downloads directory');
+        }
+        
+        // Create file name with current date
+        final fileName = 'USAS-Financial-Ledger-${DateFormat('yyyyMMdd').format(DateTime.now())}.csv';
+        final file = File('${directory.path}/$fileName');
+        
+        // Write the file
+        await file.writeAsBytes(response.bodyBytes);
+        
+        if (!mounted) return;
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ CSV downloaded to: ${directory.path}/$fileName'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } else {
+        // ✅ Better error handling for server errors
+        String errorMessage = 'Failed to download CSV (${response.statusCode})';
+        try {
+          final errorBody = String.fromCharCodes(response.bodyBytes);
+          if (errorBody.isNotEmpty) {
+            errorMessage += ': $errorBody';
+          }
+        } catch (_) {}
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      
+      String errorMessage = e.toString();
+      if (errorMessage.contains('500')) {
+        errorMessage = 'Server error (500): The server encountered an error. Please check the backend logs and try again.';
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Error: $errorMessage'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isDownloadingCSV = false);
+      }
     }
   }
 
@@ -67,140 +274,123 @@ class _FinancialReportPageState extends State<FinancialReportPage> {
       appBar: const UsasHeader(),
       drawer: const AppSidebar(),
       bottomNavigationBar: const UsasBottomNav(),
-      body: FutureBuilder(
-        future: _fetchReportData(), // ✅ Fetch with date range
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: Consumer<FeesManagementProvider>(
+        builder: (context, provider, child) {
+          if (provider.isLoading || _isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          return Consumer<FeesManagementProvider>(
-            builder: (context, provider, child) {
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(15),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFC1F6AC),
-                        borderRadius: BorderRadius.circular(16),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFC1F6AC),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Align(
+                        alignment: Alignment.center,
+                        child: Text("Reports", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 15),
+                      
+                      GestureDetector(
+                        onTap: () => _selectDateRange(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(formattedRange, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.filter_alt, size: 18, color: Colors.black54),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      Row(
                         children: [
-                          const Align(
-                            alignment: Alignment.center,
-                            child: Text("Reports", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                          ),
-                          const SizedBox(height: 15),
-                          
-                          GestureDetector(
-                            onTap: () => _selectDateRange(context),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey.shade300),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(formattedRange, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.filter_alt, size: 18, color: Colors.black54),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          Row(
-                            children: [
-                              Expanded(child: _buildChartCard("Transaction Volume (Counts)", _buildBarChart(provider))),
-                              const SizedBox(width: 10),
-                              Expanded(child: _buildChartCard("Paid vs Unpaid", _buildPieChart(provider))),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildStatCard(
-                                  "Total Paid", 
-                                  "RM ${NumberFormat('#,##0.00').format(provider.totalPaidReport)}",
-                                  isBlocked: false,
-                                )
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildStatCard(
-                                  "Outstanding Balance", 
-                                  "RM ${NumberFormat('#,##0.00').format(provider.totalOutstandingReport)}",
-                                  isBlocked: false,
-                                )
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildStatCard(
-                                  "Blocked Students", 
-                                  "${provider.summary['blocked'] ?? 0}",
-                                  isBlocked: true,
-                                )
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: provider.isLoading 
-                            ? const CircularProgressIndicator()
-                            : Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _buildActionButton(context, "Download as PDF", Colors.blue, () {
-                                    _downloadPDF(provider);
-                                  }),
-                                  const SizedBox(width: 8),
-                                  _buildActionButton(context, "Download as CSV", Colors.blue, () {
-                                    _downloadCSV(provider);
-                                  }),
-                                ],
-                              ),
-                          ),
-                          const SizedBox(height: 5),
+                          Expanded(child: _buildChartCard("Transaction Volume (Counts)", _buildBarChart(provider))),
+                          const SizedBox(width: 10),
+                          Expanded(child: _buildChartCard("Paid vs Unpaid", _buildPieChart(provider))),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
+                      const SizedBox(height: 20),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildStatCard(
+                              "Total Paid", 
+                              "RM ${NumberFormat('#,##0.00').format(provider.totalPaidReport)}",
+                              isBlocked: false,
+                            )
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildStatCard(
+                              "Outstanding Balance", 
+                              "RM ${NumberFormat('#,##0.00').format(provider.totalOutstandingReport)}",
+                              isBlocked: false,
+                            )
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _buildStatCard(
+                              "Blocked Students", 
+                              "${provider.summary['blocked'] ?? 0}",
+                              isBlocked: true,
+                            )
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildActionButton(
+                              context, 
+                              "Download as PDF", 
+                              Colors.blue, 
+                              _downloadPDF,
+                              _isDownloadingPDF,  // ✅ Pass PDF loading state
+                            ),
+                            const SizedBox(width: 8),
+                            _buildActionButton(
+                              context, 
+                              "Download as CSV", 
+                              Colors.blue, 
+                              _downloadCSV,
+                              _isDownloadingCSV,  // ✅ Pass CSV loading state
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                    ],
+                  ),
                 ),
-              );
-            },
+                const SizedBox(height: 20),
+              ],
+            ),
           );
-        }
-      ),
-    );
-  }
-
-  void _downloadPDF(FeesManagementProvider provider) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Downloading PDF...'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _downloadCSV(FeesManagementProvider provider) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Downloading CSV...'),
-        duration: Duration(seconds: 2),
+        },
       ),
     );
   }
@@ -363,19 +553,28 @@ class _FinancialReportPageState extends State<FinancialReportPage> {
     );
   }
 
-  Widget _buildActionButton(BuildContext context, String text, Color color, VoidCallback action) {
+  Widget _buildActionButton(BuildContext context, String text, Color color, VoidCallback action, bool isDownloading) {
     return ElevatedButton(
-      onPressed: action,
+      onPressed: isDownloading ? null : action,
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         minimumSize: const Size(100, 30),
       ),
-      child: Text(
-        text, 
-        style: const TextStyle(color: Colors.white, fontSize: 10),
-      ),
+      child: isDownloading
+          ? const SizedBox(
+              height: 16,
+              width: 16,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
+          : Text(
+              text, 
+              style: const TextStyle(color: Colors.white, fontSize: 10),
+            ),
     );
   }
 }
